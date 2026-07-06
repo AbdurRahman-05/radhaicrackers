@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Radhe Crackers - Bringing Joy, Spark by Spark')</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Livewire Styles -->
+    @livewireStyles
+    
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-color: #b37a2c;
+            --secondary-color: #1e093b;
+            --accent-color: #ffca49;
+            --text-dark: #222222;
+            --text-light: #666666;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #d4a574 100%);
+        }
+        
+        .firework-animation {
+            animation: firework 2s ease-in-out infinite;
+        }
+       
+        @keyframes firework {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        .sparkle {
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+        }
+        
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .category-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .category-card:hover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, #fff 0%, #fff5e6 100%);
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .discount-badge {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+            color: white;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #d4a574 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #a06a25 0%, #c49563 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(179, 122, 44, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .header-shadow {
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+        
+        .dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .a{
+            font-size: 15px !important;
+        }
+        .a:hover
+         { 
+            color:rgb(182, 113, 33) !important; 
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- Top Bar with Business Info -->
+    <div class="text-white py-2 sm:py-3 shadow" style="background-color:rgb(182, 113, 33);">
+    <div class="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8">
+
+        <div class="flex flex-col md:flex-row items-center justify-between w-full text-xs sm:text-sm gap-2 md:gap-0">
+            <!-- Call Section -->
+            <div class="flex items-start md:items-center md:flex-row">
+                <span class="flex items-center">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                    </svg>
+                    <span class="font-bold">Business Enquiry :</span>
+                </span>
+                <span class="md:ml-1">+91 8807060809</span>
+                <span class="md:ml-1">/</span>
+                <span class="md:ml-1">+91 9751048974</span>
+            </div>
+            <!-- Office Time Section -->
+            <div class="flex items-start md:items-center md:flex-row">
+                <span class="flex items-center">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="font-bold">Office Time :</span>
+                </span>
+                <span class="ml-5 md:ml-1">9am To 9pm-(All days)</span>
+            </div>
+            <!-- User Section -->
+            <!-- Add user section here if needed -->
+        </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<div class="bg-white header-shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <!-- Logo -->
+            <div class="flex items-center flex-shrink-0">
+                <a href="{{ route('home') }}" class="flex items-center" rel="home" aria-label="Radhe Crackers">
+                    <img 
+                        src="{{ asset('images/company_logo.png') }}"
+                        alt="Radhe Crackers"
+                        class="h-10 sm:h-12 w-auto max-w-[140px] sm:max-w-[160px] md:max-w-[200px]"
+                        style="height:50px"
+                    >
+                </a>
+            </div>
+
+            <!-- Search Bar (hidden on small screens) -->
+            <div class="flex-1 max-w-lg mx-auto hidden sm:block">
+              
+            </div>
+
+            <!-- Action Buttons and Cart -->
+            <div class="flex items-center gap-3 sm:gap-6">
+                <!-- Order Now Button -->
+                
+                <!-- Cart Button removed -->
+            </div>
+            <!-- Livewire Cart Component removed -->
+        </div>
+    </div>
+</div>
+
+    <!-- Navigation -->
+    <nav class=" text-white border-b-2 border-gray-900 shadow-sm"style="background-color: #1E093B;">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-12 sm:h-16">
+            
+            <!-- Center: Navigation Links -->
+            <div class="hidden md:flex items-center space-x-2 lg:space-x-6">
+                <a href="{{ route('home') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Home</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('about') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">About Us</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Estimate</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('express-shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Quotation</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('price-list') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Price List</a>
+                <span class="text-white">|</span>
+                <a href="{{ url('/user/orders') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Order Tracking</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('contact') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Contact Us</a>
+            </div>
+
+<div class="hidden md:flex items-center justify-end w-full md:w-1/3 text-right">
+                @auth
+                <span class="flex items-center">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="hidden sm:inline">{{ auth()->user()->name }}</span>
+                    <span class="sm:hidden">{{ auth()->user()->name }}</span>
+                </span>
+                <form method="POST" action="{{ route('logout') }}" class="a inline">
+                    @csrf
+                    <button type="submit" class="a text-white hover:text-gray-200 transition-colors font-medium mx-6">Logout</button>
+                </form>
+                @else
+                <a href="{{ route('login') }}" class="a text-white hover:text-gray-800 transition-colors font-medium">Login</a>
+                @endauth
+            </div>
+
+            <!-- Mobile Buttons -->
+            <div class="md:hidden flex items-center justify-between w-full">
+                <!-- Menu Button Left -->
+                <button onclick="toggleMobileMenu()" class="text-white-700 hover:text-primary-500 p-2 order-1">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <!-- Login/Logout Button Right -->
+                <div class="order-2">
+                    @auth
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="font-bold text-white hover:text-gray-200 transition-colors">Logout</button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" class="font-bold text-white hover:text-gray-200 transition-colors">Login</a>
+                    @endauth
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="mobile-menu fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
+        <div class="bg-white w-[280px] sm:w-[320px] h-full overflow-y-auto">
+            <div class="p-4 sm:p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">Menu</h2>
+                    <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                {{--
+                <div class="mb-6">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3">Categories</h3>
+                    <div class="space-y-2">
+                        @foreach($categories as $category => $data)
+                            <a href="{{ route('shop') }}?category={{ urlencode($category) }}" class="flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                                <div class="flex items-center space-x-2 sm:space-x-3">
+                                    <span class="text-base sm:text-lg">{{ $data['icon'] }}</span>
+                                    <span class="text-xs sm:text-sm font-medium text-gray-900">{{ $category }}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">({{ $data['count'] }})</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+                --}}
+                
+                <!-- Mobile Navigation Links -->
+                <div class="space-y-2">
+                    <a href="{{ route('home') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-sm sm:text-base">Home</a>
+                    <a href="{{ route('about') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">About Us</a>
+                    <a href="{{ route('shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Estimate</a>
+                    <a href="{{ route('express-shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Quotation</a>
+                    <a href="{{ route('price-list') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Price List</a>
+                    <a href="{{ url('/user/orders') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Order Tracking</a>
+                    <a href="{{ route('contact') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Contact Us</a>
+                </div>
+                
+                <!-- Mobile User Menu -->
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        @yield('content')
+    </main>
+
+    <!-- Footer -->
+    <footer class=" text-black">
+        <!-- Footer Content -->
+        <div class="py-16">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <!-- Company Info as Image Module -->
+                    <div class="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
+                        <div class="p-8 w-full flex flex-col items-center md:items-start ">
+                        
+    <a href="{{ route('home') }}" class="flex items-center pb-3" rel="home" aria-label="Radhe Crackers">
+        <img 
+            src="{{ asset('images/company_logo.png') }}" class="custom-logo h-10 sm:h-10 md:h-12 w-auto max-w-[120px] sm:max-w-[150px] md:max-w-[200px] lg:max-w-none"
+            alt="Radhe Crackers" style="height:80px"
+           
+             >
+                </a>
+                            <p class="text-center md:text-left mb-0 mt-2 text-sm md:text-base">
+                                Your trusted fireworks destination in Sivakasi, the firecracker capital of India. 
+                                We offer the finest quality fireworks at competitive prices, backed by our commitment 
+                                to safety and customer satisfaction.
+                            </p>
+                            <div class="flex space-x-4 mt-6 md:mt-8">
+                            <a href="#" class="a text-gray-900  ">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                                </svg>
+                            </a>
+                            
+                            <a href="#" class="a text-gray-900 ">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.746-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z"/>
+                                </svg>
+                            </a>
+                        </div>
+                        </div>
+                        
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-6">Quick Links</h3>
+                        <ul class="space-y-3">
+                            <li><a href="{{ route('home') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Home</a></li>
+                            <li><a href="{{ route('about') }}" class="a text-black-300 hover:text-orange-400 transition-colors">About Us</a></li>
+                            <li><a href="{{ route('shop') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Crackers</a></li>
+                            <li><a href="{{ route('express-shop') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Express Shop</a></li>
+                            <li><a href="{{ url('/user/orders') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Order Tracking</a></li>
+                            <li><a href="{{ route('contact') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Contact Us</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-6">Contact Info</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="a w-6 h-6 text-gray-700 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                </svg>
+                                <div>
+                                    <p class="text-black-300 text-sm">4/273-11/7, Virudhunagar Main Road, Amathur ,Virudhunagar District, Tamilnadu-626005
+            </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <svg class="a w-6 h-6 text-gray-700 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                </svg>
+                                <div>
+                                    <a href="tel:+918807060809" class="text-black-300 hover:text-black-400 transition-colors text-sm">+91 8807060809</a><br>
+                                    <a href="tel:+919751048974" class="text-black-300 hover:text-black-400 transition-colors text-sm">+91 9751048974</a>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <svg class="a w-6 h-6 text-gray-700 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                </svg>
+                                <a href="mailto:radhecrackers@gmail.com" class=" a text-black-300 hover:text-orange-400 transition-colors text-sm">radhecrackers@gmail.com</a>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <svg class="a w-6 h-6 text-gray-700 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-black-300 text-sm">Office Time: 9am To 9pm-(All days)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="border-t border-gray-800 py-6">
+            <div class="max-w-6xl mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-center items-center">
+                    <p class="text-black-400 text-sm ">
+                        Copyrights © {{ date('Y') }}. Radhe Crackers. All Rights Reserved.
+                    </p>
+                   <!-- <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="a text-black-400 hover:text-orange-400 transition-colors text-sm">Privacy Policy</a>
+                        <a href="#" class="a text-black-400 hover:text-orange-400 transition-colors text-sm">Terms of Service</a>
+                        <a href="#" class="a text-black-400 hover:text-orange-400 transition-colors text-sm">Shipping Policy</a>
+                    </div> -->
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+
+    <!-- Best Offers Popup -->
+    <div id="bestOffersPopup" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex justify-end h-full">
+            <div class="bg-white w-full max-w-[280px] sm:max-w-[320px] md:max-w-md h-full transform translate-x-full transition-transform duration-300" id="popupContent">
+                <div class="p-4 sm:p-6 h-full flex flex-col">
+                    <div class="flex justify-between items-center mb-4 sm:mb-6">
+                        <h2 class="text-lg sm:text-xl font-bold text-gray-900">Best Offers</h2>
+                        <button onclick="toggleBestOffersPopup()" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <livewire:components.best-offers />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Livewire Scripts -->
+    @livewireScripts
+    
+    <!-- Custom JavaScript -->
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('open');
+        }
+        
+        function toggleBestOffersPopup() {
+            const popup = document.getElementById('bestOffersPopup');
+            const content = document.getElementById('popupContent');
+            
+            if (popup.classList.contains('hidden')) {
+                popup.classList.remove('hidden');
+                setTimeout(() => {
+                    content.style.transform = 'translateX(0)';
+                }, 10);
+            } else {
+                content.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    popup.classList.add('hidden');
+                }, 300);
+            }
+        }
+        
+        function toggleCartFromHeader() {
+            // Find the cart component and trigger its toggle method
+            const cartComponent = document.querySelector('[wire\\:id*="pages.cart"]');
+            if (cartComponent) {
+                const wireId = cartComponent.getAttribute('wire:id');
+                if (wireId && Livewire.find(wireId)) {
+                    // Use Livewire's call method to trigger the toggleCart method
+                    Livewire.find(wireId).call('toggleCart');
+                } else {
+                    // Fallback: try to find any cart component
+                    const allCartComponents = document.querySelectorAll('[wire\\:id*="cart"]');
+                    if (allCartComponents.length > 0) {
+                        const firstCart = allCartComponents[0];
+                        const firstWireId = firstCart.getAttribute('wire:id');
+                        if (firstWireId && Livewire.find(firstWireId)) {
+                            Livewire.find(firstWireId).call('toggleCart');
+                        }
+                    }
+                }
+            } else {
+                // Alternative approach: try to click the floating cart button
+                const floatingCartButton = document.querySelector('[wire\\:click="toggleCart"]');
+                if (floatingCartButton) {
+                    floatingCartButton.click();
+                } else {
+                    console.log('Cart component not found');
+                }
+            }
+        }
+        
+        // Function to update header cart display
+        function updateHeaderCart(total, itemCount) {
+            const totalElement = document.getElementById('header-cart-total');
+            const countElement = document.getElementById('header-cart-count');
+            
+            if (totalElement) {
+                totalElement.textContent = parseFloat(total).toFixed(2);
+            }
+            
+            if (countElement) {
+                countElement.textContent = itemCount;
+                countElement.style.display = itemCount > 0 ? 'inline-block' : 'none';
+            }
+        }
+        
+        // Listen for cart updates from Livewire
+        document.addEventListener('livewire:load', function () {
+            // Listen for cart update events
+            Livewire.on('cartUpdated', (data) => {
+                updateHeaderCart(data.total, data.itemCount);
+            });
+            
+            // Also update on component updates
+            Livewire.hook('message.processed', (message, component) => {
+                if (component.fingerprint.name === 'pages.cart') {
+                    // Update header cart when cart component updates
+                    const total = component.get('total') || 0;
+                    const itemCount = component.get('itemCount') || 0;
+                    updateHeaderCart(total, itemCount);
+                }
+            });
+            
+            // Initial cart load - update header after a short delay
+            setTimeout(() => {
+                const cartComponents = document.querySelectorAll('[wire\\:id*="pages.cart"]');
+                if (cartComponents.length > 0) {
+                    const cartComponent = cartComponents[0];
+                    const wireId = cartComponent.getAttribute('wire:id');
+                    if (wireId && Livewire.find(wireId)) {
+                        const component = Livewire.find(wireId);
+                        const total = component.get('total') || 0;
+                        const itemCount = component.get('itemCount') || 0;
+                        updateHeaderCart(total, itemCount);
+                    }
+                }
+            }, 500);
+        });
+        
+        // Close mobile menu when clicking outside
+        document.getElementById('mobileMenu').addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleMobileMenu();
+            }
+        });
+        
+        // Close best offers popup when clicking outside
+        document.getElementById('bestOffersPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleBestOffersPopup();
+            }
+        });
+    </script>
+</body>
+</html> 
