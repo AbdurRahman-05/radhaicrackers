@@ -21,25 +21,27 @@ use Illuminate\Support\Facades\File;
 
 
 
-Route::get('/test-storage', function () {
-    // Test if we can access storage files
-    $storagePath = public_path('storage');
-    $files = [];
-    
-    if (is_dir($storagePath)) {
-        $files = scandir($storagePath);
-        $files = array_filter($files, function($file) {
-            return $file !== '.' && $file !== '..';
-        });
-    }
-    
-    return response()->json([
-        'storage_path' => $storagePath,
-        'storage_exists' => is_dir($storagePath),
-        'files' => array_values($files),
-        'config_disk' => config('filesystems.disks.public.root')
-    ]);
-});
+// Debug routes - only available in local environment
+if (app()->environment('local')) {
+    Route::get('/test-storage', function () {
+        // Test if we can access storage files
+        $storagePath = public_path('storage');
+        $files = [];
+        
+        if (is_dir($storagePath)) {
+            $files = scandir($storagePath);
+            $files = array_filter($files, function($file) {
+                return $file !== '.' && $file !== '..';
+            });
+        }
+        
+        return response()->json([
+            'storage_path' => $storagePath,
+            'storage_exists' => is_dir($storagePath),
+            'files' => array_values($files),
+            'config_disk' => config('filesystems.disks.public.root')
+        ]);
+    });
 
 
 
@@ -271,3 +273,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/admin/galleryImages-upload', \App\Livewire\Admin\StockImageUpload::class)->name('galleryImages-upload.index');
     });
 });
+
+    Route::get('/run-migrations', function () {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            return 'Migration output: <pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre>';
+        } catch (\Exception $e) {
+            return 'Error during migration: ' . $e->getMessage();
+        }
+    });
+} // end local-only debug routes
