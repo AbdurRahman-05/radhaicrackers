@@ -162,6 +162,7 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 80px;">S.No.</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -171,7 +172,12 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         @if(is_array($order->items))
                             @foreach($order->items as $item)
+                            @php
+                                $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                                $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                            @endphp
                             <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900">{!! html_entity_decode($item['product_name'] ?? '-') !!}</div>
                                 </td>
@@ -182,9 +188,14 @@
                             @endforeach
                         @else
                         @foreach($order->items as $item)
+                        @php
+                            $productId = $item->product_id ?? $item->stock_id ?? null;
+                            $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                        @endphp
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{!! html_entity_decode($item['product_name'] ?? '-') !!}</div>
+                                    <div class="text-sm font-medium text-gray-900">{!! html_entity_decode($item->product_name ?? '-') !!}</div>
                             </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->quantity ?? '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($item->price ?? $item->rate ?? 0, 2) }}</td>

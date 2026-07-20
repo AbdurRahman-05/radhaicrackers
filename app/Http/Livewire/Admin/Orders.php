@@ -46,6 +46,12 @@ class Orders extends Component
     // Order Items editing array
     public $editingOrderItems = [];
 
+    // Add Items properties
+    public $newItemSearch = '';
+    public $newItemId = null;
+    public $newItemQty = 1;
+    public $searchItemsList = [];
+
     public $editingReceiveAmountId = null;
     public $receiveAmountInput = null;
 
@@ -56,6 +62,7 @@ class Orders extends Component
         'date_from' => ['except' => ''],
         'date_to' => ['except' => ''],
         'selected_year' => ['except' => ''],
+        'delivery_type_filter' => ['except' => ''],
     ];
 
     public function mount()
@@ -215,8 +222,91 @@ class Orders extends Component
             'editingOrderId', 'editStatus', 'editPaymentStatus', 'editNotes', 'editReceiveAmount',
             'editCustomerName', 'editCustomerMobile', 'editCustomerEmail', 'editCustomerState',
             'editCustomerDistrict', 'editCustomerCity', 'editDeliveryPoint', 'editPinCode',
-            'editingOrderItems', 'editHasGst', 'editTransportProvider', 'editTransportDetails', 'editDeliveryType'
+            'editingOrderItems', 'editHasGst', 'editTransportProvider', 'editTransportDetails', 'editDeliveryType',
+            'newItemSearch', 'newItemId', 'newItemQty', 'searchItemsList'
         ]);
+    }
+
+    public function fetchSearchResults()
+    {
+        $query = \App\Models\Stock::where('is_active', true);
+        if ($this->newItemSearch) {
+            $query->where('item_name', 'like', '%' . $this->newItemSearch . '%');
+        }
+        $this->searchItemsList = $query->limit(20)->get()->toArray();
+    }
+
+    public function updatedNewItemSearch($value)
+    {
+        $this->fetchSearchResults();
+    }
+
+    public function selectNewItem($stockId)
+    {
+        $stock = \App\Models\Stock::find($stockId);
+        if ($stock) {
+            $this->newItemId = $stock->id;
+            $this->newItemSearch = $stock->item_name;
+            $this->searchItemsList = [];
+        }
+    }
+
+    public function addNewItem()
+    {
+        if (!$this->newItemId) {
+            session()->flash('modal_error', 'Please select a product first.');
+            return;
+        }
+
+        $stock = \App\Models\Stock::find($this->newItemId);
+        if (!$stock) {
+            session()->flash('modal_error', 'Selected product not found.');
+            return;
+        }
+
+        if ($this->newItemQty <= 0) {
+            session()->flash('modal_error', 'Quantity must be at least 1.');
+            return;
+        }
+
+        // Check if item is already in editingOrderItems
+        $foundIndex = null;
+        foreach ($this->editingOrderItems as $index => $item) {
+            if (($item['product_id'] ?? null) == $stock->id) {
+                $foundIndex = $index;
+                break;
+            }
+        }
+
+        if ($foundIndex !== null) {
+            $this->editingOrderItems[$foundIndex]['quantity'] += (int)$this->newItemQty;
+        } else {
+            $this->editingOrderItems[] = [
+                'product_id' => $stock->id,
+                'product_name' => $stock->item_name,
+                'price' => (float)$stock->price,
+                'original_price' => (float)$stock->original_price,
+                'discount_percentage' => (int)$stock->discount_percentage,
+                'special_discount_percentage' => (int)$stock->special_discount_percentage,
+                'quantity' => (int)$this->newItemQty,
+            ];
+        }
+
+        // Reset inputs
+        $this->newItemSearch = '';
+        $this->newItemId = null;
+        $this->newItemQty = 1;
+        $this->searchItemsList = [];
+
+        session()->flash('modal_success', 'Item added to order list.');
+    }
+
+    public function removeItem($index)
+    {
+        if (isset($this->editingOrderItems[$index])) {
+            unset($this->editingOrderItems[$index]);
+            $this->editingOrderItems = array_values($this->editingOrderItems);
+        }
     }
 
     public function recalculateTotals()
@@ -281,6 +371,13 @@ class Orders extends Component
 
             // Store old values for logging
             $oldStatus = $order->status;
+
+            // Once status is "Confirmed", do not allow it to change back to "Pending"
+            if (in_array($oldStatus, ['confirmed', 'dispatched', 'completed']) && $this->editStatus === 'pending') {
+                $this->addError('editStatus', 'Status cannot be reverted to Pending once Confirmed, Dispatched or Completed.');
+                return;
+            }
+
             $oldPaymentStatus = $order->payment_status;
             $oldNotes = $order->notes;
             $oldReceiveAmount = $order->receive_amount;
@@ -572,7 +669,7 @@ class Orders extends Component
         return redirect()->route('admin.orders.download_all_invoice_pdf');
     }
 
-    private function getFilteredOrders()
+    private function getFilteredOrdersQuery()
     {
         $query = Order::with(['user', 'items'])
             ->orderBy('created_at', 'desc');
@@ -582,10 +679,12 @@ class Orders extends Component
         }
 
         if ($this->search) {
-            $query->whereHas('user', function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('phone', 'like', '%' . $this->search . '%');
-            })->orWhere('id', 'like', '%' . $this->search . '%');
+            $query->where(function($mainSearch) {
+                $mainSearch->whereHas('user', function($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                      ->orWhere('phone', 'like', '%' . $this->search . '%');
+                })->orWhere('id', 'like', '%' . $this->search . '%');
+            });
         }
 
         if ($this->status_filter) {
@@ -616,12 +715,17 @@ class Orders extends Component
             }
         }
 
-        return $query->get();
+        return $query;
+    }
+
+    private function getFilteredOrders()
+    {
+        return $this->getFilteredOrdersQuery()->get();
     }
 
     public function render()
     {
-        $orders = $this->getFilteredOrders();
+        $orders = $this->getFilteredOrdersQuery()->paginate(20);
         
         \Log::info('Orders component rendering', [
             'showEditModal' => $this->showEditModal,
@@ -636,15 +740,59 @@ class Orders extends Component
         if ($this->selected_year) {
             $statsQuery->whereYear('created_at', $this->selected_year);
         }
+        if ($this->search) {
+            $statsQuery->where(function($mainSearch) {
+                $mainSearch->whereHas('user', function($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                      ->orWhere('phone', 'like', '%' . $this->search . '%');
+                })->orWhere('id', 'like', '%' . $this->search . '%');
+            });
+        }
+        if ($this->payment_filter) {
+            $statsQuery->where('payment_status', $this->payment_filter);
+        }
+        if ($this->date_from) {
+            $statsQuery->whereDate('created_at', '>=', $this->date_from);
+        }
+        if ($this->date_to) {
+            $statsQuery->whereDate('created_at', '<=', $this->date_to);
+        }
+        if ($this->delivery_type_filter) {
+            if ($this->delivery_type_filter === 'none') {
+                $statsQuery->where(function($q) {
+                    $q->whereNull('delivery_type')
+                      ->orWhere('delivery_type', 'none')
+                      ->orWhere('delivery_type', '');
+                });
+            } else {
+                $statsQuery->where('delivery_type', $this->delivery_type_filter);
+            }
+        }
+
+        // Pre-calculate full active stocks serial mapping to match price list catalog serials
+        $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
+        $allActiveStocks = \App\Models\Stock::where('is_active', true)->get()->groupBy('category');
+        $catalogSnoMap = [];
+        $snoCounter = 0;
+        foreach ($allActiveCats as $cat) {
+            $catStocks = $allActiveStocks->get($cat->name) ?? $allActiveStocks->get($cat->id) ?? collect();
+            foreach ($catStocks->sortBy('order_within_category') as $stockItem) {
+                $snoCounter++;
+                $catalogSnoMap[$stockItem->id] = $snoCounter;
+            }
+        }
         
         return view('livewire.admin.orders', [
             'orders' => $orders,
             'editingOrder' => $this->editingOrderId ? Order::with(['user', 'items'])->find($this->editingOrderId) : null,
-            'totalOrders' => (clone $statsQuery)->count(),
+            'totalOrders' => (clone $statsQuery)->when($this->status_filter, function($q) {
+                $q->where('status', $this->status_filter);
+            })->count(),
             'pendingOrders' => (clone $statsQuery)->where('status', 'pending')->count(),
             'confirmedOrders' => (clone $statsQuery)->where('status', 'confirmed')->count(),
             'dispatchedOrders' => (clone $statsQuery)->where('status', 'dispatched')->count(),
             'completedOrders' => (clone $statsQuery)->where('status', 'completed')->count(),
+            'catalogSnoMap' => $catalogSnoMap,
         ]);
     }
 }

@@ -297,11 +297,29 @@
                 <td>{{ $order->id }}</td>
             </tr>
             <tr>
-                <td><strong>Bill No:</strong></td>
+                <td><strong>Estimate Number:</strong></td>
                 <td>{{ 'RAD' . $order->created_at->format('y') . str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</td>
-                <td><strong>Bill Date:</strong></td>
+                <td><strong>Estimate Date:</strong></td>
                 <td>{{ \Carbon\Carbon::now()->format('d-m-y') }}</td>
             </tr>
+            @if($order->payment_status === 'paid')
+            <tr>
+                @php
+                    $paymentDate = '-';
+                    if ($order->payment && $order->payment->verified_at) {
+                        $paymentDate = $order->payment->verified_at->format('d-m-Y');
+                    } elseif ($order->payment && $order->payment->created_at) {
+                        $paymentDate = $order->payment->created_at->format('d-m-Y');
+                    } else {
+                        $paymentDate = $order->updated_at->format('d-m-Y');
+                    }
+                @endphp
+                <td><strong>Payment Date:</strong></td>
+                <td>{{ $paymentDate }}</td>
+                <td><strong>Payment Status:</strong></td>
+                <td>Paid</td>
+            </tr>
+            @endif
         </table>
     </div>
 </div><br>
@@ -532,7 +550,7 @@
             </div>
         </div>
         <div style="margin-top: 15px; margin-bottom: 10px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">
-            <strong>Note:</strong> The invoice date will be generated only after the order is confirmed.
+            <strong>Note:</strong> Once the status is "Confirmed", it cannot be changed back to "Pending".
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:10px; border:1px solid #000;page-break-inside: avoid;">
             <tr>
@@ -546,8 +564,11 @@
                     <span style="text-decoration:underline;">For Radhe Crackers</span>
                 </td>
             </tr>
-            
         </table>
+        
+        <div style="text-align: center; margin-top: 20px; font-size: 13px; font-weight: bold; color: #1E093B; page-break-inside: avoid;">
+            🎆 Wishing You a Happy, Safe & Prosperous Diwali! 🎇
+        </div>
     @endif
 
     

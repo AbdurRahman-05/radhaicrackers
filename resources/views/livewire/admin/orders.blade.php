@@ -39,7 +39,7 @@
     </div>
 
     <!-- Statistics -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div class="bg-blue-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-blue-600">{{ $totalOrders }}</div>
             <div class="text-sm text-blue-600">Total Orders</div>
@@ -55,6 +55,10 @@
         <div class="bg-purple-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-purple-600">{{ $dispatchedOrders }}</div>
             <div class="text-sm text-purple-600">Dispatched</div>
+        </div>
+        <div class="bg-emerald-50 p-4 rounded-lg">
+            <div class="text-2xl font-bold text-emerald-600">{{ $completedOrders }}</div>
+            <div class="text-sm text-emerald-600">Completed</div>
         </div>
     </div>
 
@@ -239,6 +243,9 @@
             </tbody>
         </table>
     </div>
+    <div class="mt-4">
+        {{ $orders->links() }}
+    </div>
 
     <!-- Edit Order Modal (Single Window Split View) -->
     @if($showEditModal && $editingOrder)
@@ -355,36 +362,99 @@
                     </div>
 
                     <!-- Ordered Items List (Editable Quantities) -->
-                    <div class="border border-gray-100 rounded-xl overflow-hidden">
+                    <div class="border border-gray-100 rounded-xl overflow-visible">
                         <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500">📦 Order Items (Edit Qty directly)</h4>
                             <span class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-semibold">
                                 {{ count($editingOrderItems) }} items
                             </span>
                         </div>
+                        
+                        <!-- Modal Notifications for Add Item -->
+                        @if (session()->has('modal_success'))
+                            <div class="px-4 py-2 bg-green-50 border-b border-green-200 text-green-700 text-xs font-semibold flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                {{ session('modal_success') }}
+                            </div>
+                        @endif
+                        @if (session()->has('modal_error'))
+                            <div class="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs font-semibold flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                {{ session('modal_error') }}
+                            </div>
+                        @endif
+
                         <div class="overflow-x-auto max-h-56 overflow-y-auto">
                             <table class="min-w-full divide-y divide-gray-100 text-xs">
                                 <thead class="bg-gray-50 text-gray-500 font-medium">
                                     <tr>
+                                        <th class="px-4 py-2 text-left" style="width: 60px;">S.No.</th>
                                         <th class="px-4 py-2 text-left">Item Name</th>
                                         <th class="px-4 py-2 text-center" style="width: 100px;">Qty</th>
                                         <th class="px-4 py-2 text-right">Price</th>
                                         <th class="px-4 py-2 text-right">Total</th>
+                                        <th class="px-4 py-2 text-center" style="width: 50px;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-100 text-gray-700">
                                     @foreach($editingOrderItems as $index => $item)
+                                    @php
+                                        $productId = $item['product_id'] ?? null;
+                                        $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                                    @endphp
                                     <tr>
+                                        <td class="px-4 py-2 text-left text-gray-500 font-medium">{{ $catalogSno }}</td>
                                         <td class="px-4 py-2 font-medium text-gray-900">{!! html_entity_decode($item['product_name'] ?? '-') !!}</td>
                                         <td class="px-4 py-2 text-center">
                                             <input type="number" min="0" wire:model.live="editingOrderItems.{{ $index }}.quantity" class="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-center font-bold text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none" />
                                         </td>
                                         <td class="px-4 py-2 text-right">₹{{ number_format($item['price'], 2) }}</td>
                                         <td class="px-4 py-2 text-right font-semibold text-gray-900">₹{{ number_format($item['price'] * (int)($item['quantity'] ?? 0), 2) }}</td>
+                                        <td class="px-4 py-2 text-center">
+                                            <button type="button" wire:click="removeItem({{ $index }})" class="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                                <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Add Item Input UI Form Section -->
+                        <div class="bg-purple-50/50 p-4 border-t border-b border-gray-100 overflow-visible">
+                            <h5 class="text-xs font-bold uppercase tracking-wider text-purple-700 mb-2 flex items-center gap-1">
+                                ➕ Add Product to Order
+                            </h5>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end overflow-visible">
+                                <div class="relative sm:col-span-2 overflow-visible" id="productSearchContainer">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Product Search</label>
+                                    <input type="text" wire:model.live="newItemSearch" wire:focus="fetchSearchResults" placeholder="Type name or click to search..." class="w-full px-2.5 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
+                                    
+                                    @if(!empty($searchItemsList))
+                                        <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
+                                            @foreach($searchItemsList as $stockItem)
+                                                <button type="button" wire:click="selectNewItem({{ $stockItem['id'] }})" class="w-full text-left px-3 py-2 text-xs hover:bg-purple-100 hover:text-purple-800 transition-colors border-b border-gray-100 last:border-b-0 flex justify-between items-center">
+                                                    <span class="font-medium text-gray-800">{{ $stockItem['item_name'] }}</span>
+                                                    <span class="text-purple-600 font-bold">₹{{ number_format($stockItem['price'], 2) }}</span>
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <div class="w-full">
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Qty</label>
+                                    <input type="number" min="1" wire:model="newItemQty" class="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center font-bold focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
+                                </div>
+                                
+                                <div>
+                                    <button type="button" wire:click="addNewItem" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1 rounded transition-colors flex items-center justify-center gap-1.5 h-[28px] shadow-sm">
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Real-time Order Calculations Breakdown -->
@@ -444,7 +514,9 @@
                         <div>
                             <label for="editStatus" class="block text-xs font-semibold text-gray-600 mb-1">Order Status</label>
                             <select id="editStatus" wire:model="editStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                <option value="pending">Pending</option>
+                                @if(!in_array($editingOrder->status, ['confirmed', 'dispatched', 'completed']))
+                                    <option value="pending">Pending</option>
+                                @endif
                                 <option value="confirmed">Confirmed</option>
                                 <option value="dispatched">Dispatched</option>
                                 <option value="completed">Completed</option>
@@ -535,6 +607,11 @@ document.addEventListener('livewire:init', () => {
 document.addEventListener('click', function(event) {
     if (event.target.id === 'editModal') {
         @this.closeEditModal();
+    }
+    
+    // Close search dropdown when clicking outside
+    if (!event.target.closest('#productSearchContainer')) {
+        @this.set('searchItemsList', []);
     }
 });
 </script> 

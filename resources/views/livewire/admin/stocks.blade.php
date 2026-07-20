@@ -111,10 +111,19 @@
 
     <!-- Filters -->
     <div class="bg-gray-50 p-4 rounded-lg mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <input wire:model.live="search" type="text" placeholder="Stock name, description" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Year (Order Count Stats)</label>
+                <select wire:model.live="selected_year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Years</option>
+                    @foreach($available_years as $yr)
+                        <option value="{{ $yr }}">{{ $yr }}</option>
+                    @endforeach
+                </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -137,6 +146,7 @@
         <table class="min-w-full bg-white border border-gray-200">
             <thead class="bg-gray-50">
                 <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No.</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -150,6 +160,9 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($stocks as $stock)
                 <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                        {{ $catalogSnoMap[$stock->id] ?? '-' }}
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center space-x-3">
                             @if($stock->image)
@@ -157,13 +170,15 @@
                             @else
                                 <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
                                     <span class="text-lg">
-                                        @switch($stock->category)
+                                        @switch(strtoupper($stock->category))
+                                            @case('BOMB')
                                             @case('BOMBS')
                                                 💣
                                                 @break
                                             @case('SINGLE FLASH')
                                                 ⚡
                                                 @break
+                                            @case('ROCKET')
                                             @case('ROCKETS')
                                                 🚀
                                                 @break
@@ -176,6 +191,7 @@
                                             @case('TWINKLING STAR')
                                                 ⭐
                                                 @break
+                                            @case('BOXING')
                                             @case('GIFT BOX')
                                                 🎁
                                                 @break
@@ -308,6 +324,7 @@
                             <option value="BOMBS">BOMBS</option>
                             <option value="CHIT PUT">CHIT PUT</option>
                             <option value="GIFT BOX">GIFT BOX</option>
+                            <option value="BOXING">BOXING</option>
                             <option value="ROCKETS">ROCKETS</option>
                             <option value="SINGLE FLASH">SINGLE FLASH</option>
                             <option value="SPARKLERS">SPARKLERS</option>
@@ -393,6 +410,7 @@
                             <option value="BOMBS">BOMBS</option>
                             <option value="CHIT PUT">CHIT PUT</option>
                             <option value="GIFT BOX">GIFT BOX</option>
+                            <option value="BOXING">BOXING</option>
                             <option value="ROCKETS">ROCKETS</option>
                             <option value="SINGLE FLASH">SINGLE FLASH</option>
                             <option value="SPARKLERS">SPARKLERS</option>

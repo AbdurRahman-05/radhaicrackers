@@ -289,11 +289,11 @@
 
     <!-- Note -->
     <div style="margin-top: 15px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">
-        <strong>Note:</strong> The invoice date will be generated only after the order is confirmed.
+        <strong>Note:</strong> Once the status is "Confirmed", it cannot be changed back to "Pending".
     </div>
 
     <!-- Signature Row -->
-    <table style="width:100%; border-collapse:collapse; margin-top:32px; border:1px solid #000;">
+    <table style="width:100%; border-collapse:collapse; margin-top:32px; border:1px solid #000; page-break-inside: avoid;">
         <tr>
             <td style="width:33.33%; border:1px solid #000; text-align:center; height:48px; vertical-align:bottom; font-size:13px; font-weight:bold;">
                 <span style="text-decoration:underline;">Prepared By</span>
@@ -306,6 +306,10 @@
             </td>
         </tr>
     </table>
+    
+    <div style="text-align: center; margin-top: 20px; font-size: 13px; font-weight: bold; color: #1E093B; page-break-inside: avoid;">
+        🎆 Wishing You a Happy, Safe & Prosperous Diwali! 🎇
+    </div>
 </div>
 </body>
 </html> 

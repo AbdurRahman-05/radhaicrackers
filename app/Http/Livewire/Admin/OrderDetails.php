@@ -94,6 +94,21 @@ class OrderDetails extends Component
 
     public function render()
     {
-        return view('livewire.admin.order-details');
+        // Pre-calculate full active stocks serial mapping to match price list catalog serials
+        $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
+        $allActiveStocks = \App\Models\Stock::where('is_active', true)->get()->groupBy('category');
+        $catalogSnoMap = [];
+        $snoCounter = 0;
+        foreach ($allActiveCats as $cat) {
+            $catStocks = $allActiveStocks->get($cat->name) ?? $allActiveStocks->get($cat->id) ?? collect();
+            foreach ($catStocks->sortBy('order_within_category') as $stockItem) {
+                $snoCounter++;
+                $catalogSnoMap[$stockItem->id] = $snoCounter;
+            }
+        }
+
+        return view('livewire.admin.order-details', [
+            'catalogSnoMap' => $catalogSnoMap,
+        ]);
     }
 } 

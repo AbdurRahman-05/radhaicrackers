@@ -9,6 +9,36 @@ use Livewire\WithFileUploads;
 use Carbon\Carbon;
 
 class Stocks extends Component
+{
+    use WithPagination, WithFileUploads;
+
+    public $search = '';
+    public $status_filter = '';
+    public $showAddModal = false;
+    public $showEditModal = false;
+    public $editingStock = null;
+    
+    public $selected_year = '2025';
+    public $available_years = [];
+
+    public function mount()
+    {
+        $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+
+        if (!in_array(2025, $orderYears)) {
+            array_unshift($orderYears, 2025);
+        }
+        if (!in_array(2026, $orderYears)) {
+            array_unshift($orderYears, 2026);
+        }
+
+        $this->available_years = array_values(array_unique($orderYears));
+    }
+
     public function exportOrderedItems()
     {
         // Get all stocks with ordered_count > 0
@@ -33,14 +63,8 @@ class Stocks extends Component
         $this->dispatch('download-csv');
         session()->flash('success', 'Ordered items export ready! Download will start automatically.');
     }
-{
-    use WithPagination, WithFileUploads;
 
-    public $search = '';
-    public $status_filter = '';
-    public $showAddModal = false;
-    public $showEditModal = false;
-    public $editingStock = null;
+
     
     // Add/Edit form fields
     public $item_name = '';
@@ -490,10 +514,26 @@ class Stocks extends Component
     {
         $stocks = $this->getFilteredStocks()->paginate(10);
 
+        // Pre-calculate full active stocks serial mapping to match price list catalog serials
+        $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
+        $allActiveStocks = \App\Models\Stock::where('is_active', true)->get()->groupBy('category');
+        $catalogSnoMap = [];
+        $snoCounter = 0;
+        foreach ($allActiveCats as $cat) {
+            $catStocks = $allActiveStocks->get($cat->name) ?? $allActiveStocks->get($cat->id) ?? collect();
+            foreach ($catStocks->sortBy('order_within_category') as $stockItem) {
+                $snoCounter++;
+                $catalogSnoMap[$stockItem->id] = $snoCounter;
+            }
+        }
+
         // Add order count for each stock (excluding 'pending' orders)
         foreach ($stocks as $stock) {
             $jsonCount = \App\Models\Order::whereIn('status', ['confirmed', 'dispatched', 'cancelled'])
                 ->whereNotNull('items_json')
+                ->when($this->selected_year, function($q) {
+                    $q->whereYear('created_at', $this->selected_year);
+                })
                 ->get()
                 ->sum(function($order) use ($stock) {
                     $items = $order->items_json ?? [];
@@ -503,7 +543,7 @@ class Stocks extends Component
                             $decodedProductName = html_entity_decode($productName, ENT_QUOTES, 'UTF-8');
                             $quantity = (int)($item['quantity'] ?? 1);
                             if ($decodedProductName === $stock->item_name) {
-                                return $quantity;
+                                  return $quantity;
                             }
                             $partialMatches = \App\Models\Stock::where('item_name', 'LIKE', '%' . $decodedProductName . '%')->get();
                             if ($partialMatches->count() === 1 && $partialMatches->first()->id === $stock->id) {
@@ -515,12 +555,18 @@ class Stocks extends Component
             $orderedCount = \App\Models\OrderItem::where('stock_id', $stock->id)
                 ->whereHas('order', function($q) {
                     $q->whereIn('status', ['confirmed', 'dispatched', 'cancelled']);
+                    if ($this->selected_year) {
+                        $q->whereYear('created_at', $this->selected_year);
+                    }
                 })
                 ->sum('quantity');
             if ($orderedCount == 0) {
                 $orderedCount = \App\Models\OrderItem::where('product_name', $stock->item_name)
                     ->whereHas('order', function($q) {
                         $q->whereIn('status', ['confirmed', 'dispatched', 'cancelled']);
+                        if ($this->selected_year) {
+                            $q->whereYear('created_at', $this->selected_year);
+                        }
                     })
                     ->sum('quantity');
             }
@@ -534,6 +580,7 @@ class Stocks extends Component
             'availableStocks' => Stock::where('quantity', '>', 0)->count(),
             'outOfStock' => Stock::where('quantity', 0)->count(),
             'totalValue' => Stock::sum(\DB::raw('quantity * price')),
+            'catalogSnoMap' => $catalogSnoMap,
         ]);
     }
 } 
