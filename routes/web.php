@@ -173,6 +173,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/payments', function () {
             return view('admin.payments.index');
         })->name('payments');
+
+        // GST Bills Management
+        Route::get('/gst-bills', [App\Http\Controllers\Admin\GstBillController::class, 'index'])->name('gst-bills.index');
+        Route::get('/gst-bills/create', [App\Http\Controllers\Admin\GstBillController::class, 'create'])->name('gst-bills.create');
+        Route::post('/gst-bills', [App\Http\Controllers\Admin\GstBillController::class, 'store'])->name('gst-bills.store');
+        Route::get('/gst-bills/{id}/pdf', [App\Http\Controllers\Admin\GstBillController::class, 'showPdf'])->name('gst-bills.pdf');
+        Route::delete('/gst-bills/{id}', [App\Http\Controllers\Admin\GstBillController::class, 'destroy'])->name('gst-bills.destroy');
         
         // Stock Management
         Route::get('/stocks', [App\Http\Controllers\Admin\StockController::class, 'index'])->name('stocks');
@@ -283,4 +290,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
             return 'Error during migration: ' . $e->getMessage();
         }
     });
+
+// Fallback storage route for serving product images on Hostinger / shared hosting
+Route::get('/storage/{path}', function ($path) {
+    $fileInPublic = public_path('storage/' . $path);
+    if (file_exists($fileInPublic) && !is_dir($fileInPublic)) {
+        return response()->file($fileInPublic);
+    }
+    
+    $fileInAppPublic = storage_path('app/public/' . $path);
+    if (file_exists($fileInAppPublic) && !is_dir($fileInAppPublic)) {
+        return response()->file($fileInAppPublic);
+    }
+
+    abort(404);
+})->where('path', '.*');
+
 

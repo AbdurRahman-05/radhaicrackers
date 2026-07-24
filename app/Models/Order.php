@@ -43,6 +43,7 @@ class Order extends Model
         'transport_provider',
         'transport_details',
         'delivery_type',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -62,6 +63,7 @@ class Order extends Model
         'final_amount_after_coupon' => 'decimal:2',
         'has_gst' => 'boolean',
         'gst_amount' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     public function user()

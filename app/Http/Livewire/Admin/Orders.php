@@ -29,9 +29,11 @@ class Orders extends Component
     public $showEditModal = false;
     public $editingOrderId = null;
     public $editStatus = '';
+    public $initialStatus = '';
     public $editPaymentStatus = '';
     public $editNotes = '';
     public $editReceiveAmount = 0;
+    public $editPaidAt = '';
 
     // Customer & Delivery Edit properties
     public $editCustomerName = '';
@@ -137,6 +139,14 @@ class Orders extends Component
     }
 
 
+    public function updatedEditStatus($value)
+    {
+        if (in_array(strtolower($this->initialStatus), ['confirmed', 'dispatched', 'completed']) && strtolower($value) === 'pending') {
+            $this->editStatus = $this->initialStatus;
+            $this->addError('editStatus', 'Once the status is Confirmed, it cannot be changed back to Pending.');
+        }
+    }
+
     public function openEditModal($orderId)
     {
         \Log::info('openEditModal called with orderId: ' . $orderId);
@@ -145,6 +155,7 @@ class Orders extends Component
         if ($order) {
             $this->editingOrderId = $orderId;
             $this->editStatus = $order->status ?? 'pending';
+            $this->initialStatus = strtolower($order->status ?? 'pending');
             $this->editPaymentStatus = $order->payment_status ?? 'pending';
             $this->editNotes = $order->notes ?? '';
             $this->editReceiveAmount = $order->receive_amount !== null ? $order->receive_amount : (in_array($order->status, ['confirmed','dispatched','completed']) ? $order->total : 0);
@@ -162,6 +173,7 @@ class Orders extends Component
             $this->editTransportProvider = $order->transport_provider ?? '';
             $this->editTransportDetails = $order->transport_details ?? '';
             $this->editDeliveryType = $order->delivery_type ?? 'none';
+            $this->editPaidAt = $order->paid_at ? \Carbon\Carbon::parse($order->paid_at)->format('Y-m-d\TH:i') : '';
 
             // Load items
             $this->editingOrderItems = [];
@@ -195,7 +207,7 @@ class Orders extends Component
     {
         $this->showEditModal = false;
         $this->reset([
-            'editingOrderId', 'editStatus', 'editPaymentStatus', 'editNotes', 'editReceiveAmount',
+            'editingOrderId', 'editStatus', 'editPaymentStatus', 'editNotes', 'editReceiveAmount', 'editPaidAt',
             'editCustomerName', 'editCustomerMobile', 'editCustomerEmail', 'editCustomerState',
             'editCustomerDistrict', 'editCustomerCity', 'editDeliveryPoint', 'editPinCode',
             'editingOrderItems', 'editHasGst', 'editTransportProvider', 'editTransportDetails', 'editDeliveryType',
@@ -399,10 +411,20 @@ class Orders extends Component
             $provider = ($this->editDeliveryType === 'delivery') ? $this->editTransportProvider : '';
             $details = ($this->editDeliveryType === 'delivery') ? $this->editTransportDetails : '';
 
+            $paidAtValue = null;
+            if ($this->editPaymentStatus === 'paid') {
+                if (!empty($this->editPaidAt)) {
+                    $paidAtValue = \Carbon\Carbon::parse($this->editPaidAt);
+                } else {
+                    $paidAtValue = $order->paid_at ? $order->paid_at : \Carbon\Carbon::now();
+                }
+            }
+
             // Update the order
             $updateData = [
                 'status' => $this->editStatus,
                 'payment_status' => $this->editPaymentStatus,
+                'paid_at' => $paidAtValue,
                 'notes' => $this->editNotes,
                 'receive_amount' => $this->editReceiveAmount,
                 'customer_name' => $this->editCustomerName,
@@ -430,6 +452,7 @@ class Orders extends Component
                 'total_amount' => $totals['total'],
                 'final_amount' => $totals['total'],
             ];
+
 
             $order->update($updateData);
 

@@ -48,10 +48,56 @@ class AppServiceProvider extends ServiceProvider
                     if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'delivery_type')) {
                         $table->string('delivery_type')->nullable();
                     }
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'paid_at')) {
+                        $table->timestamp('paid_at')->nullable();
+                    }
+                });
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasTable('gst_bills')) {
+                \Illuminate\Support\Facades\Schema::create('gst_bills', function ($table) {
+                    $table->id();
+                    $table->string('bill_number')->unique();
+                    $table->unsignedBigInteger('order_id')->nullable();
+                    $table->string('customer_name');
+                    $table->text('customer_address')->nullable();
+                    $table->string('customer_gstin')->nullable();
+                    $table->date('bill_date');
+                    $table->string('hsn_code')->default('3604');
+                    $table->string('transport')->nullable();
+                    $table->string('no_of_cases')->nullable();
+                    $table->string('place_of_supply')->nullable();
+                    $table->decimal('subtotal', 12, 2)->default(0.00);
+                    $table->decimal('cgst_rate', 5, 2)->default(9.00);
+                    $table->decimal('cgst_amount', 12, 2)->default(0.00);
+                    $table->decimal('sgst_rate', 5, 2)->default(9.00);
+                    $table->decimal('sgst_amount', 12, 2)->default(0.00);
+                    $table->decimal('igst_rate', 5, 2)->default(0.00);
+                    $table->decimal('igst_amount', 12, 2)->default(0.00);
+                    $table->decimal('round_off', 8, 2)->default(0.00);
+                    $table->decimal('grand_total', 12, 2)->default(0.00);
+                    $table->string('amount_in_words')->nullable();
+                    $table->timestamps();
+                });
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasTable('gst_bill_items')) {
+                \Illuminate\Support\Facades\Schema::create('gst_bill_items', function ($table) {
+                    $table->id();
+                    $table->unsignedBigInteger('gst_bill_id');
+                    $table->unsignedBigInteger('stock_id')->nullable();
+                    $table->string('particulars');
+                    $table->integer('qty')->default(1);
+                    $table->decimal('rate', 10, 2)->default(0.00);
+                    $table->string('per')->default('1 Nos');
+                    $table->decimal('amount', 12, 2)->default(0.00);
+                    $table->timestamps();
+
+                    $table->foreign('gst_bill_id')->references('id')->on('gst_bills')->onDelete('cascade');
                 });
             }
         } catch (\Exception $e) {
-            \Log::error('Schema migration failed for GST/Transport fields: ' . $e->getMessage());
+            \Log::error('Schema migration failed for GST fields/tables: ' . $e->getMessage());
         }
         
         Livewire::component('stock-image-upload', \App\Http\Livewire\StockImageUpload::class);

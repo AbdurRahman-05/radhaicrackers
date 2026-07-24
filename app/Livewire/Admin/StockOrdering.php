@@ -96,30 +96,22 @@ class StockOrdering extends Component
         $this->editingOrder = null;
     }
 
-    public function updateOrder($categoryId, $items)
+    public function updateOrder($categoryName, $orderedIds)
     {
-        if (!is_array($items)) {
+        if (!is_array($orderedIds)) {
             return;
         }
-        
-        // Extract the IDs from items array
-        $orderedIds = array_map(function($item) {
-            return $item['value'] ?? null;
-        }, $items);
-        
-        // Filter out any null values
-        $orderedIds = array_filter($orderedIds);
-        
-        // Update order for each item in the category
-        foreach ($orderedIds as $index => $id) {
-            Stock::where('id', $id)
-                ->update(['order_within_category' => $index + 1]); // Start from 1
+
+        $index = 1;
+        foreach ($orderedIds as $item) {
+            $id = is_array($item) ? ($item['value'] ?? $item['id'] ?? null) : $item;
+            if ($id) {
+                Stock::where('id', $id)->update(['order_within_category' => $index]);
+                $index++;
+            }
         }
         
-        // Refresh the data
         $this->loadStocks();
-        
-        $this->dispatch('orderUpdated');
     }
 
     protected function getCategoryOrder($categoryName)

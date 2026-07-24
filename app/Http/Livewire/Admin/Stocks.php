@@ -488,6 +488,10 @@ class Stocks extends Component
     {
         $query = Stock::query()->orderBy('created_at', 'desc');
 
+        if ($this->selected_year !== '' && $this->selected_year !== null) {
+            $query->whereYear('created_at', $this->selected_year);
+        }
+
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('item_name', 'like', '%' . $this->search . '%')

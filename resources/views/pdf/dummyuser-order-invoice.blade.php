@@ -167,16 +167,17 @@
         <table class="order-table">
             <thead>
                 <tr>
-                    <th>S.No</th>
-                    <th>Code</th>
-                    <th>Product</th>
-                    <th>MRP ₹</th>
-                    <th>Qty</th>
-                    <th>Total ₹</th>
+                    <th class="sno">S.No</th>
+                    <th class="code">Product ID</th>
+                    <th class="product">Product</th>
+                    <th class="mrp">MRP ₹</th>
+                    <th class="qty">Qty</th>
+                    <th class="total">Total ₹</th>
                 </tr>
             </thead>
             <tbody>
                 @php 
+                    $itemSno = 1;
                     $subtotal = 0;
                     
                     // Fetch all stocks metadata for sorting in one database query
@@ -227,6 +228,7 @@
                             $catalogSnoMap[$stockItem->id] = $snoCounter;
                         }
                     }
+                    $stockDescriptionMap = \App\Models\Stock::pluck('description', 'id')->toArray();
                 @endphp
                 @foreach($sortedItems as $item)
                     @php 
@@ -234,11 +236,20 @@
                         $catalogSno = $catalogSnoMap[$productId] ?? '-';
                         $line = is_array($item) ? ($item['total'] ?? $item['subtotal'] ?? 0) : ($item->total ?? $item->subtotal ?? 0); 
                         $subtotal += $line; 
+                        $productDesc = is_array($item) ? ($item['description'] ?? $item['content'] ?? null) : ($item->description ?? $item->content ?? null);
+                        if (!$productDesc && $productId) {
+                            $productDesc = $stockDescriptionMap[$productId] ?? null;
+                        }
                     @endphp
                     <tr>
-                        <td>{{ $catalogSno }}</td>
-                        <td>{{ is_array($item) ? ($item['product_id'] ?? '-') : ($item->product_id ?? '-') }}</td>
-                        <td>{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</td>
+                        <td class="sno">{{ $itemSno++ }}</td>
+                        <td class="code" style="font-weight: bold;">{{ $catalogSno }}</td>
+                        <td>
+                            <div>{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</div>
+                            @if($productDesc)
+                                <div style="font-size: 8px; color: #555; margin-top: 1px; line-height: 1.1;">{{ $productDesc }}</div>
+                            @endif
+                        </td>
                         <td>{{ number_format(is_array($item) ? ($item['rate'] ?? $item['price'] ?? 0) : ($item->rate ?? $item->price ?? 0), 2) }}</td>
                         <td>{{ is_array($item) ? ($item['quantity'] ?? '-') : ($item->quantity ?? '-') }}</td>
                         <td class="total">{{ number_format($line, 2) }}</td>
@@ -287,11 +298,6 @@
         </div>
     </div>
 
-    <!-- Note -->
-    <div style="margin-top: 15px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">
-        <strong>Note:</strong> Once the status is "Confirmed", it cannot be changed back to "Pending".
-    </div>
-
     <!-- Signature Row -->
     <table style="width:100%; border-collapse:collapse; margin-top:32px; border:1px solid #000; page-break-inside: avoid;">
         <tr>
@@ -307,8 +313,8 @@
         </tr>
     </table>
     
-    <div style="text-align: center; margin-top: 20px; font-size: 13px; font-weight: bold; color: #1E093B; page-break-inside: avoid;">
-        🎆 Wishing You a Happy, Safe & Prosperous Diwali! 🎇
+    <div style="text-align: center; margin-top: 15px; font-size: 12px; font-weight: bold; color: #1E093B; page-break-inside: avoid; line-height: 1.5;">
+        🪔 உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்! 🪔
     </div>
 </div>
 </body>

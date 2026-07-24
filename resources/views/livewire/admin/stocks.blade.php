@@ -1,133 +1,75 @@
-<div class="p-6 bg-white rounded-lg shadow-md">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+<div class="p-4 sm:p-6 bg-white rounded-lg shadow-md">
+    <!-- Header & Action Buttons -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4 border-b pb-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Stock Management</h2>
-            <p class="text-gray-600">Manage inventory with auto-release and expiry</p>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Stock Management</h2>
+            <p class="text-xs sm:text-sm text-gray-600">Manage inventory, product pricing & stock levels</p>
         </div>
-        <div class="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            <a href="{{ route('admin.stocks.add') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Add New Product
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.stocks.add') }}" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1">
+                <i class="fas fa-plus"></i> Add Product
             </a>
-            <button wire:click="showAddStock" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Quick Add
+            <button wire:click="showAddStock" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1">
+                <i class="fas fa-bolt"></i> Quick Add
             </button>
-            <button wire:click="autoReleaseStocks" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                Auto Release
+            <button wire:click="exportStocks" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1">
+                <i class="fas fa-file-csv"></i> Export CSV
             </button>
-            <button wire:click="autoExpireStocks" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-                Auto Expire
+            <button wire:click="showBulkUpload" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1">
+                <i class="fas fa-file-upload"></i> Bulk Upload
+            </button>
+            <button wire:click="autoReleaseStocks" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1" title="Auto release 10 units">
+                <i class="fas fa-magic"></i> Auto Release
+            </button>
+            <button wire:click="autoExpireStocks" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2 rounded-md flex items-center gap-1" title="Auto expire 10 mins">
+                <i class="fas fa-clock"></i> Auto Expire
             </button>
         </div>
     </div>
 
     <!-- Statistics -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-blue-600">{{ $totalStocks }}</div>
-            <div class="text-sm text-blue-600">Total Items</div>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <div class="bg-blue-50 p-3 rounded-lg text-center border border-blue-100">
+            <div class="text-lg sm:text-xl font-bold text-blue-600">{{ $totalStocks }}</div>
+            <div class="text-xs text-blue-700 font-medium">Total Items</div>
         </div>
-        <div class="bg-green-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-green-600">{{ $activeStocks }}</div>
-            <div class="text-sm text-green-600">Active Items</div>
+        <div class="bg-green-50 p-3 rounded-lg text-center border border-green-100">
+            <div class="text-lg sm:text-xl font-bold text-green-600">{{ $activeStocks }}</div>
+            <div class="text-xs text-green-700 font-medium">Active Items</div>
         </div>
-        <div class="bg-yellow-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-yellow-600">{{ $availableStocks }}</div>
-            <div class="text-sm text-yellow-600">Available</div>
+        <div class="bg-amber-50 p-3 rounded-lg text-center border border-amber-100">
+            <div class="text-lg sm:text-xl font-bold text-amber-600">{{ $availableStocks }}</div>
+            <div class="text-xs text-amber-700 font-medium">Available</div>
         </div>
-        <div class="bg-red-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-red-600">{{ $outOfStock }}</div>
-            <div class="text-sm text-red-600">Out of Stock</div>
+        <div class="bg-rose-50 p-3 rounded-lg text-center border border-rose-100">
+            <div class="text-lg sm:text-xl font-bold text-rose-600">{{ $outOfStock }}</div>
+            <div class="text-xs text-rose-700 font-medium">Out of Stock</div>
         </div>
-    </div>
-
-    <!-- Total Value -->
-    <div class="bg-purple-50 p-4 rounded-lg mb-6">
-        <div class="text-center">
-            <div class="text-3xl font-bold text-purple-600">₹{{ number_format($totalValue, 2) }}</div>
-            <div class="text-sm text-purple-600">Total Stock Value</div>
-        </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div class="flex flex-wrap gap-4 justify-center">
-            <button wire:click="exportOrderedItems" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Export Ordered Items
-            </button>
-            <a href="{{ route('admin.stocks.add') }}" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Add New Product
-            </a>
-            <button wire:click="showAddStock" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Quick Add
-            </button>
-            <button wire:click="autoReleaseStocks" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                Auto Release (10 units)
-            </button>
-            <button wire:click="autoExpireStocks" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Auto Expire (10 mins)
-            </button>
-            <button wire:click="exportStocks" class="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Export CSV
-            </button>
-            <button wire:click="showBulkUpload" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                Bulk Upload
-            </button>
+        <div class="bg-purple-50 p-3 rounded-lg text-center border border-purple-100 col-span-2 sm:col-span-1">
+            <div class="text-lg sm:text-xl font-bold text-purple-600">₹{{ number_format($totalValue, 2) }}</div>
+            <div class="text-xs text-purple-700 font-medium">Stock Value</div>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-gray-50 p-4 rounded-lg mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input wire:model.live="search" type="text" placeholder="Stock name, description" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Search Stock</label>
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Product name or category..." class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Year (Order Count Stats)</label>
-                <select wire:model.live="selected_year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Year (Order Stats)</label>
+                <select wire:model.live="selected_year" class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Years</option>
                     @foreach($available_years as $yr)
-                        <option value="{{ $yr }}">{{ $yr }}</option>
+                        <option value="{{ $yr }}" wire:key="yr-opt-{{ $yr }}">{{ $yr }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select wire:model.live="status_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Status Filter</label>
+                <select wire:model.live="status_filter" class="w-full px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Status</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -136,160 +78,106 @@
                 </select>
             </div>
         </div>
-        <div class="mt-4">
-            <button wire:click="clearFilters" class="text-gray-600 hover:text-gray-800 text-sm">Clear Filters</button>
+        <div class="mt-3 flex justify-between items-center border-t border-gray-200 pt-2">
+            <button wire:click="clearFilters" class="text-gray-600 hover:text-gray-800 text-xs font-semibold">Clear Filters</button>
+            <button wire:click="exportOrderedItems" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1">
+                <i class="fas fa-file-export"></i> Export Ordered Items
+            </button>
         </div>
     </div>
 
     <!-- Stocks Table -->
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200">
+        <table class="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No.</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ordered Count</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Released</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">S.No</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Product Info</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Qty & Price</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Total Value</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Orders</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($stocks as $stock)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                <tr class="hover:bg-gray-50" wire:key="stock-row-{{ $stock->id }}">
+                    <td class="px-2 py-2 whitespace-nowrap font-bold text-gray-800">
                         {{ $catalogSnoMap[$stock->id] ?? '-' }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center space-x-3">
-                            @if($stock->image)
-                                <img src="{{ asset('storage/' . $stock->image) }}" alt="{{ $stock->item_name }}" class="w-12 h-12 object-cover rounded-lg">
+                    <td class="px-2 py-2">
+                        <div class="flex items-center space-x-2">
+                            @if($stock->image_url)
+                                <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
                             @else
-                                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                    <span class="text-lg">
-                                        @switch(strtoupper($stock->category))
-                                            @case('BOMB')
-                                            @case('BOMBS')
-                                                💣
-                                                @break
-                                            @case('SINGLE FLASH')
-                                                ⚡
-                                                @break
-                                            @case('ROCKET')
-                                            @case('ROCKETS')
-                                                🚀
-                                                @break
-                                            @case('SPARKLERS')
-                                                ✨
-                                                @break
-                                            @case('CHIT PUT')
-                                                🎆
-                                                @break
-                                            @case('TWINKLING STAR')
-                                                ⭐
-                                                @break
-                                            @case('BOXING')
-                                            @case('GIFT BOX')
-                                                🎁
-                                                @break
-                                            @case('BIJILI CRACKERS')
-                                                ⚡
-                                                @break
-                                            @default
-                                                🎆
-                                        @endswitch
-                                    </span>
+                                <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 text-sm">
+                                    🎆
                                 </div>
                             @endif
-                            <div>
-                                <div class="text-sm font-medium text-gray-900">{{ $stock->item_name }}</div>
-                                @if($stock->description)
-                                <div class="text-sm text-gray-500">{{ Str::limit($stock->description, 50) }}</div>
-                                @endif
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-900 truncate max-w-[200px]" title="{{ $stock->item_name }}">{{ $stock->item_name }}</div>
                                 @if($stock->category)
-                                <div class="text-xs text-blue-600">{{ $stock->category }}</div>
+                                    <div class="text-[11px] text-blue-600 font-medium">{{ $stock->category }}</div>
                                 @endif
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ $stock->quantity }}</div>
+                    <td class="px-2 py-2 whitespace-nowrap">
+                        <div class="font-bold text-gray-900">₹{{ number_format($stock->price, 2) }}</div>
+                        <div class="text-xs text-gray-500">Qty: <span class="font-bold {{ $stock->quantity <= 0 ? 'text-red-600' : 'text-gray-800' }}">{{ $stock->quantity }}</span></div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">₹{{ number_format($stock->price, 2) }}</div>
+                    <td class="px-2 py-2 whitespace-nowrap font-semibold text-gray-900">
+                        ₹{{ number_format($stock->quantity * $stock->price, 2) }}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">₹{{ number_format($stock->quantity * $stock->price, 2) }}</div>
+                    <td class="px-2 py-2 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-800">
+                            {{ $stock->ordered_count }} orders
+                        </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-blue-900 font-semibold">
-                            {{ $stock->ordered_count }}
-                            @if($stock->ordered_count > 0)
-                                <span class="ml-2 inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Ordered</span>
-                            @endif
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center space-x-2">
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                    <td class="px-2 py-2 whitespace-nowrap">
+                        <div class="flex flex-col gap-1">
+                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full w-max
                                 @if($stock->is_active) bg-green-100 text-green-800 @else bg-red-100 text-red-800 @endif">
                                 {{ $stock->is_active ? 'Active' : 'Inactive' }}
                             </span>
                             @if($stock->quantity > 0)
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                Available
-                            </span>
+                                <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 w-max">Available</span>
                             @else
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                Out of Stock
-                            </span>
+                                <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-800 w-max">Out of Stock</span>
                             @endif
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        @if($stock->last_released_at)
-                        {{ $stock->last_released_at->format('d/m/Y H:i') }}
-                        @else
-                        Never
-                        @endif
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <button wire:click="showEditStock({{ $stock->id }})" class="text-blue-600 hover:text-blue-900 flex items-center" title="Edit">
+                    <td class="px-2 py-2 whitespace-nowrap">
+                        <div class="flex items-center gap-1">
+                            <button wire:click="showEditStock({{ $stock->id }})" class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm" title="Edit Product">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button wire:click="toggleStockStatus({{ $stock->id }})" class="text-yellow-600 hover:text-yellow-900 flex items-center" title="{{ $stock->is_active ? 'Deactivate' : 'Activate' }}">
+                            <button wire:click="toggleStockStatus({{ $stock->id }})" class="p-1 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded text-sm" title="{{ $stock->is_active ? 'Deactivate' : 'Activate' }}">
                                 <i class="fas fa-toggle-{{ $stock->is_active ? 'on' : 'off' }}"></i>
                             </button>
-                            <button wire:click="manualRelease({{ $stock->id }})" class="text-green-600 hover:text-green-900 flex items-center" title="Release">
+                            <button wire:click="manualRelease({{ $stock->id }})" class="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded text-sm" title="Release 1 Unit">
                                 <i class="fas fa-rocket"></i>
                             </button>
-                            <button wire:click="resetStock({{ $stock->id }})" class="text-red-600 hover:text-red-900 flex items-center" title="Reset">
+                            <button wire:click="resetStock({{ $stock->id }})" class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded text-sm" title="Reset Stock">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                             <button wire:click="toggleShowOnShop({{ $stock->id }})"
-                                class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors {{ $stock->show_on_shop ? 'bg-gray-500 border-gray-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-600' }}"
-                                title="{{ $stock->show_on_shop ? 'Hide on Stock' : 'Show on Stock' }}">
+                                class="p-1 rounded text-sm transition-colors {{ $stock->show_on_shop ? 'text-gray-700 hover:bg-gray-200' : 'text-gray-400 hover:bg-gray-100' }}"
+                                title="{{ $stock->show_on_shop ? 'Visible in Shop' : 'Hidden in Shop' }}">
                                 <i class="fas fa-eye{{ $stock->show_on_shop ? '' : '-slash' }}"></i>
                             </button>
                             <button wire:click="toggleShowOnHome({{ $stock->id }})"
-                                class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors {{ $stock->show_on_home ? 'bg-yellow-500 border-yellow-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-600' }}"
-                                title="{{ $stock->show_on_home ? 'Remove from Home' : 'Add to Home' }}">
+                                class="p-1 rounded text-sm transition-colors {{ $stock->show_on_home ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100' }}"
+                                title="{{ $stock->show_on_home ? 'Featured on Home' : 'Not Featured' }}">
                                 <i class="fas fa-star"></i>
                             </button>
                             @if($stock->youtube_url)
-                            <a href="{{ $stock->youtube_url }}" target="_blank" class="text-purple-600 hover:text-purple-900 flex items-center" title="Watch Video">
+                            <a href="{{ $stock->youtube_url }}" target="_blank" class="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded text-sm" title="Watch Video">
                                 <i class="fas fa-video"></i>
                             </a>
-                            @else
-                            <span class="text-gray-400 flex items-center" title="No video">
-                                <i class="fas fa-video-slash"></i>
-                            </span>
                             @endif
-                            <button wire:click="deleteStock({{ $stock->id }})" class="text-red-600 hover:text-red-900 flex items-center" title="Delete">
+                            <button wire:click="deleteStock({{ $stock->id }})" class="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm" title="Delete Product">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>

@@ -62,6 +62,12 @@
                         Orders
                     </a>
 
+                    <a href="{{ route('admin.gst-bills.index') }}" 
+                       class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.gst-bills.*') ? 'bg-gray-700' : '' }}">
+                        <i class="fas fa-file-invoice-dollar w-5 h-5 mr-3"></i>
+                        GST Bills
+                    </a>
+
 
                     <a href="{{ route('admin.stocks') }}" 
                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.stocks') && !request()->routeIs('admin.stocks.ordering') ? 'bg-gray-700' : '' }}">

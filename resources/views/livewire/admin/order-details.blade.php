@@ -60,7 +60,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-                    <div class="px-3 py-2 bg-white border border-gray-300 rounded-md">
+                    <div class="px-3 py-2 bg-white border border-gray-300 rounded-md flex items-center justify-between">
                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
                             @if($order->payment_status === 'paid') bg-green-100 text-green-800
                             @elseif($order->payment_status === 'pending') bg-yellow-100 text-yellow-800
@@ -68,6 +68,11 @@
                             @endif">
                             {{ ucfirst($order->payment_status) }}
                         </span>
+                        @if($order->payment_status === 'paid')
+                            <span class="text-xs text-gray-600 font-semibold" title="Payment Date">
+                                📅 {{ $order->paid_at ? \Carbon\Carbon::parse($order->paid_at)->format('d/m/Y H:i') : ($order->payment && $order->payment->verified_at ? $order->payment->verified_at->format('d/m/Y H:i') : $order->updated_at->format('d/m/Y H:i')) }}
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div>

@@ -61,6 +61,27 @@ public function images()
         'is_latest' => 'boolean',
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        if (empty($this->image)) {
+            return null;
+        }
+
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        $cleanPath = ltrim($this->image, '/');
+
+        if (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        }
+
+        return asset('storage/' . $cleanPath);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

@@ -121,6 +121,20 @@
             <h3>📋 Order Details</h3>
             <p><strong>Order ID:</strong> #{{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</p>
             <p><strong>Total Amount:</strong> ₹{{ number_format($order->total, 2) }}</p>
+            <p><strong>Payment Status:</strong> {{ ucfirst($order->payment_status ?? 'Pending') }}</p>
+            @if($order->payment_status === 'paid')
+                @php
+                    $paidDateStr = '-';
+                    if (!empty($order->paid_at)) {
+                        $paidDateStr = \Carbon\Carbon::parse($order->paid_at)->format('F d, Y \a\t h:i A');
+                    } elseif ($order->payment && $order->payment->verified_at) {
+                        $paidDateStr = \Carbon\Carbon::parse($order->payment->verified_at)->format('F d, Y \a\t h:i A');
+                    } else {
+                        $paidDateStr = \Carbon\Carbon::parse($order->updated_at)->format('F d, Y \a\t h:i A');
+                    }
+                @endphp
+                <p><strong>Paid Date:</strong> {{ $paidDateStr }}</p>
+            @endif
             <p><strong>Items:</strong> {{ is_array($items) ? count($items) : $items->count() }} products</p>
             @if($order->notes)
                 <p><strong>Notes:</strong> {{ $order->notes }}</p>
@@ -131,7 +145,8 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 50px; background-color: #f97316; color: white; font-weight: bold;">S.No</th>
+                <th style="width: 40px; background-color: #f97316; color: white; font-weight: bold;">S.No</th>
+                <th style="width: 60px; background-color: #ea580c; color: white; font-weight: bold;">Product ID</th>
                 <th>Product Name</th>
                 <th>Quantity</th>
                 <th>Price (₹)</th>
@@ -140,6 +155,7 @@
         </thead>
         <tbody>
             @php 
+                $itemSno = 1;
                 // Fetch all stocks metadata for sorting in one database query
                 $sortedStocks = \App\Models\Stock::join('categories', function($join) {
                         $join->on('stocks.category', '=', 'categories.name')
@@ -188,15 +204,26 @@
                         $catalogSnoMap[$stockItem->id] = $snoCounter;
                     }
                 }
+                $stockDescriptionMap = \App\Models\Stock::pluck('description', 'id')->toArray();
             @endphp
             @foreach($sortedItems as $item)
                 @php
                     $productId = is_array($item) ? ($item['product_id'] ?? $item['stock_id'] ?? null) : ($item->product_id ?? $item->stock_id ?? null);
                     $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                    $productDesc = is_array($item) ? ($item['description'] ?? $item['content'] ?? null) : ($item->description ?? $item->content ?? null);
+                    if (!$productDesc && $productId) {
+                        $productDesc = $stockDescriptionMap[$productId] ?? null;
+                    }
                 @endphp
                 <tr>
-                    <td>{{ $catalogSno }}</td>
-                    <td>{{ is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-') }}</td>
+                    <td style="text-align: center;">{{ $itemSno++ }}</td>
+                    <td style="text-align: center; font-weight: bold;">{{ $catalogSno }}</td>
+                    <td>
+                        <div style="font-weight: bold;">{{ is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-') }}</div>
+                        @if($productDesc)
+                            <div style="font-size: 9px; color: #555; margin-top: 1px;">{{ $productDesc }}</div>
+                        @endif
+                    </td>
                     <td>{{ is_array($item) ? ($item['quantity'] ?? '-') : ($item->quantity ?? '-') }}</td>
                     <td>₹{{ number_format(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? $item->rate ?? 0), 2) }}</td>
                     <td>₹{{ number_format(is_array($item) ? ($item['subtotal'] ?? $item['total'] ?? 0) : ($item->subtotal ?? $item->total ?? 0), 2) }}</td>

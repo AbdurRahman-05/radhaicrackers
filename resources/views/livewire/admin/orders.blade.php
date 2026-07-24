@@ -166,6 +166,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                                 </svg>
                             </a>
+                            <a href="{{ route('admin.gst-bills.create', ['order_id' => $order->id]) }}" class="text-green-600 hover:text-green-900 bg-green-50 p-1.5 rounded border border-green-200 flex items-center justify-center" title="Generate GST Tax Bill for this Order">
+                                <i class="fas fa-file-invoice-dollar text-xs"></i>
+                            </a>
                         </div>
                     </td>
                     <td class="px-2 py-1.5 whitespace-normal max-w-[150px] leading-tight text-xs">
@@ -515,8 +518,8 @@
 
                         <div>
                             <label for="editStatus" class="block text-xs font-semibold text-gray-600 mb-1">Order Status</label>
-                            <select id="editStatus" wire:model="editStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                @if(!in_array($editingOrder->status, ['confirmed', 'dispatched', 'completed']))
+                            <select id="editStatus" wire:model.live="editStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                                @if(!in_array(strtolower($editingOrder->status ?? ''), ['confirmed', 'dispatched', 'completed']) && !in_array(strtolower($initialStatus ?? ''), ['confirmed', 'dispatched', 'completed']))
                                     <option value="pending">Pending</option>
                                 @endif
                                 <option value="confirmed">Confirmed</option>
@@ -529,13 +532,21 @@
                         
                         <div>
                             <label for="editPaymentStatus" class="block text-xs font-semibold text-gray-600 mb-1">Payment Status</label>
-                            <select id="editPaymentStatus" wire:model="editPaymentStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                            <select id="editPaymentStatus" wire:model.live="editPaymentStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
                                 <option value="pending">Pending</option>
                                 <option value="paid">Paid</option>
                                 <option value="failed">Failed</option>
                             </select>
                             @error('editPaymentStatus') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
+
+                        @if($editPaymentStatus === 'paid')
+                        <div>
+                            <label for="editPaidAt" class="block text-xs font-semibold text-gray-600 mb-1">Payment Date & Time</label>
+                            <input type="datetime-local" id="editPaidAt" wire:model="editPaidAt" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white" />
+                            @error('editPaidAt') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        @endif
 
                         <div>
                             <label for="editReceiveAmount" class="block text-xs font-semibold text-gray-600 mb-1">Receive Amount (₹)</label>

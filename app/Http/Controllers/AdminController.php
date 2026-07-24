@@ -120,10 +120,14 @@ class AdminController extends Controller
     public function updateOrderStatus(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        $oldStatus = $order->status;
-        $newStatus = $request->status;
+        $oldStatus = strtolower($order->status);
+        $newStatus = strtolower($request->status);
 
-        $order->update(['status' => $newStatus]);
+        if (in_array($oldStatus, ['confirmed', 'dispatched', 'completed']) && $newStatus === 'pending') {
+            return redirect()->back()->with('error', 'Once the status is Confirmed, it cannot be changed back to Pending.');
+        }
+
+        $order->update(['status' => $request->status]);
 
         // Log the status change
         OrderLog::create([

@@ -50,14 +50,55 @@ class StockController extends Controller
     }
     public function index()
     {
-        
         // Fetch all categories (active, ordered)
         $categories = Category::active()->ordered()->get();
         
+        // Available years from orders
+        $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+
+        if (!in_array(2025, $orderYears)) {
+            array_unshift($orderYears, 2025);
+        }
+        if (!in_array(2026, $orderYears)) {
+            array_unshift($orderYears, 2026);
+        }
+        $availableYears = array_values(array_unique($orderYears));
+        rsort($availableYears);
+
+        // Default selected year to 2025 if not provided in request
+        $selectedYear = request()->has('selected_year') ? request('selected_year') : '2025';
+
+        // Calculate ordered count map per product for the selected year
+        $ordersQuery = \App\Models\Order::query();
+        if ($selectedYear !== '' && $selectedYear !== null) {
+            $ordersQuery->whereYear('created_at', $selectedYear);
+        }
+        $orders = $ordersQuery->get(['items_json']);
+
+        $orderedCountsMap = [];
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($productId && $qty > 0) {
+                        $orderedCountsMap[$productId] = ($orderedCountsMap[$productId] ?? 0) + $qty;
+                    }
+                }
+            }
+        }
         
-      // Fetch all stocks, optionally filtered
+        // Fetch all stocks, filtered by search, status, and selected creation year
         $stocksQuery = Stock::query()
             ->select('*')
+            ->when($selectedYear !== '' && $selectedYear !== null, function($query) use ($selectedYear) {
+                $query->whereYear('created_at', $selectedYear);
+            })
             ->when(request('search'), function($query, $search) {
                 $query->where(function($q) use ($search) {
                     $q->where('item_name', 'like', "%{$search}%")
@@ -83,8 +124,16 @@ class StockController extends Controller
                 }
             });
             
-            
-               $stocks = $stocksQuery->get();
+        $stocks = $stocksQuery->get();
+
+        // Attach year-specific ordered count to each stock object
+        foreach ($stocks as $stock) {
+            if ($selectedYear !== '' && $selectedYear !== null) {
+                $stock->display_ordered_count = $orderedCountsMap[$stock->id] ?? 0;
+            } else {
+                $stock->display_ordered_count = $stock->ordered_count;
+            }
+        }
 
         // Custom sort: released first (oldest to newest), then unreleased (null or future last_released_at, by created_at)
         $stocksByCategory = $stocks->groupBy('category')->map(function($group) {
@@ -99,14 +148,16 @@ class StockController extends Controller
             return $released->concat($unreleased)->values();
         });
 
-
         $totalStocks = Stock::count();
         $activeStocks = Stock::where('is_active', true)->count();
         $availableStocks = Stock::where('show_on_shop', true)->count();
         $outOfStock = Stock::where('show_on_shop', false)->count();
         $totalValue = Stock::sum(\DB::raw('quantity * price'));
 
-        return view('admin.stocks.index-new', compact('categories', 'stocksByCategory', 'totalStocks', 'activeStocks', 'availableStocks', 'outOfStock', 'totalValue'));
+        return view('admin.stocks.index-new', compact(
+            'categories', 'stocksByCategory', 'totalStocks', 'activeStocks', 
+            'availableStocks', 'outOfStock', 'totalValue', 'availableYears', 'selectedYear'
+        ));
     }
 
     public function addForm()

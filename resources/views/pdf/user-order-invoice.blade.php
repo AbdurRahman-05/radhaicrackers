@@ -306,18 +306,20 @@
             <tr>
                 @php
                     $paymentDate = '-';
-                    if ($order->payment && $order->payment->verified_at) {
-                        $paymentDate = $order->payment->verified_at->format('d-m-Y');
+                    if (!empty($order->paid_at)) {
+                        $paymentDate = \Carbon\Carbon::parse($order->paid_at)->format('d-m-Y h:i A');
+                    } elseif ($order->payment && $order->payment->verified_at) {
+                        $paymentDate = \Carbon\Carbon::parse($order->payment->verified_at)->format('d-m-Y h:i A');
                     } elseif ($order->payment && $order->payment->created_at) {
-                        $paymentDate = $order->payment->created_at->format('d-m-Y');
+                        $paymentDate = \Carbon\Carbon::parse($order->payment->created_at)->format('d-m-Y h:i A');
                     } else {
-                        $paymentDate = $order->updated_at->format('d-m-Y');
+                        $paymentDate = \Carbon\Carbon::parse($order->updated_at)->format('d-m-Y h:i A');
                     }
                 @endphp
-                <td><strong>Payment Date:</strong></td>
-                <td>{{ $paymentDate }}</td>
                 <td><strong>Payment Status:</strong></td>
-                <td>Paid</td>
+                <td><span style="color: green; font-weight: bold;">Paid</span></td>
+                <td><strong>Paid Date:</strong></td>
+                <td><strong>{{ $paymentDate }}</strong></td>
             </tr>
             @endif
         </table>
@@ -442,18 +444,22 @@
     @endphp
 
 
+    @php
+        $stockDescriptionMap = \App\Models\Stock::pluck('description', 'id')->toArray();
+    @endphp
     <table class="order-table">
         <thead>
             <tr>
-                <th>S.No</th>
-                <th>Product</th>
-                <th>MRP ₹</th>
-                <th>Qty</th>
-                <th>Total ₹</th>
+                <th class="sno">S.No</th>
+                <th class="code">Product ID</th>
+                <th class="product">Product</th>
+                <th class="mrp">MRP ₹</th>
+                <th class="qty">Qty</th>
+                <th class="total">Total ₹</th>
             </tr>
         </thead>
         <tbody>
-            @php $subtotal = 0; @endphp
+            @php $itemSno = 1; $subtotal = 0; @endphp
             @foreach($pages as $page)
                 @foreach($page['items'] as $item)
                     @php
@@ -463,10 +469,21 @@
                         $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                         $line = $originalPrice * $quantity;
                         $subtotal += $line;
+
+                        $productDesc = is_array($item) ? ($item['description'] ?? $item['content'] ?? null) : ($item->description ?? $item->content ?? null);
+                        if (!$productDesc && $productId) {
+                            $productDesc = $stockDescriptionMap[$productId] ?? null;
+                        }
                     @endphp
                     <tr>
-                        <td class="sno">{{ $catalogSno }}</td>
-                        <td class="product">{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</td>
+                        <td class="sno">{{ $itemSno++ }}</td>
+                        <td class="code" style="font-weight: bold;">{{ $catalogSno }}</td>
+                        <td class="product">
+                            <div>{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</div>
+                            @if($productDesc)
+                                <div style="font-size: 8px; color: #555; margin-top: 1px; line-height: 1.1;">{{ $productDesc }}</div>
+                            @endif
+                        </td>
                         <td class="mrp">{{ number_format($originalPrice, 2) }}</td>
                         <td class="qty">{{ $quantity }}</td>
                         <td class="total">{{ number_format($line, 2) }}</td>
@@ -549,9 +566,6 @@
                 </table>
             </div>
         </div>
-        <div style="margin-top: 15px; margin-bottom: 10px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">
-            <strong>Note:</strong> Once the status is "Confirmed", it cannot be changed back to "Pending".
-        </div>
         <table style="width:100%; border-collapse:collapse; margin-top:10px; border:1px solid #000;page-break-inside: avoid;">
             <tr>
                 <td style="width:33.33%; border:1px solid #000; text-align:center; height:48px; vertical-align:bottom; font-size:12px; font-weight:bold;">
@@ -566,8 +580,8 @@
             </tr>
         </table>
         
-        <div style="text-align: center; margin-top: 20px; font-size: 13px; font-weight: bold; color: #1E093B; page-break-inside: avoid;">
-            🎆 Wishing You a Happy, Safe & Prosperous Diwali! 🎇
+        <div style="text-align: center; margin-top: 15px; font-size: 12px; font-weight: bold; color: #1E093B; page-break-inside: avoid; line-height: 1.5;">
+            🪔 உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்! 🪔
         </div>
     @endif
 

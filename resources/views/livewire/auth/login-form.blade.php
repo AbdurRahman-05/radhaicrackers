@@ -16,10 +16,11 @@
             <div class="space-y-4">
                 <div>
                     <label for="name" class="block text-base font-semibold text-gray-700 mb-1">Full Name</label>
-                    <input wire:model="name" id="name" name="name" type="text" required 
+                    <input wire:model.live="name" id="name" name="name" type="text" required 
+                           oninput="this.value = this.value.replace(/[0-9]/g, '')"
                            class="appearance-none block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 sm:text-base"
-                           placeholder="Enter your full name">
-                    @error('name') <span class="text-gray-500 text-sm">{{ $message }}</span> @enderror
+                           placeholder="Enter your full name (letters only)">
+                    @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label for="phone" class="block text-base font-semibold text-gray-700 mb-1">Phone Number</label>

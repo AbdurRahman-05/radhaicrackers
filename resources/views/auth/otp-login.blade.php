@@ -10,7 +10,7 @@
         @csrf
         <div class="mb-4">
             <label class="block text-sm font-semibold mb-1">Full Name</label>
-            <input type="text" name="name" class="w-full border rounded px-3 py-2" value="{{ old('name') }}" required placeholder="Enter your full name">
+            <input type="text" name="name" class="w-full border rounded px-3 py-2" value="{{ old('name') }}" required oninput="this.value = this.value.replace(/[0-9]/g, '')" placeholder="Enter your full name (letters only)">
             @error('name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
         </div>
         <div class="mb-4">
