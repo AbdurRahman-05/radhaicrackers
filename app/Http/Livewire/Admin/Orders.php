@@ -67,28 +67,25 @@ class Orders extends Component
 
     public function mount()
     {
-        if (!$this->selected_year) {
-            $this->selected_year = date('Y');
-        }
-
         // Get unique years from orders
         $orderYears = Order::selectRaw('YEAR(created_at) as year')
+            ->whereNotNull('created_at')
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year')
+            ->map(fn($y) => (string)$y)
             ->toArray();
 
-        if (!in_array(date('Y'), $orderYears)) {
-            array_unshift($orderYears, (int)date('Y'));
-        }
+        $currentYear = date('Y');
+        $defaultYears = [(string)$currentYear, (string)($currentYear - 1), (string)($currentYear - 2)];
+        
+        $allYears = array_values(array_unique(array_merge($orderYears, $defaultYears)));
+        rsort($allYears);
 
-        $this->available_years = $orderYears;
+        $this->available_years = $allYears;
     }
 
-    public function updatedSelectedYear()
-    {
-        $this->resetPage();
-    }
+
 
     protected $rules = [
         'editStatus' => 'required|in:pending,confirmed,dispatched,completed,cancelled',
@@ -124,42 +121,21 @@ class Orders extends Component
         'editPinCode.digits' => 'Pin code must be exactly 6 digits.',
     ];
 
-    public function updatedSearch()
+    public function updated($propertyName)
     {
-        $this->resetPage();
+        if (in_array($propertyName, ['search', 'status_filter', 'payment_filter', 'date_from', 'date_to', 'selected_year', 'delivery_type_filter'])) {
+            $this->resetPage();
+        }
     }
 
-    public function updatedStatusFilter()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedPaymentFilter()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedDateFrom()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedDateTo()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedDeliveryTypeFilter()
-    {
-        $this->resetPage();
-    }
 
     public function clearFilters()
     {
         $this->reset(['search', 'status_filter', 'payment_filter', 'date_from', 'date_to', 'delivery_type_filter']);
-        $this->selected_year = date('Y');
+        $this->selected_year = '';
         $this->resetPage();
     }
+
 
     public function openEditModal($orderId)
     {
@@ -669,41 +645,50 @@ class Orders extends Component
         return redirect()->route('admin.orders.download_all_invoice_pdf');
     }
 
-    private function getFilteredOrdersQuery()
+    private function getFilteredOrdersQuery($ignoreStatusFilter = false)
     {
         $query = Order::with(['user', 'items'])
             ->orderBy('created_at', 'desc');
 
-        if ($this->selected_year) {
+        if (!empty($this->selected_year)) {
             $query->whereYear('created_at', $this->selected_year);
         }
 
-        if ($this->search) {
-            $query->where(function($mainSearch) {
-                $mainSearch->whereHas('user', function($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('phone', 'like', '%' . $this->search . '%');
-                })->orWhere('id', 'like', '%' . $this->search . '%');
+        if (!empty(trim($this->search))) {
+            $searchTerm = trim($this->search);
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('id', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_mobile', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_email', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_city', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_district', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_state', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('delivery_point', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                      $userQuery->where('name', 'like', '%' . $searchTerm . '%')
+                                ->orWhere('phone', 'like', '%' . $searchTerm . '%');
+                  });
             });
         }
 
-        if ($this->status_filter) {
-            $query->where('status', $this->status_filter);
+        if (!$ignoreStatusFilter && !empty($this->status_filter)) {
+            $query->whereRaw('LOWER(status) = ?', [strtolower($this->status_filter)]);
         }
 
-        if ($this->payment_filter) {
-            $query->where('payment_status', $this->payment_filter);
+        if (!empty($this->payment_filter)) {
+            $query->whereRaw('LOWER(payment_status) = ?', [strtolower($this->payment_filter)]);
         }
 
-        if ($this->date_from) {
+        if (!empty($this->date_from)) {
             $query->whereDate('created_at', '>=', $this->date_from);
         }
 
-        if ($this->date_to) {
+        if (!empty($this->date_to)) {
             $query->whereDate('created_at', '<=', $this->date_to);
         }
 
-        if ($this->delivery_type_filter) {
+        if (!empty($this->delivery_type_filter)) {
             if ($this->delivery_type_filter === 'none') {
                 $query->where(function($q) {
                     $q->whereNull('delivery_type')
@@ -711,7 +696,7 @@ class Orders extends Component
                       ->orWhere('delivery_type', '');
                 });
             } else {
-                $query->where('delivery_type', $this->delivery_type_filter);
+                $query->whereRaw('LOWER(delivery_type) = ?', [strtolower($this->delivery_type_filter)]);
             }
         }
 
@@ -731,43 +716,14 @@ class Orders extends Component
             'showEditModal' => $this->showEditModal,
             'editingOrderId' => $this->editingOrderId,
             'ordersCount' => $orders->count(),
-            'editStatus' => $this->editStatus,
-            'editPaymentStatus' => $this->editPaymentStatus,
-            'editNotes' => $this->editNotes
+            'search' => $this->search,
+            'status_filter' => $this->status_filter,
+            'payment_filter' => $this->payment_filter,
+            'selected_year' => $this->selected_year,
+            'delivery_type_filter' => $this->delivery_type_filter,
         ]);
         
-        $statsQuery = Order::query();
-        if ($this->selected_year) {
-            $statsQuery->whereYear('created_at', $this->selected_year);
-        }
-        if ($this->search) {
-            $statsQuery->where(function($mainSearch) {
-                $mainSearch->whereHas('user', function($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('phone', 'like', '%' . $this->search . '%');
-                })->orWhere('id', 'like', '%' . $this->search . '%');
-            });
-        }
-        if ($this->payment_filter) {
-            $statsQuery->where('payment_status', $this->payment_filter);
-        }
-        if ($this->date_from) {
-            $statsQuery->whereDate('created_at', '>=', $this->date_from);
-        }
-        if ($this->date_to) {
-            $statsQuery->whereDate('created_at', '<=', $this->date_to);
-        }
-        if ($this->delivery_type_filter) {
-            if ($this->delivery_type_filter === 'none') {
-                $statsQuery->where(function($q) {
-                    $q->whereNull('delivery_type')
-                      ->orWhere('delivery_type', 'none')
-                      ->orWhere('delivery_type', '');
-                });
-            } else {
-                $statsQuery->where('delivery_type', $this->delivery_type_filter);
-            }
-        }
+        $baseStatsQuery = $this->getFilteredOrdersQuery(true);
 
         // Pre-calculate full active stocks serial mapping to match price list catalog serials
         $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
@@ -785,13 +741,13 @@ class Orders extends Component
         return view('livewire.admin.orders', [
             'orders' => $orders,
             'editingOrder' => $this->editingOrderId ? Order::with(['user', 'items'])->find($this->editingOrderId) : null,
-            'totalOrders' => (clone $statsQuery)->when($this->status_filter, function($q) {
-                $q->where('status', $this->status_filter);
+            'totalOrders' => (clone $baseStatsQuery)->when(!empty($this->status_filter), function($q) {
+                $q->whereRaw('LOWER(status) = ?', [strtolower($this->status_filter)]);
             })->count(),
-            'pendingOrders' => (clone $statsQuery)->where('status', 'pending')->count(),
-            'confirmedOrders' => (clone $statsQuery)->where('status', 'confirmed')->count(),
-            'dispatchedOrders' => (clone $statsQuery)->where('status', 'dispatched')->count(),
-            'completedOrders' => (clone $statsQuery)->where('status', 'completed')->count(),
+            'pendingOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['pending'])->count(),
+            'confirmedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['confirmed'])->count(),
+            'dispatchedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['dispatched'])->count(),
+            'completedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['completed'])->count(),
             'catalogSnoMap' => $catalogSnoMap,
         ]);
     }

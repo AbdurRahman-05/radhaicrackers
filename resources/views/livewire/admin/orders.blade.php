@@ -67,20 +67,20 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input wire:model.live="search" type="text" placeholder="Order ID, Customer, Phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Order ID, Customer, Phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                <select wire:model.live="selected_year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="selected_year" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Years</option>
                     @foreach($available_years as $yr)
-                        <option value="{{ $yr }}">{{ $yr }}</option>
+                        <option value="{{ $yr }}" wire:key="year-opt-{{ $yr }}">{{ $yr }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select wire:model.live="status_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="status_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -91,7 +91,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Payment</label>
-                <select wire:model.live="payment_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="payment_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Payments</option>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
@@ -100,15 +100,15 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                <input wire:model.live="date_from" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input wire:model.live="date_from" wire:change="$refresh" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                <input wire:model.live="date_to" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input wire:model.live="date_to" wire:change="$refresh" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
-                <select wire:model.live="delivery_type_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="delivery_type_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Orders</option>
                     <option value="none">None / Unassigned</option>
                     <option value="takeaway">Takeaway</option>
@@ -116,8 +116,10 @@
                 </select>
             </div>
         </div>
-        <div class="mt-4">
-            <button wire:click="clearFilters" class="text-gray-600 hover:text-gray-800 text-sm">Clear Filters</button>
+        <div class="mt-4 flex items-center justify-between">
+            <button type="button" wire:click="clearFilters" class="text-gray-600 hover:text-gray-800 text-sm font-semibold flex items-center gap-1">
+                Clear Filters
+            </button>
         </div>
     </div>
 
@@ -140,7 +142,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($orders as $order)
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50" wire:key="order-row-{{ $order->id }}">
                     <td class="px-2 py-1.5 whitespace-nowrap font-bold text-xs">
                         <button wire:click="openEditModal({{ $order->id }})" class="text-blue-600 hover:text-blue-800 font-bold hover:underline" title="Click to Edit Order details">
                             #{{ $order->id }}
