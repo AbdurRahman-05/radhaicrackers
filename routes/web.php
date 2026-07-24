@@ -42,6 +42,7 @@ if (app()->environment('local')) {
             'config_disk' => config('filesystems.disks.public.root')
         ]);
     });
+}
 
 
 
@@ -282,4 +283,4 @@ Route::prefix('admin')->name('admin.')->group(function () {
             return 'Error during migration: ' . $e->getMessage();
         }
     });
-} // end local-only debug routes
+
