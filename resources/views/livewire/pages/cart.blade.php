@@ -3,7 +3,7 @@
     <div class="fixed bottom-6 right-6 z-40">
         <button 
             wire:click="toggleCart"
-            class="bg-gradient-to-r from-amber-400 via-orange-500 to-orange-600 hover:from-amber-500 hover:to-orange-700 text-white rounded-full px-4 sm:px-5 py-2.5 shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105 flex items-center gap-2.5 border-2 border-white cursor-pointer"
+            class="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-full px-4 sm:px-5 py-2.5 shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105 flex items-center gap-3 border-2 border-white cursor-pointer"
             title="Click to view full cart items and checkout"
         >
             <!-- Cart Icon -->
@@ -11,17 +11,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m6 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"/>
             </svg>
 
-            <!-- Outer Total Cost Always Displayed -->
-            <div class="flex items-center gap-2">
-                <span class="font-extrabold text-sm sm:text-base text-white tracking-wide">
-                    ₹{{ number_format($total, 2) }}
-                </span>
-                
-                <!-- White Badge Circle for Item Count -->
-                <span class="bg-white text-orange-600 font-extrabold text-xs sm:text-sm min-w-[24px] h-6 px-1.5 rounded-full flex items-center justify-center shadow-md">
-                    {{ $itemCount }}
-                </span>
-            </div>
+            <!-- Total Amount -->
+            <span class="font-extrabold text-sm sm:text-base text-white tracking-wide">
+                ₹{{ number_format($total, 2) }}
+            </span>
+            
+            <!-- White Badge Circle for Item Count -->
+            <span class="bg-white text-orange-600 font-extrabold text-xs sm:text-sm min-w-[28px] h-7 px-1.5 rounded-full flex items-center justify-center shadow-md">
+                {{ $itemCount }}
+            </span>
         </button>
     </div>
 

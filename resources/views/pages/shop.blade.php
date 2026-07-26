@@ -365,15 +365,23 @@
 </div>
 
 <!-- Detailed Cart Summary Modal / Floating Box -->
-<div class="fixed bottom-4 right-4 z-50 max-w-sm w-[calc(100vw-32px)] sm:w-96 font-sans" id="cart-summary-wrapper" style="display: none;">
-    <!-- Minimize Cart Icon Badge (visible when minimized) -->
-    <button onclick="toggleCartDrawer()" id="cart-badge-trigger" class="hidden absolute bottom-0 right-0 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-full p-4 shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 border-2 border-white">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"/></svg>
-        <span class="bg-white text-orange-600 font-extrabold text-xs px-2 py-1 rounded-full border border-orange-200" id="cart-badge-count">0</span>
+<div class="fixed bottom-4 right-4 z-50 max-w-sm w-[calc(100vw-32px)] sm:w-96 font-sans flex flex-col items-end gap-2 pointer-events-none" id="cart-summary-wrapper" style="display: none;">
+    <!-- Floating Sticky Cart Pill Button (ALWAYS SMALL BY DEFAULT, like provided photo) -->
+    <button onclick="toggleCartDrawer()" id="cart-badge-trigger" class="pointer-events-auto flex items-center gap-3 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-full px-4 sm:px-5 py-2.5 shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105 border-2 border-white cursor-pointer ml-auto" title="Click to view full cart items and checkout">
+        <!-- Cart Icon -->
+        <svg class="w-6 h-6 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m6 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"/>
+        </svg>
+
+        <!-- Total Amount -->
+        <span id="cart-badge-total" class="font-extrabold text-sm sm:text-base text-white tracking-wide">₹0.00</span>
+
+        <!-- White Badge Circle for Item Count -->
+        <span class="bg-white text-orange-600 font-extrabold text-xs sm:text-sm min-w-[28px] h-7 px-1.5 rounded-full flex items-center justify-center shadow-md" id="cart-badge-count">0</span>
     </button>
 
-    <!-- Detailed Cart Drawer Panel -->
-    <div id="cart-summary-panel" class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-300 flex flex-col max-h-[500px]">
+    <!-- Detailed Cart Drawer Panel (starts hidden by default) -->
+    <div id="cart-summary-panel" class="hidden pointer-events-auto w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all duration-300 flex flex-col max-h-[500px]">
         <!-- Panel Header -->
         <div class="px-4 py-3 text-white flex items-center justify-between" style="background-color: #1E093B;">
             <div class="flex items-center gap-2">
@@ -554,6 +562,7 @@ function updateCartSummary() {
 
     const wrapper = document.getElementById('cart-summary-wrapper');
     const badgeCount = document.getElementById('cart-badge-count');
+    const badgeTotal = document.getElementById('cart-badge-total');
     const itemsCountEl = document.getElementById('cart-items-count');
     const subtotalEl = document.getElementById('summary-subtotal');
     const packingEl = document.getElementById('summary-packing');
@@ -565,8 +574,9 @@ function updateCartSummary() {
         return;
     }
 
-    if (wrapper) wrapper.style.display = 'block';
+    if (wrapper) wrapper.style.display = 'flex';
     if (badgeCount) badgeCount.textContent = itemsCount;
+    if (badgeTotal) badgeTotal.textContent = `₹${finalTotal.toFixed(2)}`;
     if (itemsCountEl) itemsCountEl.textContent = itemsCount;
     if (subtotalEl) subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
     if (packingEl) packingEl.textContent = `₹${packingCharge.toFixed(2)}`;
