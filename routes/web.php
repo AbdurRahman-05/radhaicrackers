@@ -291,19 +291,48 @@ Route::prefix('admin')->name('admin.')->group(function () {
         }
     });
 
-// Fallback storage route for serving product images on Hostinger / shared hosting
+// Comprehensive fallback storage route for serving product images on Hostinger / shared hosting
 Route::get('/storage/{path}', function ($path) {
-    $fileInPublic = public_path('storage/' . $path);
-    if (file_exists($fileInPublic) && !is_dir($fileInPublic)) {
-        return response()->file($fileInPublic);
-    }
-    
-    $fileInAppPublic = storage_path('app/public/' . $path);
-    if (file_exists($fileInAppPublic) && !is_dir($fileInAppPublic)) {
-        return response()->file($fileInAppPublic);
+    // 1. Clean path of duplicate prefixes
+    $cleanFilename = preg_replace('#^(public/|storage/|stocks/)+#', '', $path);
+    $filename = basename($path);
+
+    // List of candidate paths to locate the uploaded file
+    $candidates = [
+        storage_path('app/public/stocks/' . $cleanFilename),
+        storage_path('app/public/stocks/' . $filename),
+        storage_path('app/public/' . $path),
+        storage_path('app/public/' . $cleanFilename),
+        public_path('storage/stocks/' . $cleanFilename),
+        public_path('storage/stocks/' . $filename),
+        public_path('storage/' . $path),
+        public_path('storage/' . $cleanFilename),
+        public_path('uploads/' . $cleanFilename),
+        public_path($path),
+    ];
+
+    foreach ($candidates as $filePath) {
+        if (file_exists($filePath) && !is_dir($filePath)) {
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            $mimeTypes = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+            ];
+            $mime = $mimeTypes[$ext] ?? (function_exists('mime_content_type') ? (mime_content_type($filePath) ?: 'image/jpeg') : 'image/jpeg');
+            return response()->file($filePath, ['Content-Type' => $mime]);
+        }
     }
 
     abort(404);
+})->where('path', '.*');
+
+// Route fallback for direct stock image URLs
+Route::get('/stocks/{path}', function ($path) {
+    return redirect('/storage/stocks/' . $path);
 })->where('path', '.*');
 
 

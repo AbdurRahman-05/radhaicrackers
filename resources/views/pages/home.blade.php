@@ -296,109 +296,86 @@ setInterval(() => {
 document.getElementById('nav1').classList.remove('bg-opacity-50');
 document.getElementById('nav1').classList.add('bg-opacity-100');
 
-// Modal controls
-function openEstimateModal() {
-    const modal = document.getElementById('estimateModal');
-    const content = document.getElementById('estimateModalContent');
-    if (modal && content) {
-        modal.classList.remove('opacity-0', 'pointer-events-none');
-        content.classList.remove('scale-95');
-        content.classList.add('scale-100');
+// Estimate Widget controls
+function minimizeEstimateWidget() {
+    const card = document.getElementById('estimateWidgetCard');
+    const badge = document.getElementById('estimateWidgetBadge');
+    if (card && badge) {
+        card.classList.add('hidden');
+        badge.classList.remove('hidden');
     }
 }
 
-function closeEstimateModal() {
-    const modal = document.getElementById('estimateModal');
-    const content = document.getElementById('estimateModalContent');
-    if (modal && content) {
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
+function restoreEstimateWidget() {
+    const card = document.getElementById('estimateWidgetCard');
+    const badge = document.getElementById('estimateWidgetBadge');
+    if (card && badge) {
+        card.classList.remove('hidden');
+        badge.classList.add('hidden');
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('estimateModal');
-    if (modal) {
-        // Close modal when clicking outside content area
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEstimateModal();
-            }
-        });
-    }
-
-    // Show modal immediately on page load
-    openEstimateModal();
-
-    // Auto popup every 10 seconds if closed
-    setInterval(() => {
-        const modal = document.getElementById('estimateModal');
-        if (modal && modal.classList.contains('opacity-0')) {
-            openEstimateModal();
-        }
-    }, 10000);
-});
 </script>
 
-<!-- Creative Estimate Modal Popup -->
-<div id="estimateModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-    <div class="relative bg-gradient-to-b from-[#2D0B5A] to-[#130427] text-white rounded-3xl w-full max-w-lg overflow-hidden border border-purple-500/20 shadow-2xl transform scale-95 transition-all duration-300" id="estimateModalContent">
+<!-- Small Floating Estimate Calculator Card on Left Side -->
+<div id="estimateWidget" class="fixed left-3 sm:left-6 bottom-4 sm:bottom-6 z-40 max-w-[320px] sm:max-w-[350px] w-full transition-all duration-300">
+    <!-- Minimized Side Badge (When closed) -->
+    <div id="estimateWidgetBadge" class="hidden cursor-pointer bg-gradient-to-r from-[#2D0B5A] to-[#130427] text-white px-3.5 py-2.5 rounded-r-xl border border-purple-500/40 shadow-2xl flex items-center gap-2 hover:scale-105 transition-transform" onclick="restoreEstimateWidget()">
+        <span class="bg-yellow-400 text-purple-950 font-extrabold text-[10px] px-1.5 py-0.5 rounded uppercase">Civic</span>
+        <span class="text-xs font-bold">Estimate Calculator</span>
+        <svg class="w-4 h-4 text-yellow-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </div>
+
+    <!-- Main Compact Floating Card -->
+    <div id="estimateWidgetCard" class="relative bg-gradient-to-b from-[#2D0B5A] via-[#1E093B] to-[#130427] text-white rounded-2xl p-4 sm:p-5 border border-purple-500/30 shadow-2xl space-y-3">
         <!-- Close Button -->
-        <button onclick="closeEstimateModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-2 bg-white/5 rounded-full hover:bg-white/10 z-10">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button onclick="minimizeEstimateWidget()" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors p-1.5 bg-white/10 rounded-full hover:bg-white/20 z-10" title="Minimize to side">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
         </button>
-        
-        <!-- Header Image banner -->
-        <div class="relative h-40 bg-cover bg-center" style="background-image: url('{{ asset('hero/bg.jpg') }}');">
-            <div class="absolute inset-0 bg-gradient-to-t from-[#2D0B5A] via-[#2D0B5A]/50 to-transparent"></div>
-            <div class="absolute bottom-4 left-6">
-                <span class="inline-flex items-center gap-1 text-xs font-bold text-yellow-300 uppercase tracking-widest bg-black/30 backdrop-blur-md px-3 py-1 rounded-full mb-1">
-                    📊 CIVIC WHOLESALE
-                </span>
-                <h3 class="text-2xl font-black">Estimate Calculator</h3>
+
+        <!-- Header -->
+        <div class="pr-6">
+            <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-yellow-300 uppercase tracking-widest bg-black/40 px-2.5 py-0.5 rounded-full mb-1 border border-yellow-500/20">
+                📊 CIVIC WHOLESALE
+            </span>
+            <h3 class="text-base sm:text-lg font-black text-white leading-tight">Estimate Calculator</h3>
+        </div>
+
+        <p class="text-[11px] text-gray-300 leading-snug">
+            Add products from the crackers list to create your purchase draft. Our system automatically processes your pricing logic:
+        </p>
+
+        <!-- Wholesale Discount Flow -->
+        <div class="bg-black/40 rounded-xl p-2.5 border border-purple-500/15 space-y-1.5 text-xs">
+            <div class="flex items-center justify-between text-[11px]">
+                <span class="text-gray-300">1. Civic Discount</span>
+                <span class="font-bold text-green-400">Flat 70% Off</span>
+            </div>
+            <div class="border-t border-purple-500/20"></div>
+            <div class="flex items-center justify-between text-[11px]">
+                <span class="text-gray-300">2. Special Discount</span>
+                <span class="font-bold text-green-400">Additional 15% Off</span>
+            </div>
+            <div class="border-t border-purple-500/20"></div>
+            <div class="flex items-center justify-between text-[11px]">
+                <span class="text-gray-300">3. Packing Fees</span>
+                <span class="font-bold text-orange-400">5% Charge Only</span>
             </div>
         </div>
-        
-        <!-- Modal Body -->
-        <div class="p-6 space-y-6">
-            <p class="text-sm text-gray-300 leading-relaxed">
-                Add products from the crackers list to create your purchase draft. Our system automatically processes your pricing logic instantly:
-            </p>
-            
-            <!-- Wholesale Discount Flowchart -->
-            <div class="bg-black/30 rounded-2xl p-4 border border-purple-500/10 space-y-3">
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-400">1. Civic Discount</span>
-                    <span class="font-bold text-green-400">Flat 70% Off</span>
-                </div>
-                <div class="border-t border-purple-500/15"></div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-400">2. Special Discount</span>
-                    <span class="font-bold text-green-400">Additional 15% Off</span>
-                </div>
-                <div class="border-t border-purple-500/15"></div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-400">3. Packing Fees</span>
-                    <span class="font-bold text-orange-400">5% Charge Only</span>
-                </div>
-            </div>
-            
-            <p class="text-xs text-gray-400 text-center">
-                * PDF quote containing complete calculations will be generated automatically.
-            </p>
-            
-            <!-- Actions -->
-            <div class="grid grid-cols-2 gap-4">
-                <a href="{{ route('express-shop') }}" class="flex items-center justify-center px-4 py-3.5 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-gray-900 font-extrabold text-sm rounded-xl shadow-lg transition-all duration-200 text-center">
-                    Go to Quotation
-                </a>
-                <a href="{{ route('price-list') }}" class="flex items-center justify-center px-4 py-3.5 bg-white/10 hover:bg-white/15 text-white border border-white/10 font-bold text-sm rounded-xl transition-all duration-200 text-center">
-                    View Price List
-                </a>
-            </div>
+
+        <p class="text-[10px] text-gray-400 text-center">
+            * PDF quote containing complete calculations will be generated automatically.
+        </p>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+            <a href="{{ route('express-shop') }}" class="flex items-center justify-center px-3 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-gray-950 font-extrabold text-xs rounded-xl shadow-md transition-all text-center">
+                Go to Quotation
+            </a>
+            <a href="{{ route('price-list') }}" class="flex items-center justify-center px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs rounded-xl transition-all text-center">
+                View Price List
+            </a>
         </div>
     </div>
 </div>

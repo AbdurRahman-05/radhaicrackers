@@ -75,7 +75,10 @@ public function images()
 
         $cleanPath = ltrim($this->image, '/');
 
-        if (str_starts_with($cleanPath, 'storage/')) {
+        // Strip duplicate storage or public prefixes
+        if (str_starts_with($cleanPath, 'public/storage/')) {
+            $cleanPath = substr($cleanPath, 15);
+        } elseif (str_starts_with($cleanPath, 'storage/')) {
             $cleanPath = substr($cleanPath, 8);
         }
 
