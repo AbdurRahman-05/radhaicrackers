@@ -66,7 +66,7 @@ public function images()
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {
-            return null;
+            return asset('images/firework-default.png');
         }
 
         if (filter_var($this->image, FILTER_VALIDATE_URL)) {
@@ -80,6 +80,8 @@ public function images()
             $cleanPath = substr($cleanPath, 15);
         } elseif (str_starts_with($cleanPath, 'storage/')) {
             $cleanPath = substr($cleanPath, 8);
+        } elseif (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
         }
 
         return asset('storage/' . $cleanPath);

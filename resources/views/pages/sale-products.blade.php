@@ -76,7 +76,7 @@
                          <!-- youtube url ends here -->
                         <div class="text-center mb-4">
                             @if($product->image)
-                                <img src="{{ asset('storage/' . $product->image) }}" 
+                                <img src="{{ $product->image_url }}" 
                                      alt="{{ $product->item_name }}" 
                                      class="w-24 h-24 object-cover rounded-lg mx-auto mb-2">
                             @else

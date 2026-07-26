@@ -231,7 +231,7 @@
                                 Current Image
                             </label>
                             <div class="flex items-center space-x-4">
-                                <img src="{{ asset('storage/' . $stock->image) }}" alt="{{ $stock->item_name }}" 
+                                <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" 
                                      class="w-24 h-24 object-cover rounded-lg border">
                                 <div>
                                     <button type="button" onclick="removeCurrentImage()" 

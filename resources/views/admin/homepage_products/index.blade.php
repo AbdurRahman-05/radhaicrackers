@@ -33,7 +33,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             @if($product->image)
-                                <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->item_name }}" class="w-12 h-12 object-cover rounded">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-12 h-12 object-cover rounded">
                             @else
                                 <span class="text-gray-400">No Image</span>
                             @endif

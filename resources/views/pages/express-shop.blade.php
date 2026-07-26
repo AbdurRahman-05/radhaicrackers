@@ -130,7 +130,7 @@
                                                     <td class="px-4 py-4 whitespace-nowrap">
                                                         <div class="relative">
                                                             @if($stock->image)
-                                                                <img src="{{ asset('storage/' . $stock->image) }}" 
+                                                                <img src="{{ $stock->image_url }}" 
                                                                      alt="{{ $stock->item_name }}" 
                                                                      class="w-16 h-16 object-cover rounded-lg">
                                                             @else
@@ -243,7 +243,7 @@
                                             <div class="flex flex-col items-start w-1/2">
                                                 <div class="relative">
                                                     @if($stock->image)
-                                                        <img src="{{ asset('storage/' . $stock->image) }}" 
+                                                        <img src="{{ $stock->image_url }}" 
                                                              alt="{{ $stock->item_name }}" 
                                                              class="w-16 h-16 object-cover rounded-lg">
                                                     @else

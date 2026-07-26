@@ -225,7 +225,7 @@
                             </div>
                                 <div class="text-center mb-4">
                                     @if($product->image)
-                                        <img src="{{ asset('storage/' . $product->image) }}" 
+                                        <img src="{{ $product->image_url }}" 
                                              alt="{{ $product->item_name }}" 
                                              class="w-24 h-24 object-cover rounded-lg mx-auto mb-2" onclick="openGalleryModal({{ $product->id }}, '{{ addslashes($product->item_name) }}')">
                                     @else
@@ -817,7 +817,7 @@ const stockImages = {};
                 @endphp
             @endforeach
         @elseif($product->image)
-            @php $imgArr[] = asset('storage/' . ltrim($product->image, '/')); @endphp
+            @php $imgArr[] = $product->image_url; @endphp
         @endif
         {!! collect($imgArr)->map(function($url){ return '"'.$url.'"'; })->implode(',') !!}
     ];

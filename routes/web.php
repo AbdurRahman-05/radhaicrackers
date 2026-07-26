@@ -21,28 +21,46 @@ use Illuminate\Support\Facades\File;
 
 
 
-// Debug routes - only available in local environment
-if (app()->environment('local')) {
-    Route::get('/test-storage', function () {
-        // Test if we can access storage files
-        $storagePath = public_path('storage');
-        $files = [];
-        
-        if (is_dir($storagePath)) {
-            $files = scandir($storagePath);
-            $files = array_filter($files, function($file) {
-                return $file !== '.' && $file !== '..';
-            });
-        }
-        
-        return response()->json([
-            'storage_path' => $storagePath,
-            'storage_exists' => is_dir($storagePath),
-            'files' => array_values($files),
-            'config_disk' => config('filesystems.disks.public.root')
+// Dynamic storage image server route (serves images on Hostinger & local seamlessly)
+Route::get('/storage/{path}', function ($path) {
+    // 1. Check in public_path('storage/' . $path)
+    $file1 = public_path('storage/' . $path);
+    if (File::exists($file1) && !File::isDirectory($file1)) {
+        $mime = File::mimeType($file1);
+        return response()->file($file1, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=31536000',
         ]);
-    });
-}
+    }
+
+    // 2. Check in storage_path('app/public/' . $path)
+    $file2 = storage_path('app/public/' . $path);
+    if (File::exists($file2) && !File::isDirectory($file2)) {
+        $mime = File::mimeType($file2);
+        return response()->file($file2, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=31536000',
+        ]);
+    }
+
+    // 3. Check in public_path('images/' . $path)
+    $file3 = public_path('images/' . $path);
+    if (File::exists($file3) && !File::isDirectory($file3)) {
+        $mime = File::mimeType($file3);
+        return response()->file($file3, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=31536000',
+        ]);
+    }
+
+    // 4. Default fallback image if requested file missing
+    $defaultImage = public_path('images/firework-default.png');
+    if (File::exists($defaultImage)) {
+        return response()->file($defaultImage, ['Content-Type' => 'image/png']);
+    }
+
+    abort(404);
+})->where('path', '.*');
 
 
 

@@ -171,7 +171,7 @@
                                 </a>
                             @endif
                         </div>
-                        <img src="{{ $product->image ? asset('storage/'.$product->image) : asset('images/firework-default.png') }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
+                        <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
                         <h3 class="text-lg font-bold mb-2 text-gray-900">{{ $product->item_name }}</h3>
                         @if($product->description)
                             <p class="text-sm text-gray-600 mb-4">{{ $product->description }}</p>
@@ -216,7 +216,7 @@
                                 </a>
                             @endif
                         </div>
-                        <img src="{{ $product->image ? asset('storage/'.$product->image) : asset('images/firework-default.png') }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
+                        <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
                         <h3 class="text-lg font-bold mb-2 text-gray-900">{{ $product->item_name }}</h3>
                         @if($product->description)
                             <p class="text-sm text-gray-600 mb-4">{{ $product->description }}</p>

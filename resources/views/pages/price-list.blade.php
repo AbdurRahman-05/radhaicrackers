@@ -88,7 +88,7 @@
                                         <td class="px-6 py-6 text-center">
                                             <div class="relative">
                                                 @if($product->image)
-                                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->item_name }}" class="w-48 h-48 object-cover rounded-xl border-2 border-gray-200 shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                                                    <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-48 h-48 object-cover rounded-xl border-2 border-gray-200 shadow-md group-hover:shadow-lg transition-shadow duration-300">
                                                 @else
                                                     <div class="w-48 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-gray-200 shadow-md flex items-center justify-center text-6xl group-hover:shadow-lg transition-shadow duration-300">
                                                         @switch($product->category)
@@ -185,7 +185,7 @@
                             <!-- Image -->
                             <div class="relative w-full sm:w-40 flex-shrink-0">
                                 @if($product->image)
-                                    <img loading="lazy" src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->item_name }}" class="w-full h-auto sm:h-40 object-cover rounded-xl border-2 border-gray-200 shadow-md">
+                                    <img loading="lazy" src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-auto sm:h-40 object-cover rounded-xl border-2 border-gray-200 shadow-md">
                                 @else
                                     <div class="w-full sm:w-40 h-40 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-gray-200 shadow-md flex items-center justify-center text-5xl">
                                         @switch($product->category)
