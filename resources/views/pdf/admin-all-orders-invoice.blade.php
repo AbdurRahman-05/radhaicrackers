@@ -7,7 +7,13 @@
             font-family: 'Noto Sans Tamil';
             font-style: normal;
             font-weight: normal;
-            src: url('{{ public_path('fonts/NotoSansTamil-Regular.ttf') }}') format('truetype');
+            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
         }
         @page {
             size: auto;
@@ -579,8 +585,8 @@
             </tr>
         </table>
         
-        <div style="text-align: center; margin-top: 15px; font-size: 12px; font-weight: bold; color: #1E093B; page-break-inside: avoid; line-height: 1.5;">
-            🪔 உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்! 🪔
+        <div style="font-family: 'Noto Sans Tamil', 'DejaVu Sans', sans-serif; text-align: center; margin-top: 15px; font-size: 11px; font-weight: normal; color: #1E093B; page-break-inside: avoid; line-height: 1.6;">
+            உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்!
         </div>
     @endif
 

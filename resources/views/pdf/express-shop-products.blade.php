@@ -7,7 +7,13 @@
             font-family: 'Noto Sans Tamil';
             font-style: normal;
             font-weight: normal;
-            src: url('{{ public_path('fonts/NotoSansTamil-Regular.ttf') }}') format('truetype');
+            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
         }
         body, th, td, .company-title {
             font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif !important;
