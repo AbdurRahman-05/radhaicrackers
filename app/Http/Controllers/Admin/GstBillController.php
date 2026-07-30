@@ -70,10 +70,32 @@ class GstBillController extends Controller
             }
         }
 
-        // Generate next invoice number
-        $lastBill = GstBill::orderBy('id', 'desc')->first();
-        $nextNumber = $lastBill ? ((int)preg_replace('/[^0-9]/', '', $lastBill->bill_number) + 1) : 1001;
-        $defaultBillNo = 'GST-' . date('Y') . '-' . sprintf('%04d', $nextNumber);
+        // Generate next invoice number in format RAD/26-27/0001
+        $month = (int)date('n');
+        $year = (int)date('Y');
+        if ($month >= 4) {
+            $fyStart = sprintf('%02d', $year % 100);
+            $fyEnd = sprintf('%02d', ($year + 1) % 100);
+        } else {
+            $fyStart = sprintf('%02d', ($year - 1) % 100);
+            $fyEnd = sprintf('%02d', $year % 100);
+        }
+        $fyString = $fyStart . '-' . $fyEnd;
+
+        $prefix = "RAD/{$fyString}/";
+        $lastBill = GstBill::where('bill_number', 'like', $prefix . '%')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($lastBill) {
+            $parts = explode('/', $lastBill->bill_number);
+            $lastNum = (int)end($parts);
+            $nextNumber = $lastNum + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        $defaultBillNo = $prefix . sprintf('%04d', $nextNumber);
 
         return view('admin.gst_bills.create', compact('stocks', 'prefilledOrder', 'prefilledItems', 'defaultBillNo'));
     }
@@ -162,7 +184,9 @@ class GstBillController extends Controller
             ->setPaper('a4', 'portrait')
             ->setOption(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
 
-        return $pdf->stream('GST_Bill_' . $gstBill->bill_number . '.pdf');
+        $safeFilename = 'GST_Bill_' . str_replace(['/', '\\'], '_', $gstBill->bill_number) . '.pdf';
+
+        return $pdf->stream($safeFilename);
     }
 
     public function destroy($id)

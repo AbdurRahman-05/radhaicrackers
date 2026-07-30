@@ -59,11 +59,11 @@
             font-size: 11px;
         }
         .customer-left {
-            width: 65%;
+            width: 62%;
             border-right: 1.5px solid #000;
         }
         .customer-right {
-            width: 35%;
+            width: 38%;
         }
         .label {
             font-weight: bold;
@@ -111,11 +111,11 @@
             vertical-align: top;
         }
         .totals-left {
-            width: 60%;
+            width: 62%;
             border-right: 1.5px solid #000;
         }
         .totals-right {
-            width: 40%;
+            width: 38%;
         }
         .totals-right-table {
             width: 100%;
@@ -147,7 +147,7 @@
         }
         .signature-cell {
             width: 38%;
-            text-align: right;
+            text-align: center;
             vertical-align: bottom;
         }
         .footer-bar {
@@ -192,10 +192,10 @@
                 <tr>
                     <th style="width: 35px;">S.No</th>
                     <th class="text-left">Particulars</th>
-                    <th style="width: 50px;">Qty</th>
-                    <th style="width: 80px;" class="text-right">Rate</th>
-                    <th style="width: 55px;">Per</th>
-                    <th style="width: 90px;" class="text-right">Amount</th>
+                    <th style="width: 45px;">Qty</th>
+                    <th style="width: 75px;" class="text-right">Rate</th>
+                    <th style="width: 45px;">Per</th>
+                    <th style="width: 85px;" class="text-right">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -294,8 +294,9 @@
         <!-- Footer Bar -->
         <table style="width: 100%; border-top: 1.5px solid #000; padding: 4px 10px; font-size: 10px; font-weight: bold;">
             <tr>
-                <td style="width: 20%;">E & O.E</td>
-                <td style="text-align: center; width: 80%;">Thank you for business with us!</td>
+                <td style="width: 25%; text-align: left;">E & O.E</td>
+                <td style="width: 50%; text-align: center;">Thank you for business with us!</td>
+                <td style="width: 25%;"></td>
             </tr>
         </table>
     </div>
