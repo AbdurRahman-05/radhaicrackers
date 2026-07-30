@@ -11,7 +11,7 @@ class HomepageProductController extends Controller
 {
     public function index()
     {
-        $products = HomepageProduct::orderBy('created_at', 'desc')->get();
+        $products = HomepageProduct::with('categoryRelation')->orderBy('created_at', 'desc')->get();
         return view('admin.homepage_products.index', compact('products'));
     }
 

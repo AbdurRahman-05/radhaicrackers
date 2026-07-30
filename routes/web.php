@@ -292,8 +292,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Category Management
         Route::get('/categories', \App\Http\Livewire\Admin\Categories::class)->name('categories');
-        // Home Page Content Management
-        Route::get('/homepage_products', \App\Livewire\Admin\HomepageProducts::class)->name('homepage_products');
         // Home Page Products CRUD (no JS, no Livewire)
         Route::resource('homepage_products', App\Http\Controllers\Admin\HomepageProductController::class);
         Route::get('/admin/galleryImages-upload', \App\Livewire\Admin\StockImageUpload::class)->name('galleryImages-upload.index');
@@ -312,17 +310,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // Comprehensive fallback storage route for serving product images on Hostinger / shared hosting
 Route::get('/storage/{path}', function ($path) {
     // 1. Clean path of duplicate prefixes
-    $cleanFilename = preg_replace('#^(public/|storage/|stocks/)+#', '', $path);
+    $cleanFilename = preg_replace('#^(public/|storage/|stocks/|homepage_products/)+#', '', $path);
     $filename = basename($path);
 
     // List of candidate paths to locate the uploaded file
     $candidates = [
         storage_path('app/public/stocks/' . $cleanFilename),
         storage_path('app/public/stocks/' . $filename),
+        storage_path('app/public/homepage_products/' . $cleanFilename),
+        storage_path('app/public/homepage_products/' . $filename),
         storage_path('app/public/' . $path),
         storage_path('app/public/' . $cleanFilename),
         public_path('storage/stocks/' . $cleanFilename),
         public_path('storage/stocks/' . $filename),
+        public_path('storage/homepage_products/' . $cleanFilename),
+        public_path('storage/homepage_products/' . $filename),
         public_path('storage/' . $path),
         public_path('storage/' . $cleanFilename),
         public_path('uploads/' . $cleanFilename),

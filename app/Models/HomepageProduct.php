@@ -28,6 +28,11 @@ class HomepageProduct extends Model
 
     protected $appends = ['image_url'];
 
+    public function categoryRelation()
+    {
+        return $this->belongsTo(Category::class, 'category', 'id');
+    }
+
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {

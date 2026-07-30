@@ -39,7 +39,7 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ $product->item_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $product->category }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $product->categoryRelation->name ?? $product->category }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($product->price, 2) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $product->quantity }}</td>
                         <td class="px-6 py-4 text-center">

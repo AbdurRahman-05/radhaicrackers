@@ -263,8 +263,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Category Management
         Route::get('/categories', \App\Http\Livewire\Admin\Categories::class)->name('categories');
-        // Home Page Content Management
-        Route::get('/homepage_products', \App\Livewire\Admin\HomepageProducts::class)->name('homepage_products');
         // Home Page Products CRUD (no JS, no Livewire)
         Route::resource('homepage_products', App\Http\Controllers\Admin\HomepageProductController::class);
         Route::get('/admin/galleryImages-upload', \App\Livewire\Admin\StockImageUpload::class)->name('galleryImages-upload.index');
