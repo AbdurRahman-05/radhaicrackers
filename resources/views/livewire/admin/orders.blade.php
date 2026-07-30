@@ -71,7 +71,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                <select wire:model.live="selected_year" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="selected_year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Years</option>
                     @foreach($available_years as $yr)
                         <option value="{{ $yr }}" wire:key="year-opt-{{ $yr }}">{{ $yr }}</option>
@@ -80,7 +80,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select wire:model.live="status_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="status_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -91,7 +91,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Payment</label>
-                <select wire:model.live="payment_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="payment_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Payments</option>
                     <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
@@ -100,15 +100,15 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                <input wire:model.live="date_from" wire:change="$refresh" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input wire:model.live="date_from" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                <input wire:model.live="date_to" wire:change="$refresh" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input wire:model.live="date_to" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
-                <select wire:model.live="delivery_type_filter" wire:change="$refresh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select wire:model.live="delivery_type_filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Orders</option>
                     <option value="none">None / Unassigned</option>
                     <option value="takeaway">Takeaway</option>
@@ -254,7 +254,7 @@
 
     <!-- Edit Order Modal (Single Window Split View) -->
     @if($showEditModal && $editingOrder)
-    <div class="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" id="editModal">
+    <div class="fixed inset-0 bg-black bg-opacity-60 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" id="editModal" wire:click.self="closeEditModal">
         <div class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <!-- Modal Header -->
             <div class="px-6 py-4 text-white flex items-center justify-between bg-[#1E093B] flex-shrink-0">
@@ -614,17 +614,5 @@ document.addEventListener('livewire:init', () => {
         // Redirect to the export route to trigger download
         window.location.href = '{{ route("admin.export.orders") }}';
     });
-});
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    if (event.target.id === 'editModal') {
-        @this.closeEditModal();
-    }
-    
-    // Close search dropdown when clicking outside
-    if (!event.target.closest('#productSearchContainer')) {
-        @this.set('searchItemsList', []);
-    }
 });
 </script> 

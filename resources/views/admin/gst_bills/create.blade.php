@@ -283,9 +283,7 @@
                 addRow(item.particulars, item.qty, item.rate, item.per, item.stock_id);
             });
         } else {
-            addRow('30 Shots Multicolour', 7, 2000, '1 Nos');
-            addRow('60 Shots Multicolour', 5, 2000, '1 Nos');
-            addRow('120 Shots Multicolour', 5, 2000, '1 Nos');
+            addRow('', 1, '', '1 Nos');
         }
     });
 </script>
