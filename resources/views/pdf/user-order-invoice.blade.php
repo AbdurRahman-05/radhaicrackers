@@ -22,8 +22,11 @@
 
 
         body, th, td {
-            font-family: 'Noto Serif Tamil', 'DejaVu Sans', Arial, sans-serif;
-             
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+        }
+
+        .tamil-text {
+            font-family: 'Noto Serif Tamil', 'DejaVu Sans', sans-serif;
         }
 .header-box {
     /* border: 1px solid #000; */

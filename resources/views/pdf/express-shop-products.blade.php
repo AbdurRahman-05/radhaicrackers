@@ -16,7 +16,7 @@
             src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
         }
         body, th, td, .company-title {
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif !important;
+            font-family: 'DejaVu Sans', Arial, sans-serif !important;
         }
         .company-title {
             font-size: 32px;

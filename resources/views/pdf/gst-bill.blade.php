@@ -15,7 +15,7 @@
             margin: 8mm;
         }
         body {
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 11px;
             color: #000;
             margin: 0;

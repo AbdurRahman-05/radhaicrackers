@@ -15,7 +15,7 @@
         }
 
         body, th, td {
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
         }
 
         .header-box {
