@@ -137,14 +137,16 @@ class Orders extends Component
 
     public function render()
     {
+        $baseQuery = $this->getBaseFilterQuery();
+
+        $totalOrders = (clone $baseQuery)->count();
+        $pendingOrders = (clone $baseQuery)->where('status', 'pending')->count();
+        $confirmedOrders = (clone $baseQuery)->where('status', 'confirmed')->count();
+        $dispatchedOrders = (clone $baseQuery)->where('status', 'dispatched')->count();
+        $completedOrders = (clone $baseQuery)->where('status', 'completed')->count();
+
         $orders = $this->getFilteredOrders();
 
-        $totalOrders = Order::count();
-        $pendingOrders = Order::where('status', 'pending')->count();
-        $confirmedOrders = Order::where('status', 'confirmed')->count();
-        $dispatchedOrders = Order::where('status', 'dispatched')->count();
-        $completedOrders = Order::where('status', 'completed')->count();
-        
         $availableYears = Order::selectRaw('YEAR(created_at) as year')
             ->distinct()
             ->orderBy('year', 'desc')
@@ -166,9 +168,9 @@ class Orders extends Component
         ])->layout('layouts.admin');
     }
 
-    public function getFilteredOrders()
+    public function getBaseFilterQuery()
     {
-        $query = Order::with(['user']);
+        $query = Order::query();
 
         if (!empty($this->search)) {
             $search = $this->search;
@@ -182,11 +184,6 @@ class Orders extends Component
                   ->orWhere('customer_state', 'like', "%{$search}%")
                   ->orWhere('delivery_point', 'like', "%{$search}%");
             });
-        }
-
-        $status = !empty($this->status_filter) && $this->status_filter !== 'all' ? $this->status_filter : ($this->statusFilter !== 'all' ? $this->statusFilter : null);
-        if ($status) {
-            $query->where('status', $status);
         }
 
         $payment = !empty($this->payment_filter) && $this->payment_filter !== 'all' ? $this->payment_filter : ($this->paymentFilter !== 'all' ? $this->paymentFilter : null);
@@ -212,6 +209,18 @@ class Orders extends Component
         $selectedYear = !empty($this->selected_year) ? $this->selected_year : $this->selectedYear;
         if (!empty($selectedYear)) {
             $query->whereYear('created_at', $selectedYear);
+        }
+
+        return $query;
+    }
+
+    public function getFilteredOrders()
+    {
+        $query = $this->getBaseFilterQuery()->with(['user']);
+
+        $status = !empty($this->status_filter) && $this->status_filter !== 'all' ? $this->status_filter : ($this->statusFilter !== 'all' ? $this->statusFilter : null);
+        if ($status) {
+            $query->where('status', $status);
         }
 
         return $query->orderBy('created_at', 'desc')->paginate(15);
@@ -630,6 +639,7 @@ class Orders extends Component
             $res = $smsService->sendWhatsApp($phone, '', 'order_dispatched', [
                 'customer_name' => $customerName,
                 'order_id' => (string)$order->id,
+                'order_value' => '₹' . number_format($order->total_amount ?: ($order->total ?: 0), 2),
                 'transport_provider' => $provider,
                 'transport_details' => $details,
                 'delivery_point' => $deliveryPoint,

@@ -11,27 +11,36 @@ class SMSService
 
     public function __construct()
     {
-        $this->apiKey = config('services.sms.key');
+        $this->apiKey = config('services.lionsms.api_key') ?: config('services.sms.key');
     }
 
     public function sendOTP($phone, $otp)
     {
         try {
-            $phone = preg_replace('/[^0-9]/', '', $phone);
-            
+            $rawPhone = preg_replace('/[^0-9]/', '', $phone);
+            if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
+                $rawPhone = substr($rawPhone, 2);
+            }
+
+            // 1. Send via LionSMS API
+            $apiKey = $this->apiKey ?: '806|tE58s7pIytnL6q6r1Z3GkY9242aU260tq852oE99';
             $url = "http://liontech.co.in/api/v2/sms/send";
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
-                'recipient' => $phone,
+                'recipient' => $rawPhone,
                 'message' => "Your OTP for login is: {$otp}. Valid for 10 minutes. Radhe Crackers",
                 'sender_id' => 'RDHCRK',
             ]);
 
-            return $response->successful();
+            // 2. Also send WhatsApp OTP for dual reliability
+            $this->sendWhatsApp($rawPhone, $otp, 'otp', []);
+
+            return true;
         } catch (\Exception $e) {
             Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
+            $this->sendWhatsApp($phone, $otp, 'otp', []);
             return false;
         }
     }
@@ -39,8 +48,8 @@ class SMSService
     public function sendWhatsApp($phone, $otp, $context=null, $data=[])
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
-        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
-            $phone = substr($phone, 2);
+        if (strlen($phone) === 10) {
+            $phone = '91' . $phone;
         }
 
         if ($context === 'payment_paid' && !empty($data)) {
@@ -63,7 +72,7 @@ class SMSService
                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                     CURLOPT_CUSTOMREQUEST => 'POST',
                     CURLOPT_POSTFIELDS => json_encode([
-                        'to' => '+91' . $phone,
+                        'to' => $phone,
                         'phoneNoId' => '747598631767762',
                         'type' => 'template',
                         'name' => $template_name,
@@ -105,7 +114,7 @@ class SMSService
                             CURLOPT_POSTFIELDS => json_encode([
                                 'messaging_product' => 'whatsapp',
                                 'recipient_type' => 'individual',
-                                'to' => '+91' . $phone,
+                                'to' => $phone,
                                 'type' => 'document',
                                 'document' => [
                                     'link' => $pdfUrl,
@@ -152,7 +161,7 @@ class SMSService
                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                     CURLOPT_CUSTOMREQUEST => 'POST',
                     CURLOPT_POSTFIELDS => json_encode([
-                        'to' => '+91' . $phone,
+                        'to' => $phone,
                         'phoneNoId' => '747598631767762',
                         'type' => 'template',
                         'name' => $template_name,
@@ -191,7 +200,7 @@ class SMSService
                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                     CURLOPT_CUSTOMREQUEST => 'POST',
                     CURLOPT_POSTFIELDS => json_encode([
-                        'to' => '+91' . $phone,
+                        'to' => $phone,
                         'phoneNoId' => '747598631767762',
                         'type' => 'template',
                         'name' => $template_name,
@@ -225,7 +234,7 @@ class SMSService
                         CURLOPT_POSTFIELDS => json_encode([
                             'messaging_product' => 'whatsapp',
                             'recipient_type' => 'individual',
-                            'to' => "+91" . $phone,
+                            'to' => $phone,
                             'type' => 'template',
                             'template' => [
                                 'name' => 'otp',

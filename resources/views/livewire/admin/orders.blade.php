@@ -40,25 +40,25 @@
 
     <!-- Statistics -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-blue-600">{{ $totalOrders }}</div>
-            <div class="text-sm text-blue-600">Total Orders</div>
+        <div wire:click="$set('status_filter', 'all')" class="cursor-pointer p-4 rounded-lg transition-all duration-200 shadow-sm border {{ ($status_filter === 'all' || (isset($statusFilter) && $statusFilter === 'all') || empty($status_filter)) ? 'bg-blue-100 border-blue-500 ring-2 ring-blue-400' : 'bg-blue-50 border-blue-200 hover:bg-blue-100' }}">
+            <div class="text-2xl font-bold text-blue-700">{{ $totalOrders }}</div>
+            <div class="text-xs font-semibold text-blue-800 uppercase tracking-wider mt-1">Total Orders</div>
         </div>
-        <div class="bg-yellow-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-yellow-600">{{ $pendingOrders }}</div>
-            <div class="text-sm text-yellow-600">Pending</div>
+        <div wire:click="$set('status_filter', 'pending')" class="cursor-pointer p-4 rounded-lg transition-all duration-200 shadow-sm border {{ ($status_filter === 'pending' || (isset($statusFilter) && $statusFilter === 'pending')) ? 'bg-yellow-100 border-yellow-500 ring-2 ring-yellow-400' : 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' }}">
+            <div class="text-2xl font-bold text-yellow-700">{{ $pendingOrders }}</div>
+            <div class="text-xs font-semibold text-yellow-800 uppercase tracking-wider mt-1">Pending</div>
         </div>
-        <div class="bg-green-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-green-600">{{ $confirmedOrders }}</div>
-            <div class="text-sm text-green-600">Confirmed</div>
+        <div wire:click="$set('status_filter', 'confirmed')" class="cursor-pointer p-4 rounded-lg transition-all duration-200 shadow-sm border {{ ($status_filter === 'confirmed' || (isset($statusFilter) && $statusFilter === 'confirmed')) ? 'bg-green-100 border-green-500 ring-2 ring-green-400' : 'bg-green-50 border-green-200 hover:bg-green-100' }}">
+            <div class="text-2xl font-bold text-green-700">{{ $confirmedOrders }}</div>
+            <div class="text-xs font-semibold text-green-800 uppercase tracking-wider mt-1">Confirmed</div>
         </div>
-        <div class="bg-purple-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-purple-600">{{ $dispatchedOrders }}</div>
-            <div class="text-sm text-purple-600">Dispatched</div>
+        <div wire:click="$set('status_filter', 'dispatched')" class="cursor-pointer p-4 rounded-lg transition-all duration-200 shadow-sm border {{ ($status_filter === 'dispatched' || (isset($statusFilter) && $statusFilter === 'dispatched')) ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-400' : 'bg-purple-50 border-purple-200 hover:bg-purple-100' }}">
+            <div class="text-2xl font-bold text-purple-700">{{ $dispatchedOrders }}</div>
+            <div class="text-xs font-semibold text-purple-800 uppercase tracking-wider mt-1">Dispatched</div>
         </div>
-        <div class="bg-emerald-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-emerald-600">{{ $completedOrders }}</div>
-            <div class="text-sm text-emerald-600">Completed</div>
+        <div wire:click="$set('status_filter', 'completed')" class="cursor-pointer p-4 rounded-lg transition-all duration-200 shadow-sm border {{ ($status_filter === 'completed' || (isset($statusFilter) && $statusFilter === 'completed')) ? 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' }}">
+            <div class="text-2xl font-bold text-emerald-700">{{ $completedOrders }}</div>
+            <div class="text-xs font-semibold text-emerald-800 uppercase tracking-wider mt-1">Completed</div>
         </div>
     </div>
 

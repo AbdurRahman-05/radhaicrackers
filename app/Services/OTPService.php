@@ -70,24 +70,16 @@ class OTPService
 
     private function sendSMS(string $phone, string $otp, int $duration, Carbon $expiresAt): void
     {
-        $message = "Your OTP for Cracker Shop login is: {$otp}. Valid for {$duration} minutes (expires at {$expiresAt->format('H:i')}).";
-        
-        // Try to send via SMS API first
-        $smsSent = $this->sendViaSMSAPI($phone, $message);
-        
-        if (!$smsSent) {
-            // Fallback: Log the SMS for development/testing
-            \Log::info("SMS sent to {$phone}: {$message}");
-            
-            // In development mode, also show OTP in browser console
-            if (app()->environment('local')) {
-                \Log::info("DEVELOPMENT MODE - OTP for {$phone}: {$otp}");
-            }
-            
-            // Store OTP in session for development testing
-            session(['dev_otp_' . $phone => $otp]);
-            session(['dev_otp_expires_' . $phone => $expiresAt]);
+        try {
+            $smsService = app(SMSService::class);
+            $smsService->sendOTP($phone, $otp);
+        } catch (\Exception $e) {
+            \Log::error("SMS sending failed: " . $e->getMessage());
         }
+
+        // Store OTP in session for dev fallback
+        session(['dev_otp_' . $phone => $otp]);
+        session(['dev_otp_expires_' . $phone => $expiresAt]);
     }
 
     // SMS API integration method
