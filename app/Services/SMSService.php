@@ -37,6 +37,8 @@ class SMSService
                 'senderid' => $senderId,
                 'msg' => $message,
                 'template_id' => $templateId,
+                'dlt_template_id' => $templateId,
+                'templateid' => $templateId,
                 'route' => $route,
             ]);
 
