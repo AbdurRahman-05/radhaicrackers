@@ -14,39 +14,39 @@ class SMSService
         $this->apiKey = config('services.lionsms.api_key') ?: config('services.sms.key');
     }
 
-    public function sendOTP($phone, $otp)
+    public function sendOTP($phone, $otp, $context = 'Login')
     {
         $rawPhone = preg_replace('/[^0-9]/', '', $phone);
         if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
             $rawPhone = substr($rawPhone, 2);
         }
 
-        $baseUrl = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
-        $apiKey = config('services.lionsms.api_key', 'dcd3c5c00112b83116657d7f656660a1');
-        $senderId = config('services.lionsms.sender_id', 'RADHTR');
-        $route = config('services.lionsms.route', '9');
+        $baseUrl    = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
+        $apiKey     = config('services.lionsms.api_key', 'dcd3c5c00112b83116657d7f656660a1');
+        $senderId   = config('services.lionsms.sender_id', 'RADHTR');
         $templateId = config('services.lionsms.otp_template_id', '1107172187374253331');
 
-        $message = "Your OTP for login is: {$otp}. Valid for 10 minutes. Radhe Crackers";
+        // Exact DLT registered message pattern for Radhe Traders
+        $message = "Your OTP for Login {$otp} Please do not share this code with anyone for your security. -Radhe Traders";
+
+        $params = [
+            'key'        => $apiKey,
+            'sender'     => $senderId,
+            'number'     => $rawPhone,
+            'route'      => 7, // Route 7 is the dedicated transactional DLT OTP route
+            'sms'        => $message,
+            'templateid' => $templateId,
+        ];
 
         try {
-            $response = Http::get($baseUrl, [
-                'api_key' => $apiKey,
-                'type' => 'text',
-                'contacts' => $rawPhone,
-                'senderid' => $senderId,
-                'msg' => $message,
-                'template_id' => $templateId,
-                'dlt_template_id' => $templateId,
-                'templateid' => $templateId,
-                'route' => $route,
-            ]);
+            $response = Http::timeout(10)->get($baseUrl, $params);
 
             Log::info('LionSMS API response', [
                 'phone' => $rawPhone,
                 'status' => $response->status(),
                 'body' => $response->body()
             ]);
+
             return $response->successful();
         } catch (\Exception $e) {
             Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
