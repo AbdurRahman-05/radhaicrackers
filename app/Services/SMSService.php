@@ -47,7 +47,6 @@ class SMSService
             $template_name = "thanks_purchasing";
             $name = $data['customer_name'] ?? "Customer"; 
             $order_id = (string)($data['order_id'] ?? "0");
-            $invoice_url = $data['invoice_url'] ?? route('user.orders.invoice_pdf', $order_id);
             $order_value = ($data['order_value'] ?? "₹0.00") . " - PAYMENT PAID ✅"; 
             $bodyParams = [$name, $order_value, $order_id];
 
@@ -80,32 +79,76 @@ class SMSService
                 curl_close($curl);
                 Log::info('WhatsApp Payment Paid template sent', ['phone' => $phone, 'response' => $response]);
 
-                // 2. Send actual PDF file attachment directly into customer chat
-                if ($invoice_url) {
-                    $docCurl = curl_init();
-                    curl_setopt_array($docCurl, array(
-                        CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_CUSTOMREQUEST => 'POST',
-                        CURLOPT_POSTFIELDS => json_encode([
-                            'messaging_product' => 'whatsapp',
-                            'recipient_type' => 'individual',
-                            'to' => '+91' . $phone,
-                            'type' => 'document',
-                            'document' => [
-                                'link' => $invoice_url,
-                                'filename' => "Radhe_Crackers_Bill_#{$order_id}.pdf",
-                                'caption' => "📄 *Radhe Crackers Order GST Bill PDF (#{$order_id})*"
-                            ]
-                        ]),
-                        CURLOPT_HTTPHEADER => array(
-                            'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
-                            'Content-Type: application/json'
-                        ),
-                    ));
-                    $docResponse = curl_exec($docCurl);
-                    curl_close($docCurl);
-                    Log::info('WhatsApp Payment Paid PDF document attachment sent', ['phone' => $phone, 'response' => $docResponse]);
+                // 2. Generate PDF bill in memory and send as document attachment
+                try {
+                    $order = \App\Models\Order::with(['user', 'payment', 'logs'])->find($order_id);
+                    if ($order) {
+                        // Generate PDF binary
+                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
+                        $pdfContent = $pdf->output();
+                        
+                        // Save to a temporary file
+                        $tmpFile = storage_path("app/temp_invoice_{$order_id}.pdf");
+                        file_put_contents($tmpFile, $pdfContent);
+
+                        // Step A: Upload the PDF to WhatsApp media API
+                        $uploadCurl = curl_init();
+                        $cFile = new \CURLFile($tmpFile, 'application/pdf', "Radhe_Crackers_Bill_{$order_id}.pdf");
+                        curl_setopt_array($uploadCurl, array(
+                            CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/media',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_CUSTOMREQUEST => 'POST',
+                            CURLOPT_POSTFIELDS => [
+                                'messaging_product' => 'whatsapp',
+                                'file' => $cFile,
+                                'type' => 'application/pdf',
+                            ],
+                            CURLOPT_HTTPHEADER => array(
+                                'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                            ),
+                        ));
+                        $uploadResponse = curl_exec($uploadCurl);
+                        curl_close($uploadCurl);
+                        Log::info('WhatsApp PDF media upload response', ['response' => $uploadResponse]);
+
+                        $uploadData = json_decode($uploadResponse, true);
+                        $mediaId = $uploadData['id'] ?? null;
+
+                        if ($mediaId) {
+                            // Step B: Send document message using uploaded media ID
+                            $docCurl = curl_init();
+                            curl_setopt_array($docCurl, array(
+                                CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
+                                CURLOPT_RETURNTRANSFER => true,
+                                CURLOPT_CUSTOMREQUEST => 'POST',
+                                CURLOPT_POSTFIELDS => json_encode([
+                                    'messaging_product' => 'whatsapp',
+                                    'recipient_type' => 'individual',
+                                    'to' => '+91' . $phone,
+                                    'type' => 'document',
+                                    'document' => [
+                                        'id' => $mediaId,
+                                        'filename' => "Radhe_Crackers_Bill_#{$order_id}.pdf",
+                                        'caption' => "📄 Radhe Crackers - Order Bill #{$order_id} - PAYMENT CONFIRMED ✅"
+                                    ]
+                                ]),
+                                CURLOPT_HTTPHEADER => array(
+                                    'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                                    'Content-Type: application/json'
+                                ),
+                            ));
+                            $docResponse = curl_exec($docCurl);
+                            curl_close($docCurl);
+                            Log::info('WhatsApp PDF document sent via media ID', ['phone' => $phone, 'response' => $docResponse]);
+                        } else {
+                            Log::warning('WhatsApp media upload failed, no media ID returned', ['response' => $uploadResponse]);
+                        }
+
+                        // Clean up temp file
+                        @unlink($tmpFile);
+                    }
+                } catch (\Exception $pdfEx) {
+                    Log::error('WhatsApp PDF generation/upload error', ['error' => $pdfEx->getMessage()]);
                 }
 
                 return true;
