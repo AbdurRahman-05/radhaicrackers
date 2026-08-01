@@ -48,6 +48,17 @@
                     <div><strong>City:</strong> {{ $order->customer_city ?: 'N/A' }}</div>
                     <div><strong>Delivery Point:</strong> {{ $order->delivery_point ?: 'N/A' }}</div>
                     <div><strong>Pin Code:</strong> {{ $order->pin_code ?: 'N/A' }}</div>
+                    <div><strong>Delivery Type:</strong> 
+                        <span class="font-bold {{ $order->delivery_type === 'delivery' ? 'text-green-700' : 'text-amber-700' }}">
+                            {{ $order->delivery_type === 'delivery' ? '🚚 Delivery (Transport)' : '🏢 Takeaway (Godown Pickup)' }}
+                        </span>
+                    </div>
+                    @if($order->delivery_type === 'delivery' || $order->transport_provider || $order->transport_details)
+                        <div class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs space-y-1">
+                            <div>🚚 <strong>Transport Provider:</strong> {{ $order->transport_provider ?: 'Lorry Transport' }}</div>
+                            <div>🚛 <strong>Vehicle / LR Details:</strong> {{ $order->transport_details ?: 'Vehicle En Route' }}</div>
+                        </div>
+                    @endif
                 </div>
             </div>
             <!-- Right Top: QR Code -->

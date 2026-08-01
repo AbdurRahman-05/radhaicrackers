@@ -134,9 +134,18 @@ class CheckoutController extends Controller
             }
         }
 
-        // Clear the cart after successful order
-        if ($request->has('clear_cart') && $request->input('clear_cart') === 'true') {
-            // This will be handled by JavaScript to clear localStorage
+        // Automatically send initial WhatsApp order confirmation to customer and admin
+        try {
+            $smsService = new \App\Services\SMSService();
+            $waData = [
+                'customer_name' => $order->customer_name,
+                'order_value' => '₹' . number_format($order->total_amount ?: $order->total, 2),
+                'order_id' => (string)$order->id
+            ];
+            $smsService->sendWhatsApp($order->customer_mobile, '', 'order_confirmation', $waData);
+            $smsService->sendWhatsAppAdmin($order->customer_mobile, '', 'order_confirmation', $waData);
+        } catch (\Exception $e) {
+            \Log::error('Order Placement WhatsApp Exception: ' . $e->getMessage());
         }
 
         // Redirect to user order details page

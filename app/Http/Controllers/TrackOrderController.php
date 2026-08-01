@@ -14,18 +14,37 @@ class TrackOrderController extends Controller
 
     public function track(Request $request)
     {
-        $mobile = $request->input('tracking_number');
-        $order = \App\Models\Order::where('customer_mobile', $mobile)->first();
-        if ($order) {
-            // Store the mobile in session to filter orders on /user/orders
-            session(['track_order_mobile' => $mobile]);
-            return redirect('/user/orders');
+        $input = trim($request->input('tracking_number'));
+
+        if (empty($input)) {
+            return view('pages.track-order', [
+                'error' => 'Please enter your Order ID or Mobile Number to track.'
+            ]);
+        }
+
+        // Clean mobile number format if user searched phone number
+        $cleanPhone = preg_replace('/[^0-9]/', '', $input);
+
+        $orders = Order::with('items')
+            ->where('id', $input)
+            ->orWhere('customer_mobile', $input)
+            ->orWhere('customer_mobile', $cleanPhone)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        if ($orders->count() > 0) {
+            return view('pages.track-order', [
+                'trackingNumber' => $input,
+                'orders' => $orders,
+                'order' => $orders->first(),
+            ]);
         } else {
             return view('pages.track-order', [
-                'trackingNumber' => $mobile,
+                'trackingNumber' => $input,
+                'orders' => collect(),
                 'order' => null,
-                'error' => 'No orders found for this mobile number.'
+                'error' => 'No order found for ID / Mobile: ' . $input
             ]);
         }
     }
-} 
+}

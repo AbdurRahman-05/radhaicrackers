@@ -18,20 +18,51 @@
             font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
         }
 
-        /* Unified Header Table */
-        .header-table {
-            width: 100%;
-            border-collapse: collapse;
+        .header-box {
             border: 1px solid #000;
+            border-bottom: none;
+            margin-bottom: 0;
             background: #fff;
-            box-sizing: border-box;
-            margin-bottom: 15px;
+            padding: 10px;
+            overflow: hidden;
         }
 
-        .header-table td {
-            padding: 8px 10px;
-            vertical-align: middle;
-            box-sizing: border-box;
+        .logo-container {
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 20px;
+        }
+
+        .logo-container img {
+            width: 100px;
+            height: auto;
+        }
+
+        .address-container {
+            display: inline-block;
+            vertical-align: top;
+            max-width: calc(100% - 140px); 
+        }
+
+        .company-address {
+            display: inline-block;
+            font-size: 10px;
+            color: #333;
+            line-height: 1.4;
+            text-align: left;
+        }
+
+        .title-logo {
+            text-align: center;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .title-logo img {
+            max-width: 100%;
+            width: 250px;
+            height: auto;
+            display: inline-block;
         }
 
         .company-title {
@@ -42,6 +73,22 @@
             letter-spacing: 1px;
         }
 
+        .company-info-box {
+            width: 100%;
+            font-size: 10px;
+            padding: 8px 10px;
+            border: 1px solid #000;
+            border-top: none;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .info-block {
+            display: inline-block;
+            padding: 0px 10px;
+            box-sizing: border-box;
+        }
+
         .page-title {
             font-size: 24px;
             font-weight: bold;
@@ -50,10 +97,9 @@
             color: #1E093B;
         }
 
-        /* Category Section Container - keep entire section together on new page if it would split */
+        /* Category Section Container */
         .category-section {
-            page-break-inside: avoid;
-            break-inside: avoid;
+            page-break-inside: auto;
             margin-bottom: 20px;
         }
 
@@ -63,9 +109,7 @@
             border-collapse: collapse;
             background: #fff;
             border: 1px solid #000;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            box-sizing: border-box;
+            page-break-inside: auto;
         }
 
         /* Bind table headers together so Category Title + Column Headers + 1st row move together */
@@ -130,29 +174,31 @@
 </head>
 <body>
 <div class="wrapper" style="margin-top:10px;">
-    <!-- Unified Header Table -->
-    <table class="header-table">
-        <tr>
-            <td style="width: 110px; text-align: center; border-bottom: 1px solid #000; border-right: 1px solid #000;">
-                <img src="{{ public_path('images/company_logo.png') }}" alt="Company Logo" style="width: 90px; height: auto;" />
-            </td>
-            <td style="text-align: center; border-bottom: 1px solid #000;">
-                <div style="text-align: center; margin-bottom: 5px;">
-                    <img src="{{ public_path('images/logotitle.png') }}" alt="Radhe Crackers" style="width: 250px; height: auto;" />
-                </div>
-                <div style="font-size: 10px; color: #333; text-align: center; line-height: 1.4;">
-                    4/273-11/7, Virudhunagar Main Road, Amathur, Virudhunagar District, Tamilnadu-626005
-                </div>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align: center; font-size: 10px; padding: 6px 10px; background: #f9fafb;">
-                <span><strong>Contact Numbers:</strong> +91 88070 60809, +91 97510 48974</span> &nbsp;|&nbsp;
-                <span><strong>Email:</strong> radhecrackers@gmail.com</span> &nbsp;|&nbsp;
-                <span><strong>Website:</strong> www.radhecrackers.com</span>
-            </td>
-        </tr>
-    </table>
+    <div class="header-box">
+        <div class="logo-container">
+            <img src="{{ public_path('images/company_logo.png') }}" alt="Company Logo" />
+        </div>
+        <div class="address-container">
+            <div class="title-logo">
+                <img src="{{ public_path('images/logotitle.png') }}" alt="Company Address" />
+            </div>
+            <span class="company-address">
+                  4/273-11/7, Virudhunagar Main Road, Amathur ,Virudhunagar District, Tamilnadu-626005
+            </span>
+        </div>
+    </div>
+
+    <div class="company-info-box">
+        <div class="info-block">
+            <span><strong>Contact Numbers:</strong> +91 88070 60809, +91 97510 48974</span>
+        </div>
+        <div class="info-block">
+            <span><strong>Email:</strong> radhecrackers@gmail.com</span>
+        </div>
+        <div class="info-block">
+            <span><strong>Website:</strong> www.radhecrackers.com</span>
+        </div>
+    </div>
 
     <div class="page-title">Price List {{ date('Y') }}</div>
 

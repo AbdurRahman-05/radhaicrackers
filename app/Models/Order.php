@@ -10,6 +10,7 @@ class Order extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id',
         'user_id',
         'total',
         'total_amount',
@@ -93,5 +94,35 @@ class Order extends Model
     public function getItemsAttribute()
     {
         return $this->items_json ?? [];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($order) {
+            if (empty($order->id)) {
+                $order->id = static::getNextAvailableOrderId();
+            }
+        });
+    }
+
+    public static function getNextAvailableOrderId()
+    {
+        $existingIds = static::pluck('id')->flip()->toArray();
+        if (empty($existingIds)) {
+            return 1001;
+        }
+
+        $minId = min(array_keys($existingIds));
+        $maxId = max(array_keys($existingIds));
+
+        for ($i = $minId; $i <= $maxId; $i++) {
+            if (!isset($existingIds[$i])) {
+                return $i;
+            }
+        }
+
+        return $maxId + 1;
     }
 } 

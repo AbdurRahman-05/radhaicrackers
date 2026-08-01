@@ -2,40 +2,47 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Order;
-use App\Models\OrderLog;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Order;
+use App\Models\OrderLog;
+use App\Models\Stock;
 
 class Orders extends Component
 {
     use WithPagination;
 
-    public $search = '';
-    public $status_filter = '';
-    public $payment_filter = '';
-    public $date_from = '';
-    public $date_to = '';
-    public $selectedOrders = [];
-    public $selected_year = '';
-    public $available_years = [];
-    public $editHasGst = false;
-    public $editTransportProvider = '';
-    public $editTransportDetails = '';
-    public $editDeliveryType = '';
-    public $delivery_type_filter = '';
+    protected $paginationTheme = 'tailwind';
 
-    // Modal properties
+    // Filters (both snake_case and camelCase for template compatibility)
+    public $search = '';
+    public $status_filter = 'all';
+    public $statusFilter = 'all';
+    public $payment_filter = 'all';
+    public $paymentFilter = 'all';
+    public $date_from = '';
+    public $dateFrom = '';
+    public $date_to = '';
+    public $dateTo = '';
+    public $selected_year = '';
+    public $selectedYear = '';
+    public $delivery_type_filter = 'all';
+    public $deliveryTypeFilter = 'all';
+
+    // Inline receive amount editing
+    public $editingReceiveAmountId = null;
+    public $receiveAmountInput = '';
+
+    // Single Window Split-View Edit Modal
     public $showEditModal = false;
     public $editingOrderId = null;
-    public $editStatus = '';
-    public $initialStatus = '';
-    public $editPaymentStatus = '';
-    public $editNotes = '';
-    public $editReceiveAmount = 0;
+    public $editingOrder = null;
+    public $initialStatus = null;
+    public $editStatus = 'pending';
+    public $editPaymentStatus = 'pending';
     public $editPaidAt = '';
-
-    // Customer & Delivery Edit properties
+    public $editNotes = '';
+    public $editReceiveAmount = '';
     public $editCustomerName = '';
     public $editCustomerMobile = '';
     public $editCustomerEmail = '';
@@ -44,373 +51,403 @@ class Orders extends Component
     public $editCustomerCity = '';
     public $editDeliveryPoint = '';
     public $editPinCode = '';
+    public $editHasGst = false;
+    public $editDeliveryType = 'none';
+    public $editTransportProvider = '';
+    public $editTransportDetails = '';
 
-    // Order Items editing array
+    // Items being edited in modal
+    public $editItems = [];
     public $editingOrderItems = [];
-
-    // Add Items properties
+    public $newProductId = '';
     public $newItemSearch = '';
-    public $newItemId = null;
-    public $newItemQty = 1;
     public $searchItemsList = [];
+    public $newItemQty = 1;
 
-    public $editingReceiveAmountId = null;
-    public $receiveAmountInput = null;
-
-    protected $queryString = [
-        'search' => ['except' => ''],
-        'status_filter' => ['except' => ''],
-        'payment_filter' => ['except' => ''],
-        'date_from' => ['except' => ''],
-        'date_to' => ['except' => ''],
-        'selected_year' => ['except' => ''],
-        'delivery_type_filter' => ['except' => ''],
-    ];
-
-    public function mount()
-    {
-        // Get unique years from orders
-        $orderYears = Order::selectRaw('YEAR(created_at) as year')
-            ->whereNotNull('created_at')
-            ->distinct()
-            ->orderBy('year', 'desc')
-            ->pluck('year')
-            ->map(fn($y) => (string)$y)
-            ->toArray();
-
-        $currentYear = date('Y');
-        $defaultYears = [(string)$currentYear, (string)($currentYear - 1), (string)($currentYear - 2)];
-        
-        $allYears = array_values(array_unique(array_merge($orderYears, $defaultYears)));
-        rsort($allYears);
-
-        $this->available_years = $allYears;
-    }
-
-    protected $rules = [
-        'editStatus' => 'required|in:pending,confirmed,dispatched,completed,cancelled',
-        'editPaymentStatus' => 'required|in:pending,paid,failed',
-        'editNotes' => 'nullable|string|max:500',
-        'editReceiveAmount' => 'nullable|numeric|min:0',
-        'editCustomerName' => 'required|string|max:255',
-        'editCustomerMobile' => 'required|digits:10',
-        'editCustomerEmail' => 'nullable|email',
-        'editCustomerState' => 'required|string',
-        'editCustomerDistrict' => 'required|string',
-        'editCustomerCity' => 'required|string',
-        'editDeliveryPoint' => 'required|string',
-        'editPinCode' => 'required|digits:6',
-    ];
-
-    protected $messages = [
-        'editStatus.required' => 'Order status is required.',
-        'editStatus.in' => 'Please select a valid order status.',
-        'editPaymentStatus.required' => 'Payment status is required.',
-        'editPaymentStatus.in' => 'Please select a valid payment status.',
-        'editNotes.max' => 'Notes cannot exceed 500 characters.',
-        'editReceiveAmount.numeric' => 'Receive amount must be a number.',
-        'editReceiveAmount.min' => 'Receive amount cannot be negative.',
-        'editCustomerName.required' => 'Customer name is required.',
-        'editCustomerMobile.required' => 'Mobile number is required.',
-        'editCustomerMobile.digits' => 'Mobile number must be exactly 10 digits.',
-        'editCustomerState.required' => 'State is required.',
-        'editCustomerDistrict.required' => 'District is required.',
-        'editCustomerCity.required' => 'City is required.',
-        'editDeliveryPoint.required' => 'Delivery point is required.',
-        'editPinCode.required' => 'Pin code is required.',
-        'editPinCode.digits' => 'Pin code must be exactly 6 digits.',
-    ];
-
-    // Explicit Livewire 3 property update hooks
+    // Reset pagination and sync filter values
     public function updatedSearch() { $this->resetPage(); }
-    public function updatedStatusFilter() { $this->resetPage(); }
-    public function updatedPaymentFilter() { $this->resetPage(); }
-    public function updatedDateFrom() { $this->resetPage(); }
-    public function updatedDateTo() { $this->resetPage(); }
-    public function updatedSelectedYear() { $this->resetPage(); }
-    public function updatedDeliveryTypeFilter() { $this->resetPage(); }
+    
+    public function updatedStatusFilter($val) { $this->status_filter = $val; $this->resetPage(); }
+    public function updatedStatus_filter($val) { $this->statusFilter = $val ?: 'all'; $this->resetPage(); }
 
-    public function updated($propertyName = null, $value = null)
-    {
-        if (in_array($propertyName, ['search', 'status_filter', 'payment_filter', 'date_from', 'date_to', 'selected_year', 'delivery_type_filter'])) {
-            $this->resetPage();
-        }
-    }
+    public function updatedPaymentFilter($val) { $this->payment_filter = $val; $this->resetPage(); }
+    public function updatedPayment_filter($val) { $this->paymentFilter = $val ?: 'all'; $this->resetPage(); }
 
-    public function clearFilters()
-    {
-        $this->reset(['search', 'status_filter', 'payment_filter', 'date_from', 'date_to', 'delivery_type_filter']);
-        $this->selected_year = '';
-        $this->resetPage();
-    }
+    public function updatedDeliveryTypeFilter($val) { $this->delivery_type_filter = $val; $this->resetPage(); }
+    public function updatedDelivery_type_filter($val) { $this->deliveryTypeFilter = $val ?: 'all'; $this->resetPage(); }
 
-    public function updatedEditStatus($value)
-    {
-        if (in_array(strtolower($this->initialStatus), ['confirmed', 'dispatched', 'completed']) && strtolower($value) === 'pending') {
-            $this->editStatus = $this->initialStatus;
-            $this->addError('editStatus', 'Once the status is Confirmed, it cannot be changed back to Pending.');
-        }
-    }
+    public function updatedDateFrom($val) { $this->date_from = $val; $this->resetPage(); }
+    public function updatedDate_from($val) { $this->dateFrom = $val; $this->resetPage(); }
 
-    public function openEditModal($orderId)
-    {
-        \Log::info('openEditModal called with orderId: ' . $orderId);
-        
-        $order = Order::find($orderId);
-        if ($order) {
-            $this->editingOrderId = $orderId;
-            $this->editStatus = $order->status ?? 'pending';
-            $this->initialStatus = strtolower($order->status ?? 'pending');
-            $this->editPaymentStatus = $order->payment_status ?? 'pending';
-            $this->editNotes = $order->notes ?? '';
-            $this->editReceiveAmount = $order->receive_amount !== null ? $order->receive_amount : (in_array($order->status, ['confirmed','dispatched','completed']) ? $order->total : 0);
-            $this->editHasGst = $order->has_gst ? true : false;
-            
-            // Load customer & delivery properties
-            $this->editCustomerName = $order->customer_name ?? '';
-            $this->editCustomerMobile = $order->customer_mobile ?? '';
-            $this->editCustomerEmail = $order->customer_email ?? '';
-            $this->editCustomerState = $order->customer_state ?? '';
-            $this->editCustomerDistrict = $order->customer_district ?? '';
-            $this->editCustomerCity = $order->customer_city ?? '';
-            $this->editDeliveryPoint = $order->delivery_point ?? '';
-            $this->editPinCode = $order->pin_code ?? '';
-            $this->editTransportProvider = $order->transport_provider ?? '';
-            $this->editTransportDetails = $order->transport_details ?? '';
-            $this->editDeliveryType = $order->delivery_type ?? 'none';
-            $this->editPaidAt = $order->paid_at ? \Carbon\Carbon::parse($order->paid_at)->format('Y-m-d\TH:i') : '';
+    public function updatedDateTo($val) { $this->date_to = $val; $this->resetPage(); }
+    public function updatedDate_to($val) { $this->dateTo = $val; $this->resetPage(); }
 
-            // Load items
-            $this->editingOrderItems = [];
-            $items = is_array($order->items) ? $order->items : ($order->items_json ?? []);
-            foreach ($items as $item) {
-                if (is_object($item)) {
-                    $item = (array)$item;
-                }
-                $this->editingOrderItems[] = [
-                    'product_id' => $item['product_id'] ?? $item['stock_id'] ?? null,
-                    'product_name' => $item['product_name'] ?? '',
-                    'price' => $item['price'] ?? $item['rate'] ?? 0,
-                    'original_price' => $item['original_price'] ?? $item['price'] ?? $item['rate'] ?? 0,
-                    'discount_percentage' => $item['discount_percentage'] ?? 0,
-                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 0,
-                    'quantity' => $item['quantity'] ?? 0,
-                ];
-            }
+    public function updatedSelectedYear($val) { $this->selected_year = $val; $this->resetPage(); }
+    public function updatedSelected_year($val) { $this->selectedYear = $val; $this->resetPage(); }
 
-            $this->showEditModal = true;
-            
-            \Log::info('Edit modal opened for order: ' . $orderId);
-            \Log::info('Current values - Status: ' . $this->editStatus . ', Payment: ' . $this->editPaymentStatus . ', Notes: ' . $this->editNotes . ', Receive Amount: ' . $this->editReceiveAmount);
-        } else {
-            \Log::error('Order not found with ID: ' . $orderId);
-            session()->flash('error', 'Order not found.');
-        }
-    }
-
-    public function closeEditModal()
-    {
-        $this->showEditModal = false;
-        $this->reset([
-            'editingOrderId', 'editStatus', 'editPaymentStatus', 'editNotes', 'editReceiveAmount', 'editPaidAt',
-            'editCustomerName', 'editCustomerMobile', 'editCustomerEmail', 'editCustomerState',
-            'editCustomerDistrict', 'editCustomerCity', 'editDeliveryPoint', 'editPinCode',
-            'editingOrderItems', 'editHasGst', 'editTransportProvider', 'editTransportDetails', 'editDeliveryType',
-            'newItemSearch', 'newItemId', 'newItemQty', 'searchItemsList'
-        ]);
-    }
-
-    public function fetchSearchResults()
-    {
-        $query = \App\Models\Stock::where('is_active', true);
-        if ($this->newItemSearch) {
-            $query->where('item_name', 'like', '%' . $this->newItemSearch . '%');
-        }
-        $this->searchItemsList = $query->limit(20)->get()->toArray();
-    }
-
-    public function updatedNewItemSearch($value)
+    public function updatedNewItemSearch()
     {
         $this->fetchSearchResults();
     }
 
+    public function fetchSearchResults()
+    {
+        if (trim($this->newItemSearch) !== '') {
+            $this->searchItemsList = Stock::where('is_active', true)
+                ->where('item_name', 'like', '%' . trim($this->newItemSearch) . '%')
+                ->take(15)
+                ->get()
+                ->toArray();
+        } else {
+            $this->searchItemsList = Stock::where('is_active', true)
+                ->orderBy('item_name')
+                ->take(15)
+                ->get()
+                ->toArray();
+        }
+    }
+
     public function selectNewItem($stockId)
     {
-        $stock = \App\Models\Stock::find($stockId);
+        $stock = Stock::find($stockId);
         if ($stock) {
-            $this->newItemId = $stock->id;
+            $this->newProductId = $stock->id;
             $this->newItemSearch = $stock->item_name;
             $this->searchItemsList = [];
         }
     }
 
-    public function addNewItem()
+    public function clearFilters()
     {
-        if (!$this->newItemId) {
-            session()->flash('modal_error', 'Please select a product first.');
+        $this->search = '';
+        $this->status_filter = 'all';
+        $this->statusFilter = 'all';
+        $this->payment_filter = 'all';
+        $this->paymentFilter = 'all';
+        $this->date_from = '';
+        $this->dateFrom = '';
+        $this->date_to = '';
+        $this->dateTo = '';
+        $this->selected_year = '';
+        $this->selectedYear = '';
+        $this->delivery_type_filter = 'all';
+        $this->deliveryTypeFilter = 'all';
+        $this->resetPage();
+    }
+
+    public function render()
+    {
+        $orders = $this->getFilteredOrders();
+
+        $totalOrders = Order::count();
+        $pendingOrders = Order::where('status', 'pending')->count();
+        $confirmedOrders = Order::where('status', 'confirmed')->count();
+        $dispatchedOrders = Order::where('status', 'dispatched')->count();
+        $completedOrders = Order::where('status', 'completed')->count();
+        
+        $availableYears = Order::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        // All active stocks for adding new items in modal
+        $allStocks = Stock::where('is_active', true)->orderBy('item_name')->get();
+
+        return view('livewire.admin.orders', [
+            'orders' => $orders,
+            'totalOrders' => $totalOrders,
+            'pendingOrders' => $pendingOrders,
+            'confirmedOrders' => $confirmedOrders,
+            'dispatchedOrders' => $dispatchedOrders,
+            'completedOrders' => $completedOrders,
+            'availableYears' => $availableYears,
+            'available_years' => $availableYears,
+            'allStocks' => $allStocks,
+        ])->layout('layouts.admin');
+    }
+
+    public function getFilteredOrders()
+    {
+        $query = Order::with(['user']);
+
+        if (!empty($this->search)) {
+            $search = $this->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_mobile', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_city', 'like', "%{$search}%")
+                  ->orWhere('customer_district', 'like', "%{$search}%")
+                  ->orWhere('customer_state', 'like', "%{$search}%")
+                  ->orWhere('delivery_point', 'like', "%{$search}%");
+            });
+        }
+
+        $status = !empty($this->status_filter) && $this->status_filter !== 'all' ? $this->status_filter : ($this->statusFilter !== 'all' ? $this->statusFilter : null);
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $payment = !empty($this->payment_filter) && $this->payment_filter !== 'all' ? $this->payment_filter : ($this->paymentFilter !== 'all' ? $this->paymentFilter : null);
+        if ($payment) {
+            $query->where('payment_status', $payment);
+        }
+
+        $deliveryType = !empty($this->delivery_type_filter) && $this->delivery_type_filter !== 'all' ? $this->delivery_type_filter : ($this->deliveryTypeFilter !== 'all' ? $this->deliveryTypeFilter : null);
+        if ($deliveryType) {
+            $query->where('delivery_type', $deliveryType);
+        }
+
+        $dateFrom = !empty($this->date_from) ? $this->date_from : $this->dateFrom;
+        if (!empty($dateFrom)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        $dateTo = !empty($this->date_to) ? $this->date_to : $this->dateTo;
+        if (!empty($dateTo)) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $selectedYear = !empty($this->selected_year) ? $this->selected_year : $this->selectedYear;
+        if (!empty($selectedYear)) {
+            $query->whereYear('created_at', $selectedYear);
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate(15);
+    }
+
+    public function openEditModal($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
             return;
         }
 
-        $stock = \App\Models\Stock::find($this->newItemId);
-        if (!$stock) {
-            session()->flash('modal_error', 'Selected product not found.');
-            return;
-        }
+        $this->editingOrderId = $orderId;
+        $this->editingOrder = $order;
+        $this->initialStatus = strtolower($order->status);
+        $this->editStatus = strtolower($order->status);
+        $this->editPaymentStatus = strtolower($order->payment_status);
+        $this->editPaidAt = $order->paid_at ? $order->paid_at->format('Y-m-d\TH:i') : '';
+        $this->editNotes = $order->notes ?? '';
+        $this->editReceiveAmount = $order->receive_amount ?? '';
+        $this->editCustomerName = $order->customer_name ?? '';
+        $this->editCustomerMobile = $order->customer_mobile ?? '';
+        $this->editCustomerEmail = $order->customer_email ?? '';
+        $this->editCustomerState = $order->customer_state ?? '';
+        $this->editCustomerDistrict = $order->customer_district ?? '';
+        $this->editCustomerCity = $order->customer_city ?? '';
+        $this->editDeliveryPoint = $order->delivery_point ?? '';
+        $this->editPinCode = $order->pin_code ?? '';
+        $this->editHasGst = (bool)$order->has_gst;
+        $this->editDeliveryType = $order->delivery_type ?? 'none';
+        $this->editTransportProvider = $order->transport_provider ?? '';
+        $this->editTransportDetails = $order->transport_details ?? '';
 
-        if ($this->newItemQty <= 0) {
-            session()->flash('modal_error', 'Quantity must be at least 1.');
-            return;
-        }
+        // Format items for modal editing safely whether array or collection
+        $this->editItems = [];
+        $rawItems = $order->items_json ?: (is_array($order->items) ? $order->items : []);
+        if ($rawItems && (is_array($rawItems) || is_object($rawItems))) {
+            foreach ($rawItems as $item) {
+                $productId = is_array($item) ? ($item['product_id'] ?? null) : ($item->product_id ?? null);
+                $productName = is_array($item) ? ($item['product_name'] ?? null) : ($item->product_name ?? null);
+                $qty = (int)(is_array($item) ? ($item['quantity'] ?? 1) : ($item->quantity ?? 1));
+                $price = (float)(is_array($item) ? ($item['rate'] ?? $item['price'] ?? 0) : ($item->price ?? 0));
+                $id = is_array($item) ? ($item['id'] ?? null) : ($item->id ?? null);
 
-        // Check if item is already in editingOrderItems
-        $foundIndex = null;
-        foreach ($this->editingOrderItems as $index => $item) {
-            if (($item['product_id'] ?? null) == $stock->id) {
-                $foundIndex = $index;
-                break;
+                $stock = $productId ? Stock::find($productId) : null;
+                $origPrice = (float)($stock->original_price ?? ($price > 0 ? $price / 0.255 : 0));
+
+                $this->editItems[] = [
+                    'id' => $id,
+                    'product_id' => $productId,
+                    'product_name' => $productName ?: ($stock->item_name ?? 'Product #' . $productId),
+                    'rate' => $price,
+                    'price' => $price,
+                    'original_price' => $origPrice,
+                    'discount_percentage' => (float)($stock->discount_percentage ?? 70),
+                    'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
+                    'quantity' => $qty,
+                    'total' => $price * $qty,
+                ];
             }
         }
+        $this->editingOrderItems = &$this->editItems;
 
-        if ($foundIndex !== null) {
-            $this->editingOrderItems[$foundIndex]['quantity'] += (int)$this->newItemQty;
-        } else {
-            $this->editingOrderItems[] = [
-                'product_id' => $stock->id,
-                'product_name' => $stock->item_name,
-                'price' => (float)$stock->price,
-                'original_price' => (float)$stock->original_price,
-                'discount_percentage' => (int)$stock->discount_percentage,
-                'special_discount_percentage' => (int)$stock->special_discount_percentage,
-                'quantity' => (int)$this->newItemQty,
-            ];
-        }
+        $this->showEditModal = true;
+    }
 
-        // Reset inputs
+    public function closeEditModal()
+    {
+        $this->showEditModal = false;
+        $this->editingOrder = null;
+        $this->editingOrderId = null;
+        $this->editItems = [];
+        $this->editingOrderItems = [];
+        $this->newProductId = '';
         $this->newItemSearch = '';
-        $this->newItemId = null;
-        $this->newItemQty = 1;
         $this->searchItemsList = [];
+        $this->newItemQty = 1;
+    }
 
-        session()->flash('modal_success', 'Item added to order list.');
+    public function updateItemQty($index, $newQty)
+    {
+        if (isset($this->editItems[$index])) {
+            $qty = max(1, (int)$newQty);
+            $this->editItems[$index]['quantity'] = $qty;
+            $this->editItems[$index]['total'] = $this->editItems[$index]['rate'] * $qty;
+        }
     }
 
     public function removeItem($index)
     {
-        if (isset($this->editingOrderItems[$index])) {
-            unset($this->editingOrderItems[$index]);
-            $this->editingOrderItems = array_values($this->editingOrderItems);
+        if (isset($this->editItems[$index])) {
+            array_splice($this->editItems, $index, 1);
         }
     }
 
-    public function recalculateTotals()
+    public function addNewItem()
     {
-        $mrpSubtotal = 0;
-        foreach ($this->editingOrderItems as $item) {
-            $originalPrice = $item['original_price'] ?? $item['price'] ?? 0;
-            $mrpSubtotal += $originalPrice * (int)($item['quantity'] ?? 0);
-        }
-        
-        // Calculate discounts
-        $discount_70 = round($mrpSubtotal * 0.70, 2);
-        $subtotal_after_70 = $mrpSubtotal - $discount_70;
-        $discount_15 = round($subtotal_after_70 * 0.15, 2);
-        $subtotal_after_15 = $subtotal_after_70 - $discount_15;
-        $packing_charge = round($subtotal_after_15 * 0.05, 2);
-        $final_total = round($subtotal_after_15 + $packing_charge, 2);
-        
-        // Handle coupon discount
-        $couponDiscount = 0;
-        if ($this->editingOrderId) {
-            $order = Order::find($this->editingOrderId);
-            if ($order && $order->coupon_code) {
-                $coupon = \App\Models\Coupon::whereRaw('LOWER(code) = ?', [strtolower($order->coupon_code)])->first();
-                if ($coupon && $coupon->isValid() && $final_total >= $coupon->minimum_order_amount) {
-                    $couponDiscount = $coupon->calculateDiscount($final_total);
-                    $final_total -= $couponDiscount;
-                }
+        if (empty($this->newProductId) && !empty($this->newItemSearch)) {
+            $stock = Stock::where('is_active', true)
+                ->where('item_name', 'like', '%' . trim($this->newItemSearch) . '%')
+                ->first();
+            if ($stock) {
+                $this->newProductId = $stock->id;
             }
         }
 
-        // Calculate GST if checked
-        $gstAmount = 0;
-        if ($this->editHasGst) {
-            $gstAmount = round($final_total * 0.18, 2);
-            $final_total += $gstAmount;
+        if (empty($this->newProductId)) return;
+
+        $stock = Stock::find($this->newProductId);
+        if (!$stock) return;
+
+        // Check if already in editItems
+        foreach ($this->editItems as $idx => $item) {
+            if ($item['product_id'] == $stock->id) {
+                $this->editItems[$idx]['quantity'] += (int)$this->newItemQty;
+                $this->editItems[$idx]['total'] = $this->editItems[$idx]['rate'] * $this->editItems[$idx]['quantity'];
+                $this->newProductId = '';
+                $this->newItemSearch = '';
+                $this->searchItemsList = [];
+                $this->newItemQty = 1;
+                return;
+            }
         }
+
+        $rate = (float)($stock->price ?? 0);
+        $originalPrice = (float)($stock->original_price ?? $rate);
+        $qty = max(1, (int)$this->newItemQty);
+
+        $this->editItems[] = [
+            'id' => null,
+            'product_id' => $stock->id,
+            'product_name' => $stock->item_name,
+            'rate' => $rate,
+            'price' => $rate,
+            'original_price' => $originalPrice,
+            'discount_percentage' => (float)($stock->discount_percentage ?? 70),
+            'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
+            'quantity' => $qty,
+            'total' => $rate * $qty,
+        ];
+
+        $this->newProductId = '';
+        $this->newItemSearch = '';
+        $this->searchItemsList = [];
+        $this->newItemQty = 1;
+    }
+
+    // Recalculate totals in real time for modal
+    public function recalculateTotals()
+    {
+        $subtotal = 0;
+        $discount70 = 0;
+        $discount15 = 0;
+
+        foreach ($this->editItems as $item) {
+            $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
+            $qty = (int)$item['quantity'];
+            $lineSubtotal = $origPrice * $qty;
+
+            $subtotal += $lineSubtotal;
+            $lineDisc70 = round($lineSubtotal * 0.70, 2);
+            $discount70 += $lineDisc70;
+
+            $after70 = $lineSubtotal - $lineDisc70;
+            $lineDisc15 = round($after70 * 0.15, 2);
+            $discount15 += $lineDisc15;
+        }
+
+        $after15 = $subtotal - $discount70 - $discount15;
+        $packingCharge = round($after15 * 0.05, 2);
         
+        $couponDiscount = 0;
+        if ($this->editingOrder && $this->editingOrder->coupon_discount) {
+            $couponDiscount = (float)$this->editingOrder->coupon_discount;
+        }
+
+        $taxableAmount = max(0, $after15 + $packingCharge - $couponDiscount);
+        $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
+        $finalTotal = round($taxableAmount + $gstAmount);
+
         return [
-            'subtotal' => $mrpSubtotal,
-            'discount_70_percent' => $discount_70,
-            'amount_after_70_discount' => $subtotal_after_70,
-            'special_discount_15_percent' => $discount_15,
-            'amount_after_15_discount' => $subtotal_after_15,
-            'packing_charge_5_percent' => $packing_charge,
+            'subtotal' => $subtotal,
+            'discount_70_percent' => $discount70,
+            'amount_after_70_discount' => $subtotal - $discount70,
+            'special_discount_15_percent' => $discount15,
+            'amount_after_15_discount' => $after15,
+            'packing_charge_5_percent' => $packingCharge,
             'coupon_discount' => $couponDiscount,
             'gst_amount' => $gstAmount,
-            'total' => $final_total,
+            'total' => $finalTotal,
         ];
     }
 
     public function saveOrder()
     {
+        if (!$this->editingOrderId) return;
+
+        $order = Order::find($this->editingOrderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+
+        $this->validate([
+            'editStatus' => 'required|in:pending,confirmed,dispatched,completed,cancelled',
+            'editPaymentStatus' => 'required|in:pending,paid,failed',
+            'editCustomerName' => 'required|string|max:255',
+            'editCustomerMobile' => 'required|string|max:20',
+        ]);
+
         try {
-            $this->validate();
-
-            $order = Order::find($this->editingOrderId);
-            if (!$order) {
-                session()->flash('error', 'Order not found.');
-                return;
-            }
-
-            // Store old values for logging
-            $oldStatus = $order->status;
-
-            // Once status is "Confirmed", do not allow it to change back to "Pending"
-            if (in_array($oldStatus, ['confirmed', 'dispatched', 'completed']) && $this->editStatus === 'pending') {
-                $this->addError('editStatus', 'Status cannot be reverted to Pending once Confirmed, Dispatched or Completed.');
-                return;
-            }
-
-            $oldPaymentStatus = $order->payment_status;
-            $oldNotes = $order->notes;
+            $oldStatus = strtolower($order->status);
+            $oldPaymentStatus = strtolower($order->payment_status);
             $oldReceiveAmount = $order->receive_amount;
+            $oldNotes = $order->notes;
 
-            // Recalculate totals
             $totals = $this->recalculateTotals();
 
-            // Update order items in DB
-            \App\Models\OrderItem::where('order_id', $order->id)->delete();
             $newItemsJson = [];
-            foreach ($this->editingOrderItems as $item) {
-                $qty = (int)($item['quantity'] ?? 0);
-                if ($qty > 0) {
-                    $originalPrice = (float)$item['original_price'];
-                    $rate = (float)$item['price'];
-                    
-                    \App\Models\OrderItem::create([
-                        'order_id' => $order->id,
-                        'stock_id' => $item['product_id'],
-                        'product_name' => $item['product_name'],
-                        'content' => '',
-                        'rate' => $rate,
-                        'quantity' => $qty,
-                        'price' => $rate,
-                        'subtotal' => $originalPrice * $qty,
-                        'total' => $rate * $qty
-                    ]);
+            foreach ($this->editItems as $item) {
+                $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
+                $qty = (int)$item['quantity'];
+                $rate = (float)$item['rate'];
 
-                    $newItemsJson[] = [
-                        'product_id' => $item['product_id'],
-                        'product_name' => $item['product_name'],
-                        'content' => '',
-                        'rate' => $rate,
-                        'original_price' => $originalPrice,
-                        'discount_percentage' => $item['discount_percentage'],
-                        'special_discount_percentage' => $item['special_discount_percentage'],
-                        'quantity' => $qty,
-                        'total' => $rate * $qty
-                    ];
-                }
+                $newItemsJson[] = [
+                    'product_id' => $item['product_id'],
+                    'product_name' => $item['product_name'],
+                    'content' => '',
+                    'rate' => $rate,
+                    'original_price' => $origPrice,
+                    'discount_percentage' => $item['discount_percentage'],
+                    'special_discount_percentage' => $item['special_discount_percentage'],
+                    'quantity' => $qty,
+                    'total' => $rate * $qty
+                ];
             }
 
             $provider = ($this->editDeliveryType === 'delivery') ? $this->editTransportProvider : '';
@@ -431,7 +468,7 @@ class Orders extends Component
                 'payment_status' => $this->editPaymentStatus,
                 'paid_at' => $paidAtValue,
                 'notes' => $this->editNotes,
-                'receive_amount' => $this->editReceiveAmount,
+                'receive_amount' => (is_numeric($this->editReceiveAmount) && $this->editReceiveAmount !== '') ? (float)$this->editReceiveAmount : 0,
                 'customer_name' => $this->editCustomerName,
                 'customer_mobile' => $this->editCustomerMobile,
                 'customer_email' => $this->editCustomerEmail,
@@ -483,30 +520,21 @@ class Orders extends Component
                 ]);
             }
 
-            if ($oldReceiveAmount != $this->editReceiveAmount) {
-                OrderLog::create([
-                    'order_id' => $order->id,
-                    'status' => 'updated',
-                    'previous_status' => 'receive_amount_updated',
-                    'changed_by' => auth()->id(),
-                    'notes' => "Receive amount changed from {$oldReceiveAmount} to {$this->editReceiveAmount}",
-                    'payment_status' => null,
-                ]);
+            // Keep updated order visible in list by resetting filters to 'all'
+            $this->clearFilters();
+
+            // Automatically send WhatsApp notification if payment status is paid
+            if ($this->editPaymentStatus === 'paid') {
+                $this->sendWhatsAppPaidBill($order->id);
             }
 
-            if ($oldNotes !== $this->editNotes) {
-                OrderLog::create([
-                    'order_id' => $order->id,
-                    'status' => 'updated',
-                    'previous_status' => 'notes_updated',
-                    'changed_by' => auth()->id(),
-                    'notes' => "Notes updated: " . ($this->editNotes ?: 'Notes cleared'),
-                    'payment_status' => null,
-                ]);
+            // Automatically send WhatsApp notification if order status is dispatched
+            if ($this->editStatus === 'dispatched') {
+                $this->sendWhatsAppDispatched($order->id);
             }
 
             $this->closeEditModal();
-            session()->flash('success', 'Order updated successfully!');
+            session()->flash('success', "Order #{$order->id} updated successfully!");
             
         } catch (\Exception $e) {
             if ($e instanceof \Illuminate\Validation\ValidationException) {
@@ -514,6 +542,150 @@ class Orders extends Component
             }
             \Log::error('Error saving order: ' . $e->getMessage(), ['exception' => $e]);
             session()->flash('error', 'Error updating order: ' . $e->getMessage());
+        }
+    }
+
+    private function getFormattedItemsList($order)
+    {
+        $rawItems = $order->items_json ?: (is_array($order->items) ? $order->items : []);
+        $itemsList = [];
+        if ($rawItems && (is_array($rawItems) || is_object($rawItems))) {
+            foreach ($rawItems as $item) {
+                $pName = is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? '');
+                $pQty = is_array($item) ? ($item['quantity'] ?? 1) : ($item->quantity ?? 1);
+                $pPrice = (float)(is_array($item) ? ($item['rate'] ?? $item['price'] ?? 0) : ($item->price ?? 0));
+                if ($pName) {
+                    $itemsList[] = "• {$pName} - Qty: {$pQty} - ₹" . number_format($pPrice, 2);
+                }
+            }
+        }
+        return implode("\n", $itemsList);
+    }
+
+    public function sendWhatsAppPaidBill($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+
+        $phone = $this->editCustomerMobile ?: ($order->customer_mobile ?: ($order->user->phone ?? ''));
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
+            $phone = substr($phone, 2);
+        }
+
+        if (!$phone) {
+            session()->flash('error', 'Customer mobile number not available.');
+            return;
+        }
+
+        $customerName = $this->editCustomerName ?: $order->customer_name;
+        $orderValue = '₹' . number_format($order->total_amount ?: $order->total, 2);
+        $invoiceUrl = route('user.orders.invoice_pdf', $order->id);
+
+        try {
+            $smsService = new \App\Services\SMSService();
+            $res = $smsService->sendWhatsApp($phone, '', 'payment_paid', [
+                'customer_name' => $customerName,
+                'order_id' => (string)$order->id,
+                'order_value' => $orderValue,
+                'invoice_url' => $invoiceUrl,
+            ]);
+
+            \Log::info("WhatsApp Payment Paid notification triggered for Order #{$order->id} to {$phone}");
+            session()->flash('success', "WhatsApp Paid Invoice notification sent automatically to {$customerName} (+91{$phone})!");
+        } catch (\Exception $e) {
+            \Log::error("WhatsApp Payment Paid error for Order #{$order->id}: " . $e->getMessage());
+            session()->flash('error', "Error sending WhatsApp notification: " . $e->getMessage());
+        }
+    }
+
+    public function sendWhatsAppDispatched($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+
+        $phone = $this->editCustomerMobile ?: ($order->customer_mobile ?: ($order->user->phone ?? ''));
+        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
+            $phone = substr($phone, 2);
+        }
+
+        if (!$phone) {
+            session()->flash('error', 'Customer mobile number not available.');
+            return;
+        }
+
+        $customerName = $this->editCustomerName ?: $order->customer_name;
+        $provider = $this->editTransportProvider ?: ($order->transport_provider ?: 'Lorry Transport');
+        $details = $this->editTransportDetails ?: ($order->transport_details ?: 'Assigned');
+        $deliveryPoint = $this->editDeliveryPoint ?: ($order->delivery_point ?: ($this->editCustomerCity ?: $order->customer_city));
+
+        try {
+            $smsService = new \App\Services\SMSService();
+            $res = $smsService->sendWhatsApp($phone, '', 'order_dispatched', [
+                'customer_name' => $customerName,
+                'order_id' => (string)$order->id,
+                'transport_provider' => $provider,
+                'transport_details' => $details,
+                'delivery_point' => $deliveryPoint,
+                'delivery_type' => $this->editDeliveryType ?: $order->delivery_type,
+            ]);
+
+            \Log::info("WhatsApp Dispatched notification triggered for Order #{$order->id} to {$phone}");
+            session()->flash('success', "WhatsApp Out for Delivery notification sent automatically to {$customerName} (+91{$phone})!");
+        } catch (\Exception $e) {
+            \Log::error("WhatsApp Dispatched error for Order #{$order->id}: " . $e->getMessage());
+            session()->flash('error', "Error sending WhatsApp notification: " . $e->getMessage());
+        }
+    }
+
+    public $confirmingOrderDeletion = false;
+    public $orderIdToDelete = null;
+
+    public function confirmDeleteOrder($orderId)
+    {
+        $this->orderIdToDelete = $orderId;
+        $this->confirmingOrderDeletion = true;
+    }
+
+    public function cancelDeleteOrder()
+    {
+        $this->confirmingOrderDeletion = false;
+        $this->orderIdToDelete = null;
+    }
+
+    public function deleteOrder()
+    {
+        if (!$this->orderIdToDelete) return;
+
+        $order = Order::find($this->orderIdToDelete);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            $this->cancelDeleteOrder();
+            return;
+        }
+
+        try {
+            $orderId = $order->id;
+            try { $order->logs()->delete(); } catch (\Exception $e) {}
+            try { 
+                if (method_exists($order, 'items') && $order->items() instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
+                    $order->items()->delete();
+                }
+            } catch (\Exception $e) {}
+            
+            $order->delete();
+
+            $this->cancelDeleteOrder();
+            session()->flash('success', "Order #{$orderId} deleted successfully.");
+        } catch (\Exception $e) {
+            \Log::error('Error deleting order: ' . $e->getMessage());
+            session()->flash('error', 'Error deleting order: ' . $e->getMessage());
         }
     }
 
@@ -532,250 +704,12 @@ class Orders extends Component
             session()->flash('success', 'Receive amount updated.');
         }
         $this->editingReceiveAmountId = null;
-        $this->receiveAmountInput = null;
+        $this->receiveAmountInput = '';
     }
 
     public function cancelEditReceiveAmount()
     {
         $this->editingReceiveAmountId = null;
-        $this->receiveAmountInput = null;
-    }
-
-    public function exportOrders()
-    {
-        $orders = $this->getFilteredOrders();
-        
-        $filename = 'orders_' . date('Y-m-d_H-i-s') . '.csv';
-        
-        $csvData = [];
-        
-        // CSV headers
-        $csvData[] = [
-            'Order ID', 'Customer', 'Phone', 'Status', 'Payment Status', 
-            'Total Amount', 'Receive Amount', 'Created Date', 'Items',
-            'Name', 'Mobile', 'Email', 'State', 'District', 'City', 'Delivery Point', 'Pin Code', 'Coupon', 'Verify Code'
-        ];
-
-        foreach ($orders as $order) {
-            $items = collect($order->items)->map(function($item) {
-                if (is_array($item)) {
-                    $item = (object)$item;
-                }
-                return $item->product_name . ' (x' . $item->quantity . ')';
-            })->implode(', ');
-
-            $csvData[] = [
-                $order->id,
-                $order->user->name ?? $order->customer_name ?? 'Guest',
-                $order->user->phone ?? $order->customer_mobile ?? '-',
-                $order->status,
-                $order->payment_status,
-                number_format($order->total, 2),
-                $order->receive_amount !== null ? number_format($order->receive_amount, 2) : '',
-                $order->created_at->format('Y-m-d H:i:s'),
-                $items,
-                $order->customer_name,
-                $order->customer_mobile,
-                $order->customer_email,
-                $order->customer_state,
-                $order->customer_district,
-                $order->customer_city,
-                $order->delivery_point,
-                $order->pin_code,
-                $order->coupon_code,
-                $order->verify_code,
-            ];
-        }
-
-        // Convert to CSV string
-        $csvContent = '';
-        foreach ($csvData as $row) {
-            $csvContent .= implode(',', array_map(function($field) {
-                return '"' . str_replace('"', '""', $field) . '"';
-            }, $row)) . "\n";
-        }
-
-        // Store CSV content in session for download
-        session(['export_csv_content' => $csvContent, 'export_csv_filename' => $filename]);
-        
-        // Dispatch download event
-        $this->dispatch('download-csv');
-        
-        session()->flash('success', 'Export ready! Download will start automatically.');
-    }
-
-    public function sendWhatsAppSummary($orderId)
-    {
-        $order = Order::with(['user', 'items'])->find($orderId);
-        
-        if (!$order) {
-            session()->flash('error', 'Order not found.');
-            return;
-        }
-
-        $items = $order->items->map(function($item) {
-            return "• {$item->product_name} - Qty: {$item->quantity} - ₹" . number_format($item->price, 2);
-        })->implode("\n");
-
-        $message = "🛒 *Order Summary*\n\n";
-        $message .= "Order ID: #{$order->id}\n";
-        $message .= "Customer: {$order->user->name}\n";
-        $message .= "Phone: {$order->user->phone}\n";
-        $message .= "Status: {$order->status}\n";
-        $message .= "Payment: {$order->payment_status}\n\n";
-        $message .= "*Items:*\n{$items}\n\n";
-        $message .= "Total Amount: ₹" . number_format($order->total, 2) . "\n";
-        $message .= "Order Date: " . $order->created_at->format('d/m/Y H:i');
-
-        $whatsappLink = "https://wa.me/{$order->user->phone}?text=" . urlencode($message);
-        
-        session()->flash('whatsapp_link', $whatsappLink);
-        session()->flash('success', 'WhatsApp link generated successfully!');
-    }
-
-    public function downloadOrderPdf($orderId)
-    {
-        $order = Order::with(['user', 'items'])->find($orderId);
-        
-        if (!$order) {
-            session()->flash('error', 'Order not found.');
-            return;
-        }
-
-        // Redirect to the download route
-        return redirect()->route('admin.orders.download_pdf', $orderId);
-    }
-
-    public function downloadOrderInvoicePdf($orderId)
-    {
-        $order = Order::with(['user', 'items'])->find($orderId);
-        
-        if (!$order) {
-            session()->flash('error', 'Order not found.');
-            return;
-        }
-
-        // Redirect to the invoice download route
-        return redirect()->route('admin.orders.download_invoice_pdf', $orderId);
-    }
-
-    public function downloadAllOrdersInvoicePdf()
-    {
-        $orders = $this->getFilteredOrders();
-        
-        if ($orders->isEmpty()) {
-            session()->flash('error', 'No orders found to download.');
-            return;
-        }
-
-        // Redirect to the bulk invoice download route
-        return redirect()->route('admin.orders.download_all_invoice_pdf');
-    }
-
-    private function getFilteredOrdersQuery($ignoreStatusFilter = false)
-    {
-        $query = Order::with(['user', 'items'])
-            ->orderBy('created_at', 'desc');
-
-        if (!empty($this->selected_year)) {
-            $query->whereYear('created_at', $this->selected_year);
-        }
-
-        if (!empty(trim($this->search))) {
-            $searchTerm = trim($this->search);
-            $query->where(function($q) use ($searchTerm) {
-                $q->where('id', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_name', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_mobile', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_email', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_city', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_district', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('customer_state', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('delivery_point', 'like', '%' . $searchTerm . '%')
-                  ->orWhereHas('user', function($userQuery) use ($searchTerm) {
-                      $userQuery->where('name', 'like', '%' . $searchTerm . '%')
-                                ->orWhere('phone', 'like', '%' . $searchTerm . '%');
-                  });
-            });
-        }
-
-        if (!$ignoreStatusFilter && !empty($this->status_filter)) {
-            $query->whereRaw('LOWER(status) = ?', [strtolower($this->status_filter)]);
-        }
-
-        if (!empty($this->payment_filter)) {
-            $query->whereRaw('LOWER(payment_status) = ?', [strtolower($this->payment_filter)]);
-        }
-
-        if (!empty($this->date_from)) {
-            $query->whereDate('created_at', '>=', $this->date_from);
-        }
-
-        if (!empty($this->date_to)) {
-            $query->whereDate('created_at', '<=', $this->date_to);
-        }
-
-        if (!empty($this->delivery_type_filter)) {
-            if ($this->delivery_type_filter === 'none') {
-                $query->where(function($q) {
-                    $q->whereNull('delivery_type')
-                      ->orWhere('delivery_type', 'none')
-                      ->orWhere('delivery_type', '');
-                });
-            } else {
-                $query->whereRaw('LOWER(delivery_type) = ?', [strtolower($this->delivery_type_filter)]);
-            }
-        }
-
-        return $query;
-    }
-
-    private function getFilteredOrders()
-    {
-        return $this->getFilteredOrdersQuery()->get();
-    }
-
-    public function render()
-    {
-        $orders = $this->getFilteredOrdersQuery()->paginate(20);
-        
-        \Log::info('Orders component rendering', [
-            'showEditModal' => $this->showEditModal,
-            'editingOrderId' => $this->editingOrderId,
-            'ordersCount' => $orders->count(),
-            'search' => $this->search,
-            'status_filter' => $this->status_filter,
-            'payment_filter' => $this->payment_filter,
-            'selected_year' => $this->selected_year,
-            'delivery_type_filter' => $this->delivery_type_filter,
-        ]);
-        
-        $baseStatsQuery = $this->getFilteredOrdersQuery(true);
-
-        // Pre-calculate full active stocks serial mapping to match price list catalog serials
-        $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
-        $allActiveStocks = \App\Models\Stock::where('is_active', true)->get()->groupBy('category');
-        $catalogSnoMap = [];
-        $snoCounter = 0;
-        foreach ($allActiveCats as $cat) {
-            $catStocks = $allActiveStocks->get($cat->name) ?? $allActiveStocks->get($cat->id) ?? collect();
-            foreach ($catStocks->sortBy('order_within_category') as $stockItem) {
-                $snoCounter++;
-                $catalogSnoMap[$stockItem->id] = $snoCounter;
-            }
-        }
-        
-        return view('livewire.admin.orders', [
-            'orders' => $orders,
-            'editingOrder' => $this->editingOrderId ? Order::with(['user', 'items'])->find($this->editingOrderId) : null,
-            'totalOrders' => (clone $baseStatsQuery)->when(!empty($this->status_filter), function($q) {
-                $q->whereRaw('LOWER(status) = ?', [strtolower($this->status_filter)]);
-            })->count(),
-            'pendingOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['pending'])->count(),
-            'confirmedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['confirmed'])->count(),
-            'dispatchedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['dispatched'])->count(),
-            'completedOrders' => (clone $baseStatsQuery)->whereRaw('LOWER(status) = ?', ['completed'])->count(),
-            'catalogSnoMap' => $catalogSnoMap,
-        ]);
+        $this->receiveAmountInput = '';
     }
 }

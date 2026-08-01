@@ -296,87 +296,62 @@ setInterval(() => {
 document.getElementById('nav1').classList.remove('bg-opacity-50');
 document.getElementById('nav1').classList.add('bg-opacity-100');
 
-// Estimate Widget controls
-function minimizeEstimateWidget() {
-    const card = document.getElementById('estimateWidgetCard');
-    const badge = document.getElementById('estimateWidgetBadge');
-    if (card && badge) {
-        card.classList.add('hidden');
-        badge.classList.remove('hidden');
-    }
-}
-
-function restoreEstimateWidget() {
-    const card = document.getElementById('estimateWidgetCard');
-    const badge = document.getElementById('estimateWidgetBadge');
-    if (card && badge) {
-        card.classList.remove('hidden');
-        badge.classList.add('hidden');
-    }
-}
 </script>
 
-<!-- Small Floating Estimate Calculator Card on Left Side -->
-<div id="estimateWidget" class="fixed left-3 sm:left-6 bottom-4 sm:bottom-6 z-40 max-w-[320px] sm:max-w-[350px] w-full transition-all duration-300">
-    <!-- Minimized Side Badge (When closed) -->
-    <div id="estimateWidgetBadge" class="hidden cursor-pointer bg-gradient-to-r from-[#2D0B5A] to-[#130427] text-white px-3.5 py-2.5 rounded-r-xl border border-purple-500/40 shadow-2xl flex items-center gap-2 hover:scale-105 transition-transform" onclick="restoreEstimateWidget()">
-        <span class="bg-yellow-400 text-purple-950 font-extrabold text-[10px] px-1.5 py-0.5 rounded uppercase">Civic</span>
-        <span class="text-xs font-bold">Estimate Calculator</span>
-        <svg class="w-4 h-4 text-yellow-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    </div>
+<!-- Floating Compact Cost Estimator Widget -->
+<a href="{{ route('shop') }}" 
+   id="floatingCostEstimator" 
+   title="Click to calculate cost & generate estimate"
+   class="fixed left-3 bottom-4 sm:left-6 sm:bottom-6 z-40 group flex items-center gap-2.5 bg-gradient-to-r from-[#2D0B5A] via-[#1E093B] to-[#B67121] text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full border-2 border-yellow-400/80 shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 animate-cost-estimator-pulse">
+    
+    <!-- Pulsing Outer Glow Aura -->
+    <span class="absolute -inset-1 rounded-full bg-gradient-to-r from-yellow-400 via-amber-500 to-purple-600 opacity-75 blur-sm animate-pulse group-hover:opacity-100 transition-opacity pointer-events-none"></span>
 
-    <!-- Main Compact Floating Card -->
-    <div id="estimateWidgetCard" class="relative bg-gradient-to-b from-[#2D0B5A] via-[#1E093B] to-[#130427] text-white rounded-2xl p-4 sm:p-5 border border-purple-500/30 shadow-2xl space-y-3">
-        <!-- Close Button -->
-        <button onclick="minimizeEstimateWidget()" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors p-1.5 bg-white/10 rounded-full hover:bg-white/20 z-10" title="Minimize to side">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+    <!-- Widget Content Container -->
+    <div class="relative flex items-center gap-2 z-10">
+        <!-- Icon Container with Blinking Red Badge -->
+        <div class="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-yellow-400 text-purple-950 rounded-full font-black shadow-md flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-purple-950" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h6M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
-        </button>
-
-        <!-- Header -->
-        <div class="pr-6">
-            <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-yellow-300 uppercase tracking-widest bg-black/40 px-2.5 py-0.5 rounded-full mb-1 border border-yellow-500/20">
-                📊 CIVIC WHOLESALE
+            <!-- Blinking Notification Pulse -->
+            <span class="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-white"></span>
             </span>
-            <h3 class="text-base sm:text-lg font-black text-white leading-tight">Estimate Calculator</h3>
         </div>
 
-        <p class="text-[11px] text-gray-300 leading-snug">
-            Add products from the crackers list to create your purchase draft. Our system automatically processes your pricing logic:
-        </p>
-
-        <!-- Wholesale Discount Flow -->
-        <div class="bg-black/40 rounded-xl p-2.5 border border-purple-500/15 space-y-1.5 text-xs">
-            <div class="flex items-center justify-between text-[11px]">
-                <span class="text-gray-300">1. Civic Discount</span>
-                <span class="font-bold text-green-400">Flat 70% Off</span>
+        <!-- Text Block -->
+        <div class="flex flex-col text-left">
+            <div class="flex items-center gap-1.5">
+                <span class="text-xs sm:text-sm font-extrabold text-white tracking-wide leading-tight group-hover:text-yellow-300 transition-colors">
+                    Cost Estimator
+                </span>
+                <span class="bg-yellow-400 text-purple-950 font-black text-[9px] px-1.5 py-0.2 rounded-full uppercase animate-bounce shadow-sm">
+                    70% OFF
+                </span>
             </div>
-            <div class="border-t border-purple-500/20"></div>
-            <div class="flex items-center justify-between text-[11px]">
-                <span class="text-gray-300">2. Special Discount</span>
-                <span class="font-bold text-green-400">Additional 15% Off</span>
-            </div>
-            <div class="border-t border-purple-500/20"></div>
-            <div class="flex items-center justify-between text-[11px]">
-                <span class="text-gray-300">3. Packing Fees</span>
-                <span class="font-bold text-orange-400">5% Charge Only</span>
-            </div>
-        </div>
-
-        <p class="text-[10px] text-gray-400 text-center">
-            * PDF quote containing complete calculations will be generated automatically.
-        </p>
-
-        <!-- Actions -->
-        <div class="grid grid-cols-2 gap-2 pt-1">
-            <a href="{{ route('express-shop') }}" class="flex items-center justify-center px-3 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-gray-950 font-extrabold text-xs rounded-xl shadow-md transition-all text-center">
-                Go to Quotation
-            </a>
-            <a href="{{ route('price-list') }}" class="flex items-center justify-center px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/15 font-bold text-xs rounded-xl transition-all text-center">
-                View Price List
-            </a>
+            <span class="text-[10px] text-yellow-300/90 font-semibold leading-none mt-0.5 flex items-center gap-0.5">
+                Click to Calculate &rarr;
+            </span>
         </div>
     </div>
-</div>
+</a>
+
+<!-- Continuous Glow Pulse Animation Styling -->
+<style>
+@keyframes cost-estimator-pulse {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(234, 179, 8, 0.6), 0 0 25px rgba(182, 113, 33, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(234, 179, 8, 0.95), 0 0 40px rgba(182, 113, 33, 0.7);
+        transform: scale(1.03);
+    }
+}
+.animate-cost-estimator-pulse {
+    animation: cost-estimator-pulse 2s infinite ease-in-out;
+}
+</style>
 @endsection 

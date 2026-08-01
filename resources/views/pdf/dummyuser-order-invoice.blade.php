@@ -320,7 +320,7 @@
     </table>
     
     <div style="font-family: 'Noto Sans Tamil', 'DejaVu Sans', sans-serif; text-align: center; margin-top: 15px; font-size: 11px; font-weight: normal; color: #1E093B; page-break-inside: avoid; line-height: 1.6;">
-        உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்!
+        உங்கள் தீபாவளி மகிழ்ச்சியில் எங்களுக்கும் ஒரு சிறிய இடம் தந்ததற்கு மனமார்ந்த நன்றி. இனிய தீபாவளி நல்வாழ்த்துக்கள்! 🪔
     </div>
 </div>
 </body>
