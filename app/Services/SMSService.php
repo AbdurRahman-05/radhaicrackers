@@ -109,9 +109,11 @@ class SMSService
                         $pdfFilename = "invoices/bill_{$order_id}_" . time() . ".pdf";
                         \Illuminate\Support\Facades\Storage::disk('public')->put($pdfFilename, $pdfContent);
                         
-                        // Use production domain URL (Meta WhatsApp API cannot reach localhost)
-                        $productionDomain = 'https://mediumspringgreen-dragonfly-181890.hostingersite.com';
-                        $pdfUrl = $productionDomain . '/storage/' . $pdfFilename;
+                        $appUrl = rtrim(config('app.url'), '/');
+                        if (!$appUrl || str_contains($appUrl, 'localhost') || str_contains($appUrl, '127.0.0.1')) {
+                            $appUrl = 'https://mediumspringgreen-dragonfly-181890.hostingersite.com';
+                        }
+                        $pdfUrl = $appUrl . '/storage/' . $pdfFilename;
 
                         // Send document via WhatsApp integration API
                         $docCurl = curl_init();
