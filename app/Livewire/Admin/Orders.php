@@ -523,13 +523,13 @@ class Orders extends Component
             // Keep updated order visible in list by resetting filters to 'all'
             $this->clearFilters();
 
-            // Automatically send WhatsApp notification if payment status is paid
-            if ($this->editPaymentStatus === 'paid') {
+            // Automatically send WhatsApp notification if payment status CHANGED to paid or confirmed
+            if (in_array($this->editPaymentStatus, ['paid', 'confirmed']) && $oldPaymentStatus !== $this->editPaymentStatus) {
                 $this->sendWhatsAppPaidBill($order->id);
             }
 
-            // Automatically send WhatsApp notification if order status is dispatched
-            if ($this->editStatus === 'dispatched') {
+            // Automatically send WhatsApp notification if order status CHANGED to dispatched
+            if ($this->editStatus === 'dispatched' && $oldStatus !== $this->editStatus) {
                 $this->sendWhatsAppDispatched($order->id);
             }
 
