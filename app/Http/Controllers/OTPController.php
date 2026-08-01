@@ -33,8 +33,7 @@ class OTPController extends Controller
 
         return response()->json([
             'success' => true,
-            'whatsapp_link' => $result['whatsapp_link'],
-            'message' => 'OTP sent successfully! Check your WhatsApp.',
+            'message' => 'OTP sent successfully! Check your SMS.',
         ]);
     }
 

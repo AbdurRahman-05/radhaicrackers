@@ -16,31 +16,38 @@ class SMSService
 
     public function sendOTP($phone, $otp)
     {
-        try {
-            $rawPhone = preg_replace('/[^0-9]/', '', $phone);
-            if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
-                $rawPhone = substr($rawPhone, 2);
-            }
+        $rawPhone = preg_replace('/[^0-9]/', '', $phone);
+        if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
+            $rawPhone = substr($rawPhone, 2);
+        }
 
-            // 1. Send via LionSMS API
-            $apiKey = $this->apiKey ?: '806|tE58s7pIytnL6q6r1Z3GkY9242aU260tq852oE99';
-            $url = "http://liontech.co.in/api/v2/sms/send";
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-            ])->post($url, [
-                'recipient' => $rawPhone,
-                'message' => "Your OTP for login is: {$otp}. Valid for 10 minutes. Radhe Crackers",
-                'sender_id' => 'RDHCRK',
+        $baseUrl = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
+        $apiKey = config('services.lionsms.api_key', 'dcd3c5c00112b83116657d7f656660a1');
+        $senderId = config('services.lionsms.sender_id', 'RADHTR');
+        $route = config('services.lionsms.route', '9');
+        $templateId = config('services.lionsms.otp_template_id', '1107172187374253331');
+
+        $message = "Your OTP for login is: {$otp}. Valid for 10 minutes. Radhe Crackers";
+
+        try {
+            $response = Http::get($baseUrl, [
+                'api_key' => $apiKey,
+                'type' => 'text',
+                'contacts' => $rawPhone,
+                'senderid' => $senderId,
+                'msg' => $message,
+                'template_id' => $templateId,
+                'route' => $route,
             ]);
 
-            // 2. Also send WhatsApp OTP for dual reliability
-            $this->sendWhatsApp($rawPhone, $otp, 'otp', []);
-
-            return true;
+            Log::info('LionSMS API response', [
+                'phone' => $rawPhone,
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+            return $response->successful();
         } catch (\Exception $e) {
             Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
-            $this->sendWhatsApp($phone, $otp, 'otp', []);
             return false;
         }
     }

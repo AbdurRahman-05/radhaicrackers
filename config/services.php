@@ -36,11 +36,11 @@ return [
     ],
 
     'lionsms' => [
-        'api_key' => env('LIONSMS_API_KEY'),
-        'sender_id' => env('LIONSMS_SENDER_ID'),
-        'route' => env('LIONSMS_ROUTE'),
-        'base_url' => env('LIONSMS_BASE_URL'),
-        'otp_template_id' => env('LIONSMS_OTP_TEMPLATE_ID'),
+        'api_key' => env('LIONSMS_API_KEY', 'dcd3c5c00112b83116657d7f656660a1'),
+        'sender_id' => env('LIONSMS_SENDER_ID', 'RADHTR'),
+        'route' => env('LIONSMS_ROUTE', '9'),
+        'base_url' => env('LIONSMS_BASE_URL', 'https://msg.lionsms.com/api/smsapi'),
+        'otp_template_id' => env('LIONSMS_OTP_TEMPLATE_ID', '1107172187374253331'),
     ],
 
 ];
