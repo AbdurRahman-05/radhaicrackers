@@ -48,7 +48,7 @@
         <form method="GET" action="{{ route('admin.gst-bills.index') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Search</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Bill No, Customer Name, GSTIN..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Bill No, Customer Name, GSTIN / Aadhaar..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">From Date</label>
@@ -77,7 +77,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Bill No</th>
                         <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Date</th>
-                        <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Customer Name & GSTIN</th>
+                        <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Customer Name & GSTIN / Aadhaar</th>
                         <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Items</th>
                         <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Subtotal</th>
                         <th class="px-4 py-3 text-left font-bold text-gray-600 uppercase">Tax (CGST/SGST)</th>
@@ -93,7 +93,7 @@
                         <td class="px-4 py-3">
                             <div class="font-bold text-gray-900">{{ $bill->customer_name }}</div>
                             @if($bill->customer_gstin)
-                                <div class="text-[10px] text-blue-600 font-semibold">GSTIN: {{ $bill->customer_gstin }}</div>
+                                <div class="text-[10px] text-blue-600 font-semibold">GST / Aadhaar: {{ $bill->customer_gstin }}</div>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-gray-600">{{ $bill->items->count() }} Items</td>

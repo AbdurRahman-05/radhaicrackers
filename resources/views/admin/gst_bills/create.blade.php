@@ -57,8 +57,8 @@
                     <input type="text" name="customer_name" value="{{ old('customer_name', $prefilledOrder->customer_name ?? '') }}" placeholder="e.g. KING SANTHA CRACKERS" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none font-semibold">
                 </div>
                 <div>
-                    <label class="block font-semibold text-gray-700 mb-1">Customer GSTIN</label>
-                    <input type="text" name="customer_gstin" value="{{ old('customer_gstin', '') }}" placeholder="e.g. 33ABDFK9901C1Z0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none uppercase font-semibold">
+                    <label class="block font-semibold text-gray-700 mb-1">Customer GSTIN / Aadhaar No</label>
+                    <input type="text" name="customer_gstin" value="{{ old('customer_gstin', '') }}" placeholder="E.G. 33ABDFK9901C1Z0 or 1234 5678 9012" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none uppercase font-semibold">
                 </div>
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1">Place of Supply</label>

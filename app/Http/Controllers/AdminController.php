@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\OrderLog;
 use App\Models\Stock;
 use App\Models\Payment;
+use App\Models\GstBill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -45,13 +46,161 @@ class AdminController extends Controller
             $activityQuery->whereYear('created_at', $selectedYear);
         }
 
+        // Today's Actions Breakdown
+        $todayDate = \Carbon\Carbon::today();
+
+        // 1. Today's Orders
+        $todayOrders = Order::with('user')->whereDate('created_at', $todayDate)->latest()->get();
+        $todayOrdersCount = $todayOrders->count();
+        $todayOrdersRevenue = $todayOrders->sum(function($o) {
+            return (float)($o->total_amount ?: ($o->total ?: 0));
+        });
+
+        // 2. Today's Order Activity Logs
+        $todayLogs = OrderLog::with(['order.user', 'order'])->whereDate('created_at', $todayDate)->latest()->get();
+
+        // 3. Today's Payments
+        $todayPayments = Payment::with(['order.user', 'order'])
+            ->where(function($q) use ($todayDate) {
+                $q->whereDate('created_at', $todayDate)
+                  ->orWhereDate('verified_at', $todayDate);
+            })
+            ->latest()
+            ->get();
+        $todayPaymentsVerifiedCount = $todayPayments->where('status', 'verified')->count();
+        $todayPaymentsVerifiedAmount = $todayPayments->where('status', 'verified')->sum('amount');
+
+        // 4. Today's Registered Users
+        $todayUsers = User::whereDate('created_at', $todayDate)->latest()->get();
+        $todayUsersCount = $todayUsers->count();
+
+        // 5. Today's GST Bills
+        $todayGstBills = GstBill::whereDate('created_at', $todayDate)->latest()->get();
+        $todayGstBillsCount = $todayGstBills->count();
+        $todayGstBillsAmount = $todayGstBills->sum('grand_total');
+
+        // Build a unified chronological timeline for Today's Breakdown
+        $todayTimeline = collect();
+
+        // Add Orders
+        foreach ($todayOrders as $order) {
+            $customerName = $order->customer_name ?: ($order->user->name ?? 'Guest Customer');
+            $customerMobile = $order->customer_mobile ?: ($order->user->phone ?? '');
+            $amount = '₹' . number_format($order->total_amount ?: $order->total, 2);
+            
+            $todayTimeline->push([
+                'timestamp' => $order->created_at,
+                'time' => $order->created_at->format('h:i A'),
+                'type' => 'order_created',
+                'badge' => '🛍️ New Order',
+                'badge_color' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                'icon' => 'fas fa-shopping-cart text-emerald-600',
+                'title' => "Order #{$order->id} placed by {$customerName}",
+                'subtitle' => "Mobile: " . ($customerMobile ?: 'N/A') . " • Total: {$amount}",
+                'status_badge' => strtoupper($order->status),
+                'status_color' => $order->status === 'completed' ? 'bg-green-500 text-white' : ($order->status === 'confirmed' ? 'bg-blue-500 text-white' : ($order->status === 'dispatched' ? 'bg-purple-500 text-white' : 'bg-yellow-500 text-white')),
+                'link' => route('admin.orders', ['search' => $order->id]),
+            ]);
+        }
+
+        // Add Logs / Status Updates
+        foreach ($todayLogs as $log) {
+            $orderId = $log->order_id;
+            $customerName = $log->order ? ($log->order->customer_name ?: ($log->order->user->name ?? 'Customer')) : 'Customer';
+            
+            $todayTimeline->push([
+                'timestamp' => $log->created_at,
+                'time' => $log->created_at->format('h:i A'),
+                'type' => 'order_log',
+                'badge' => '🔄 Status Update',
+                'badge_color' => 'bg-blue-100 text-blue-800 border-blue-300',
+                'icon' => 'fas fa-sync-alt text-blue-600',
+                'title' => "Order #{$orderId} ({$customerName}) status changed",
+                'subtitle' => $log->notes ?: "Status updated to " . ucfirst($log->status),
+                'status_badge' => strtoupper($log->status ?: 'UPDATED'),
+                'status_color' => 'bg-gray-700 text-white',
+                'link' => route('admin.orders', ['search' => $orderId]),
+            ]);
+        }
+
+        // Add Payments
+        foreach ($todayPayments as $payment) {
+            $orderId = $payment->order_id;
+            $amt = '₹' . number_format($payment->amount, 2);
+            $isVerified = $payment->status === 'verified';
+            
+            $todayTimeline->push([
+                'timestamp' => $payment->verified_at ?: $payment->created_at,
+                'time' => ($payment->verified_at ?: $payment->created_at)->format('h:i A'),
+                'type' => 'payment',
+                'badge' => $isVerified ? '✅ Payment Verified' : '💳 Payment Submitted',
+                'badge_color' => $isVerified ? 'bg-green-100 text-green-800 border-green-300' : 'bg-amber-100 text-amber-800 border-amber-300',
+                'icon' => $isVerified ? 'fas fa-check-circle text-green-600' : 'fas fa-credit-card text-amber-600',
+                'title' => "Payment of {$amt} for Order #{$orderId}",
+                'subtitle' => "UPI / Txn: " . ($payment->transaction_id ?: ($payment->upi_id ?: 'N/A')) . ($payment->notes ? " • Notes: {$payment->notes}" : ""),
+                'status_badge' => strtoupper($payment->status),
+                'status_color' => $isVerified ? 'bg-green-600 text-white' : 'bg-amber-600 text-white',
+                'link' => route('admin.payments'),
+            ]);
+        }
+
+        // Add New Users
+        foreach ($todayUsers as $u) {
+            $todayTimeline->push([
+                'timestamp' => $u->created_at,
+                'time' => $u->created_at->format('h:i A'),
+                'type' => 'user_registered',
+                'badge' => '👤 User Registered',
+                'badge_color' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
+                'icon' => 'fas fa-user-plus text-indigo-600',
+                'title' => "New customer registration: {$u->name}",
+                'subtitle' => "Phone: " . ($u->phone ?: 'N/A') . " • Email: " . ($u->email ?: 'N/A'),
+                'status_badge' => 'REGISTERED',
+                'status_color' => 'bg-indigo-600 text-white',
+                'link' => route('admin.users'),
+            ]);
+        }
+
+        // Add GST Bills
+        foreach ($todayGstBills as $gb) {
+            $amt = '₹' . number_format($gb->grand_total, 2);
+            $todayTimeline->push([
+                'timestamp' => $gb->created_at,
+                'time' => $gb->created_at->format('h:i A'),
+                'type' => 'gst_bill',
+                'badge' => '🧾 GST Bill Created',
+                'badge_color' => 'bg-purple-100 text-purple-800 border-purple-300',
+                'icon' => 'fas fa-file-invoice-dollar text-purple-600',
+                'title' => "GST Bill #{$gb->bill_number} generated for {$gb->customer_name}",
+                'subtitle' => "Grand Total: {$amt} • GST / Aadhaar: " . ($gb->customer_gstin ?: 'N/A'),
+                'status_badge' => 'GENERATED',
+                'status_color' => 'bg-purple-600 text-white',
+                'link' => route('admin.gst-bills.index', ['search' => $gb->bill_number]),
+            ]);
+        }
+
+        // Sort timeline by timestamp descending
+        $todayTimeline = $todayTimeline->sortByDesc('timestamp')->values();
+
+        $todayBreakdown = [
+            'orders_count' => $todayOrdersCount,
+            'orders_revenue' => $todayOrdersRevenue,
+            'payments_count' => $todayPaymentsVerifiedCount,
+            'payments_amount' => $todayPaymentsVerifiedAmount,
+            'users_count' => $todayUsersCount,
+            'gst_bills_count' => $todayGstBillsCount,
+            'gst_bills_amount' => $todayGstBillsAmount,
+            'orders_list' => $todayOrders,
+            'timeline' => $todayTimeline,
+        ];
+
         $stats = [
             'total_users' => $userQuery->count(),
             'total_orders' => (clone $orderQuery)->count(),
             'verified_payments' => (clone $orderQuery)->whereIn('status', ['confirmed', 'dispatched', 'completed'])->where('payment_status', 'paid')->sum('total'),
             'stock_items' => Stock::active()->count(),
-            'today_orders' => Order::whereDate('created_at', today())->count(),
-            'today_payments' => Payment::whereDate('verified_at', today())->sum('amount'),
+            'today_orders' => $todayOrdersCount,
+            'today_payments' => $todayPaymentsVerifiedAmount,
             'recent_activity' => $activityQuery->with('order')->latest()->take(5)->get(),
             'verified_payment_details' => $paymentQuery->whereNotNull('verified_at')->latest()->take(5)->get(['amount','upi_id','transaction_id','notes','created_at']),
             
@@ -73,7 +222,7 @@ class AdminController extends Controller
             array_unshift($years, (int)date('Y'));
         }
 
-        return view('admin.dashboard', compact('stats', 'selectedYear', 'years'));
+        return view('admin.dashboard', compact('stats', 'todayBreakdown', 'selectedYear', 'years'));
     }
 
     /**

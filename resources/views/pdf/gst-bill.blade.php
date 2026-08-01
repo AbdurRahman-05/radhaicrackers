@@ -176,7 +176,7 @@
                 <td class="customer-left">
                     <div><span class="label">Name</span>: <strong>{{ $gstBill->customer_name }}</strong></div>
                     <div><span class="label">Address</span>: {{ $gstBill->customer_address ?: '-' }}</div>
-                    <div><span class="label">GSTIN</span>: <strong>{{ $gstBill->customer_gstin ?: '-' }}</strong></div>
+                    <div><span class="label">GSTIN / Aadhaar</span>: <strong>{{ $gstBill->customer_gstin ?: '-' }}</strong></div>
                 </td>
                 <td class="customer-right">
                     <div><strong>Bill No :</strong> {{ $gstBill->bill_number }}</div>
