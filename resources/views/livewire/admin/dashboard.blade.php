@@ -163,7 +163,7 @@
                                             $color = $statusColors[$order['status']] ?? 'bg-gray-100 text-gray-800';
                                         @endphp
                                         <span class="px-2 py-1 rounded-full text-sm font-medium {{ $color }}">
-                                            {{ ucfirst($order['status']) }}
+                                            {{ strtolower($order['status'] ?? '') === 'dispatched' ? 'Dispatched (Out for Delivery)' : ucfirst($order['status']) }}
                                         </span>
                                     </td>
                                     <td class="py-3 px-4 text-gray-600">

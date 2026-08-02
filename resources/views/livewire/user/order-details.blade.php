@@ -16,8 +16,13 @@
                         @elseif($order->status === 'completed') bg-green-100 text-green-800
                         @else bg-red-100 text-red-800
                         @endif">
-                        {{ ucfirst($order->status) }}
+                        {{ strtolower($order->status ?? '') === 'dispatched' ? 'Dispatched (Out for Delivery)' : ucfirst($order->status) }}
                     </span>
+                    @if(strtolower($order->status ?? '') === 'dispatched')
+                        <div class="mt-2 p-2 bg-purple-100 border border-purple-300 text-purple-900 rounded-lg flex items-center gap-2 text-xs font-semibold">
+                            <span>🚚</span> Order Dispatched - Out for Delivery
+                        </div>
+                    @endif
                 </div>
                 <div class="mb-2">
                     <span class="text-sm font-medium text-gray-500">Payment Status:</span>

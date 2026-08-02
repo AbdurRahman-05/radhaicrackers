@@ -63,7 +63,7 @@
                             @elseif($order->status === 'completed') bg-green-100 text-green-800
                             @else bg-red-100 text-red-800
                             @endif">
-                            {{ ucfirst($order->status) }}
+                            {{ strtolower($order->status ?? '') === 'dispatched' ? 'Dispatched (Out for Delivery)' : ucfirst($order->status) }}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">

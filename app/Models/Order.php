@@ -96,6 +96,14 @@ class Order extends Model
         return $this->items_json ?? [];
     }
 
+    public function getFormattedStatusAttribute()
+    {
+        if (strtolower($this->status ?? '') === 'dispatched') {
+            return 'Dispatched (Out for Delivery)';
+        }
+        return ucfirst($this->status ?? '');
+    }
+
     protected static function boot()
     {
         parent::boot();

@@ -86,7 +86,7 @@
 
                             <div class="flex items-center gap-2">
                                 <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase border {{ $statusClass }}">
-                                    Status: {{ ucfirst($order->status) }}
+                                    Status: {{ strtolower($order->status ?? '') === 'dispatched' ? 'Dispatched (Out for Delivery)' : ucfirst($order->status) }}
                                 </span>
                                 <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase border {{ $paymentClass }}">
                                     Payment: {{ ucfirst($order->payment_status) }}

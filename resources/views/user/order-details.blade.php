@@ -45,8 +45,13 @@
                                 $color = $statusColors[$order->status] ?? 'bg-gray-100 text-gray-800';
                             @endphp
                             <span class="px-2 py-1 rounded-full text-sm font-medium {{ $color }}">
-                                {{ ucfirst($order->status) }}
+                                {{ strtolower($order->status ?? '') === 'dispatched' ? 'Dispatched (Out for Delivery)' : ucfirst($order->status) }}
                             </span>
+                            @if(strtolower($order->status ?? '') === 'dispatched')
+                                <div class="mt-2 text-xs font-semibold text-purple-800 flex items-center gap-1">
+                                    <span>🚚</span> Dispatched - Out for Delivery
+                                </div>
+                            @endif
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Total Amount</p>
