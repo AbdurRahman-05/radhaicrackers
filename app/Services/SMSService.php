@@ -193,12 +193,10 @@ class SMSService
                 return false;
             }
         } elseif ($context === 'order_confirmation' && !empty($data)) {
-            $template_name = "thanks_purchasing";
             $name = $data['customer_name'] ?? "Customer"; 
             $order_value = $data['order_value'] ?? "₹0.00"; 
             $order_id = (string)($data['order_id'] ?? "0");
 
-            $pdfUrl = '';
             try {
                 $order = \App\Models\Order::with(['user', 'payment', 'logs'])->find($order_id);
                 if ($order) {
@@ -208,49 +206,62 @@ class SMSService
                     $pdfFilename = "invoices/bill_{$order_id}_" . time() . ".pdf";
                     \Illuminate\Support\Facades\Storage::disk('public')->put($pdfFilename, $pdfContent);
                     
-                    $pdfUrl = $this->getPublicPdfUrl($pdfFilename, $pdfContent);
+                    $pdfUrl = route('public.pdf_invoice', $order_id);
+                    $appUrl = rtrim(config('app.url'), '/');
+                    if (str_contains($pdfUrl, 'localhost') || str_contains($pdfUrl, '127.0.0.1')) {
+                        $pdfUrl = "https://mediumspringgreen-dragonfly-181890.hostingersite.com/public-pdf/{$order_id}";
+                    }
+
+                    // Send Meta Approved Document Template (order_bill_pdf)
+                    $docCurl = curl_init();
+                    curl_setopt_array($docCurl, array(
+                        CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT => 30,
+                        CURLOPT_CUSTOMREQUEST => 'POST',
+                        CURLOPT_POSTFIELDS => json_encode([
+                            'messaging_product' => 'whatsapp',
+                            'recipient_type' => 'individual',
+                            'to' => $phone,
+                            'type' => 'template',
+                            'template' => [
+                                'name' => 'order_bill_pdf',
+                                'language' => ['code' => 'en_US'],
+                                'components' => [
+                                    [
+                                        'type' => 'header',
+                                        'parameters' => [
+                                            [
+                                                'type' => 'document',
+                                                'document' => [
+                                                    'link' => $pdfUrl,
+                                                    'filename' => "Radhe_Crackers_Order_#{$order_id}.pdf"
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        'type' => 'body',
+                                        'parameters' => [
+                                            ['type' => 'text', 'text' => $name],
+                                            ['type' => 'text', 'text' => $order_id],
+                                            ['type' => 'text', 'text' => $order_value]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]),
+                        CURLOPT_HTTPHEADER => array(
+                            'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                            'Content-Type: application/json'
+                        ),
+                    ));
+                    $docResponse = curl_exec($docCurl);
+                    curl_close($docCurl);
+                    Log::info('WhatsApp Approved Document Template (order_bill_pdf) sent', ['phone' => $phone, 'pdf_url' => $pdfUrl, 'response' => $docResponse]);
+
+                    return true;
                 }
-            } catch (\Exception $pdfEx) {
-                Log::error('PDF generation error for WhatsApp template', ['error' => $pdfEx->getMessage()]);
-            }
-
-            $orderParam = "#" . $order_id;
-            if (!empty($pdfUrl)) {
-                $orderParam .= " | 📄 PDF Invoice: " . $pdfUrl;
-            }
-
-            $bodyParams = [$name, $order_value, $orderParam];
-
-            try {
-                // Send Meta Template message (100% delivered to ALL recipient phone numbers)
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 10,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => json_encode([
-                        'to' => $phone,
-                        'phoneNoId' => '747598631767762',
-                        'type' => 'template',
-                        'name' => $template_name,
-                        'language' => 'en_US',
-                        'bodyParams' => $bodyParams
-                    ]),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Bearer ca4869c05587ab6e2c2052011dfa8190296a1c1d08a357f7d4a5f6e89e9568b7',
-                        'Content-Type: application/json'
-                    ),
-                ));
-                $response = curl_exec($curl);
-                curl_close($curl);
-                Log::info('WhatsApp order_confirmation template sent with PDF link', ['phone' => $phone, 'pdf_url' => $pdfUrl, 'response' => $response]);
-
-                return true;
             } catch (\Exception $e) {
                 Log::error('WhatsApp Order Confirmation Exception', ['error' => $e->getMessage()]);
                 return false;

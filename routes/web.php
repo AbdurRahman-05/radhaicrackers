@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\File;
 
 
 
-// Dynamic storage image server route (serves images on Hostinger & local seamlessly)
+// Dynamic storage file server route (serves PDFs & images on Hostinger & local seamlessly)
 Route::get('/storage/{path}', function ($path) {
     // 1. Check in public_path('storage/' . $path)
     $file1 = public_path('storage/' . $path);
@@ -61,6 +61,19 @@ Route::get('/storage/{path}', function ($path) {
 
     abort(404);
 })->where('path', '.*');
+
+// Public Unauthenticated PDF Direct Binary Stream Route for WhatsApp & Customers
+Route::get('/public-pdf/{id}', function ($id) {
+    $order = \App\Models\Order::with(['user', 'payment', 'logs'])->find($id);
+    if (!$order) {
+        abort(404);
+    }
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
+    return response($pdf->output(), 200, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="Radhe_Crackers_Order_#' . $id . '.pdf"'
+    ]);
+})->name('public.pdf_invoice');
 
 
 
