@@ -24,8 +24,8 @@ class Orders extends Component
     public $dateFrom = '';
     public $date_to = '';
     public $dateTo = '';
-    public $selected_year = '';
-    public $selectedYear = '';
+    public $selected_year = '2026';
+    public $selectedYear = '2026';
     public $delivery_type_filter = 'all';
     public $deliveryTypeFilter = 'all';
 

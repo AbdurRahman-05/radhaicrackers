@@ -96,7 +96,7 @@
                     <option value="out_of_stock" {{ request('status_filter') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                 </select>
             </div>
-            <div class="md:col-span-3 flex justify-between items-center border-t border-gray-200 pt-3">
+            <div class="md:col-span-3 flex flex-wrap justify-between items-center border-t border-gray-200 pt-3 gap-2">
                 <div class="flex gap-2">
                     <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-xs font-semibold">
                         <i class="fas fa-filter mr-1"></i> Apply Filter
@@ -105,10 +105,33 @@
                         Clear Filters
                     </a>
                 </div>
+
                 @if($selectedYear)
-                    <span class="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                        Showing Order Counts for Year {{ $selectedYear }}
-                    </span>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <form method="POST" action="{{ route('admin.stocks.bulk-deactivate-year') }}" onsubmit="return confirm('Are you sure you want to DEACTIVATE all stocks created in year {{ $selectedYear }}?')">
+                        @csrf
+                        <input type="hidden" name="year" value="{{ $selectedYear }}">
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition">
+                            🚫 Deactivate All {{ $selectedYear }} Stocks
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.stocks.bulk-hide-year') }}" onsubmit="return confirm('Are you sure you want to HIDE FROM SHOP all stocks created in year {{ $selectedYear }}?')">
+                        @csrf
+                        <input type="hidden" name="year" value="{{ $selectedYear }}">
+                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition">
+                            👁️ Hide All {{ $selectedYear }} Stocks from Shop
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.stocks.bulk-activate-year') }}">
+                        @csrf
+                        <input type="hidden" name="year" value="{{ $selectedYear }}">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition">
+                            ✅ Activate All {{ $selectedYear }}
+                        </button>
+                    </form>
+                </div>
                 @else
                     <span class="text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
                         Showing All-Time Order Counts

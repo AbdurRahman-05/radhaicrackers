@@ -227,9 +227,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/stocks/logs', function () {
             return view('admin.stocks.logs');
         })->name('stocks.logs');
-        Route::get('/stocks/download-template', [App\Http\Controllers\Admin\StockController::class, 'downloadTemplate'])->name('stocks.download-template');
+        Route::post('/stocks/download-template', [App\Http\Controllers\Admin\StockController::class, 'downloadTemplate'])->name('stocks.download-template');
         Route::post('/stocks/import-csv', [App\Http\Controllers\Admin\StockController::class, 'importCsv'])->name('stocks.import-csv');
         Route::post('/stocks/preview-import', [App\Http\Controllers\Admin\StockController::class, 'previewImport'])->name('stocks.preview-import');
+        Route::post('/stocks/bulk-deactivate-year', [App\Http\Controllers\Admin\StockController::class, 'bulkDeactivateYear'])->name('stocks.bulk-deactivate-year');
+        Route::post('/stocks/bulk-hide-year', [App\Http\Controllers\Admin\StockController::class, 'bulkHideYear'])->name('stocks.bulk-hide-year');
+        Route::post('/stocks/bulk-activate-year', [App\Http\Controllers\Admin\StockController::class, 'bulkActivateYear'])->name('stocks.bulk-activate-year');
+        Route::post('/stocks/bulk-show-year', [App\Http\Controllers\Admin\StockController::class, 'bulkShowYear'])->name('stocks.bulk-show-year');
         
     
         // Coupon Management
