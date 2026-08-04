@@ -18,11 +18,12 @@ class Stocks extends Component
     public $showEditModal = false;
     public $editingStock = null;
     
-    public $selected_year = '2025';
+    public $selected_year = '';
     public $available_years = [];
 
     public function mount()
     {
+        $this->selected_year = (string)date('Y');
         $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
             ->distinct()
             ->orderBy('year', 'desc')

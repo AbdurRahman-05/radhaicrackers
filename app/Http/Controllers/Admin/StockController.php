@@ -69,8 +69,8 @@ class StockController extends Controller
         $availableYears = array_values(array_unique($orderYears));
         rsort($availableYears);
 
-        // Default selected year to 2025 if not provided in request
-        $selectedYear = request()->has('selected_year') ? request('selected_year') : '2025';
+        // Default selected year to current year (2026) if not provided in request
+        $selectedYear = request()->has('selected_year') ? request('selected_year') : (string)date('Y');
 
         // Ensure baseline lifetime ordered_counts are synced
         Stock::recalculateOrderedCounts();
