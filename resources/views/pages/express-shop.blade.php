@@ -587,12 +587,15 @@ function proceedToCheckout() {
         return;
     }
     
+    // Save selected items to localStorage
+    saveCartToLocalStorage();
+
     // Create URL with selected items
     const items = selectedProducts.map(product => `${product.id}:${product.quantity}`).join(',');
     
     // Calculate total with original prices (not discounted)
     const total = Object.values(products).reduce((sum, product) => {
-        return sum + (product.quantity * product.original_price);
+        return sum + (product.quantity * (product.original_price || product.price));
     }, 0);
     
     window.location.href = `{{ route('smart-checkout.show') }}?items=${items}&total=${total.toFixed(2)}`;

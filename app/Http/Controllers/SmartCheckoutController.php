@@ -15,7 +15,17 @@ class SmartCheckoutController extends Controller
 {
     public function show()
     {
-        return view('pages.smart-checkout');
+        $stocks = \App\Models\Stock::all();
+        $stockMap = [];
+        foreach ($stocks as $stock) {
+            $stockMap[$stock->id] = [
+                'id' => $stock->id,
+                'name' => $stock->item_name,
+                'price' => (float)$stock->price,
+                'original_price' => (float)($stock->original_price > 0 ? $stock->original_price : $stock->price),
+            ];
+        }
+        return view('pages.smart-checkout', compact('stockMap'));
     }
 
     public function validateCoupon(Request $request)
@@ -183,17 +193,7 @@ class SmartCheckoutController extends Controller
                 }
             }
 
-            // Increment ordered_count for each stock item
-            foreach ($items as $item) {
-                // Try product_id, fallback to id or key
-                $productId = $item['product_id'] ?? $item['id'] ?? null;
-                if ($productId) {
-                    $stock = \App\Models\Stock::find($productId);
-                    if ($stock) {
-                        $stock->increment('ordered_count', $item['quantity'] ?? 1);
-                    }
-                }
-            }
+            // Ordered count will be dynamically calculated when order is confirmed by Admin
 
             // Log coupon usage
             if (!empty($request->input('coupon_code'))) {
@@ -212,22 +212,30 @@ class SmartCheckoutController extends Controller
                 'coupon_discount' => $order->coupon_discount
             ]);
 
-            //whatsApp Integration can be added here
-            if(1>0){
-                    $data = [
-                    "name" => Auth::user()->name,
-                    "order_value" => "₹".$order->total_amount,
-                    "order_id" => "#".$order->id
+            // WhatsApp Integration & PDF Bill URL generation
+            $whatsappUrl = '';
+            try {
+                $smsService = new \App\Services\SMSService();
+                $waData = [
+                    'customer_name' => $order->customer_name ?: (auth()->user()->name ?? 'Customer'),
+                    'order_value' => '₹' . number_format($order->total_amount ?: $order->total, 2),
+                    'order_id' => (string)$order->id
                 ];
+                $customerPhone = $order->customer_mobile ?: (auth()->user()->phone ?? '');
+                $smsService->sendWhatsApp($customerPhone, '', 'order_confirmation', $waData);
 
-                $sent = $smsService->sendWhatsApp(Auth::user()->phone, '', $context='order_confirmation', $data);
-                $sent = $smsService->sendWhatsAppAdmin(Auth::user()->phone, '', $context='order_confirmation', $data);
+                $whatsappService = app(\App\Services\WhatsAppService::class);
+                $whatsappUrl = $whatsappService->generateOrderWhatsAppUrl($order);
+            } catch (\Exception $waEx) {
+                Log::error('Smart checkout WhatsApp Exception: ' . $waEx->getMessage());
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Order placed successfully!',
                 'order_id' => $order->id,
+                'whatsapp_url' => $whatsappUrl,
+                'pdf_url' => route('user.orders.invoice_pdf', $order->id),
                 'redirect_url' => route('user.orders.show', $order->id)
             ]);
 

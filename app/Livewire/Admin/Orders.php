@@ -506,6 +506,9 @@ class Orders extends Component
 
             $order->update($updateData);
 
+            // Recalculate product stock ordered_counts dynamically based on confirmed/edited order items
+            Stock::recalculateOrderedCounts();
+
             // Log status changes
             if ($oldStatus !== $this->editStatus) {
                 OrderLog::create([
@@ -690,6 +693,9 @@ class Orders extends Component
             } catch (\Exception $e) {}
             
             $order->delete();
+
+            // Recalculate product stock ordered_counts after deleting order
+            Stock::recalculateOrderedCounts();
 
             $this->cancelDeleteOrder();
             session()->flash('success', "Order #{$orderId} deleted successfully.");

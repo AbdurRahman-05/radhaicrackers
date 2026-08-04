@@ -108,15 +108,7 @@ class CheckoutController extends Controller
             }
         }
         
-        // Increment ordered_count for each stock item
-        foreach ($items as $item) {
-            if (isset($item['product_id'])) {
-                $stock = \App\Models\Stock::find($item['product_id']);
-                if ($stock) {
-                    $stock->increment('ordered_count', $item['quantity'] ?? 1);
-                }
-            }
-        }
+        // Ordered count will be dynamically calculated when order is confirmed by Admin
         
         \Log::info('Order created successfully', [
                     'order_id' => $order->id,

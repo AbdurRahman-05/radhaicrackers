@@ -72,8 +72,11 @@ class StockController extends Controller
         // Default selected year to 2025 if not provided in request
         $selectedYear = request()->has('selected_year') ? request('selected_year') : '2025';
 
-        // Calculate ordered count map per product for the selected year
-        $ordersQuery = \App\Models\Order::query();
+        // Ensure baseline lifetime ordered_counts are synced
+        Stock::recalculateOrderedCounts();
+
+        // Calculate ordered count map per product for the selected year (confirmed, non-cancelled orders)
+        $ordersQuery = \App\Models\Order::query()->whereNotIn('status', ['cancelled', 'pending']);
         if ($selectedYear !== '' && $selectedYear !== null) {
             $ordersQuery->whereYear('created_at', $selectedYear);
         }

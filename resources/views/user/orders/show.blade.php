@@ -63,12 +63,14 @@
                             {{ $order->delivery_type === 'delivery' ? '🚚 Delivery (Transport)' : '🏢 Takeaway (Godown Pickup)' }}
                         </span>
                     </div>
-                    @if($order->delivery_type === 'delivery' || $order->transport_provider || $order->transport_details)
-                        <div class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs space-y-1">
-                            <div>🚚 <strong>Transport Provider:</strong> {{ $order->transport_provider ?: 'Lorry Transport' }}</div>
-                            <div>🚛 <strong>Vehicle / LR Details:</strong> {{ $order->transport_details ?: 'Vehicle En Route' }}</div>
+                    <div class="mt-3 p-3.5 bg-gradient-to-br from-amber-50 to-orange-50/70 border-2 border-amber-300 rounded-xl text-amber-950 text-xs space-y-1.5 shadow-sm">
+                        <div class="font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5 text-[11px] border-b border-amber-200 pb-1">
+                            <span>🚚 Transport & Logistics Details</span>
                         </div>
-                    @endif
+                        <div>🚚 <strong>Transport Provider:</strong> <span class="font-extrabold text-purple-950">{{ $order->transport_provider ?: 'Assigned Lorry Transport' }}</span></div>
+                        <div>🚛 <strong>Vehicle / LR Details:</strong> <span class="font-extrabold text-purple-950">{{ $order->transport_details ?: 'Vehicle En Route / LR Assigned' }}</span></div>
+                        <div>📍 <strong>Delivery Point:</strong> <span class="font-bold">{{ $order->delivery_point ?: 'Main Branch' }}</span></div>
+                    </div>
                 </div>
             </div>
             <!-- Right Top: QR Code -->
@@ -203,11 +205,18 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4">
-            <a href="{{ route('user.orders') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
-                Back to Orders
+            <a href="{{ route('user.orders') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm">
+                ← Back to Orders
             </a>
-            <a href="{{ route('user.orders.invoice_pdf', $order->id) }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
-                Download Invoice
+            @php
+                $waService = app(\App\Services\WhatsAppService::class);
+                $waUrl = $waService->generateOrderWhatsAppUrl($order);
+            @endphp
+            <a href="{{ $waUrl }}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-sm flex items-center gap-1.5 shadow">
+                💬 Send PDF Bill via WhatsApp
+            </a>
+            <a href="{{ route('user.orders.invoice_pdf', $order->id) }}" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm">
+                📄 Download Invoice PDF
             </a>
         </div>
     </div>

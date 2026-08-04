@@ -700,6 +700,7 @@ function proceedToCheckout() {
         alert('Please select at least one available product to proceed.');
         return;
     }
+    saveCart(cart);
     const items = cart.map(product => `${product.product_id}:${product.quantity}`).join(',');
     
     // Calculate total with original prices (not discounted)
@@ -707,7 +708,7 @@ function proceedToCheckout() {
         const product = products[item.product_id];
         if (product) {
             // Use original price for order value
-            return sum + (item.quantity * product.original_price);
+            return sum + (item.quantity * (product.original_price || product.price));
         }
         return sum + (item.quantity * (item.rate || item.price));
     }, 0);

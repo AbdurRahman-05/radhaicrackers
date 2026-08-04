@@ -44,13 +44,6 @@ class OrderController extends Controller
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
             ]);
-            // Increment ordered_count for each stock item if product_id is present
-            if (isset($item['product_id'])) {
-                $stock = \App\Models\Stock::find($item['product_id']);
-                if ($stock) {
-                    $stock->increment('ordered_count', $item['quantity'] ?? 1);
-                }
-            }
         }
 
         // Create order log

@@ -112,4 +112,40 @@ public function images()
             'performed_by' => $performedBy ?? auth()->id(),
         ]);
     }
+
+    /**
+     * Recalculate and update the ordered_count for all stocks or a specific stock
+     * based on confirmed (non-cancelled, non-pending) orders.
+     */
+    public static function recalculateOrderedCounts($stockId = null)
+    {
+        $orders = Order::whereNotIn('status', ['cancelled', 'pending'])->get(['items_json']);
+
+        $countsMap = [];
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($pId && $qty > 0) {
+                        $countsMap[$pId] = ($countsMap[$pId] ?? 0) + $qty;
+                    }
+                }
+            }
+        }
+
+        if ($stockId) {
+            $newCount = $countsMap[$stockId] ?? 0;
+            static::where('id', $stockId)->update(['ordered_count' => $newCount]);
+        } else {
+            $allStocks = static::all();
+            foreach ($allStocks as $stock) {
+                $newCount = $countsMap[$stock->id] ?? 0;
+                if ($stock->ordered_count != $newCount) {
+                    $stock->update(['ordered_count' => $newCount]);
+                }
+            }
+        }
+    }
 } 

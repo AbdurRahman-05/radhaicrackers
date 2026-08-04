@@ -278,6 +278,9 @@ class AdminController extends Controller
 
         $order->update(['status' => $request->status]);
 
+        // Recalculate stock ordered_counts dynamically
+        \App\Models\Stock::recalculateOrderedCounts();
+
         // Log the status change
         OrderLog::create([
             'order_id' => $order->id,

@@ -299,7 +299,7 @@ document.getElementById('nav1').classList.add('bg-opacity-100');
 </script>
 
 <!-- Floating Compact Cost Estimator Widget -->
-<a href="{{ route('shop') }}" 
+<a href="{{ route('express-shop') }}" 
    id="floatingCostEstimator" 
    title="Click to calculate cost & generate estimate"
    class="fixed left-3 bottom-4 sm:left-6 sm:bottom-6 z-40 group flex items-center gap-2.5 bg-gradient-to-r from-[#2D0B5A] via-[#1E093B] to-[#B67121] text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full border-2 border-yellow-400/80 shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 animate-cost-estimator-pulse">

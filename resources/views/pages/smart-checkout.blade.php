@@ -313,18 +313,101 @@ class SmartCheckout {
     }
     
     loadCart() {
-        const cartData = localStorage.getItem('cartItems');
-        if (cartData) {
-            this.cartItems = JSON.parse(cartData);
-            this.calculateTotals();
+        const stockMap = @json($stockMap ?? []);
+        let items = [];
+
+        // 1. Check URL parameters FIRST (e.g. ?items=1773:2,1774:1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemsParam = urlParams.get('items');
+        if (itemsParam && itemsParam.trim() !== '') {
+            const pairs = itemsParam.split(',');
+            pairs.forEach(pair => {
+                const parts = pair.split(':');
+                if (parts.length === 2) {
+                    const productId = parseInt(parts[0]);
+                    const qty = parseInt(parts[1]);
+                    if (productId && qty > 0) {
+                        items.push({
+                            product_id: productId,
+                            quantity: qty
+                        });
+                    }
+                }
+            });
         }
+
+        // 2. If URL had no items, check localStorage & sessionStorage
+        if (!items || items.length === 0) {
+            const rawData = localStorage.getItem('cartItems') || localStorage.getItem('cart') || sessionStorage.getItem('cartItems');
+            if (rawData) {
+                try {
+                    const parsed = JSON.parse(rawData);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        items = parsed;
+                    }
+                } catch (e) {
+                    console.error('Error parsing cart items:', e);
+                }
+            }
+        }
+
+        // 3. Hydrate all items with stockMap details to ensure valid names & original prices
+        if (Array.isArray(items) && items.length > 0) {
+            this.cartItems = items.map(item => {
+                const pId = parseInt(item.product_id || item.id || 0);
+                const stock = stockMap[pId] || {};
+                
+                let origPrice = 0;
+                if (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0) {
+                    origPrice = Number(item.original_price);
+                } else if (stock.original_price && Number(stock.original_price) > 0) {
+                    origPrice = Number(stock.original_price);
+                } else if (item.rate || item.price || stock.price) {
+                    origPrice = Number(item.rate || item.price || stock.price || 0);
+                }
+
+                let currentRate = 0;
+                if (typeof item.rate !== 'undefined' && item.rate !== null && !isNaN(item.rate) && Number(item.rate) > 0) {
+                    currentRate = Number(item.rate);
+                } else if (item.price && Number(item.price) > 0) {
+                    currentRate = Number(item.price);
+                } else if (stock.price) {
+                    currentRate = Number(stock.price);
+                } else {
+                    currentRate = origPrice;
+                }
+
+                const qty = Math.max(1, parseInt(item.quantity || item.qty || 1));
+                const finalOrigPrice = origPrice > 0 ? origPrice : currentRate;
+
+                return {
+                    product_id: pId,
+                    product_name: item.product_name || item.name || stock.name || `Product #${pId}`,
+                    content: item.content || '',
+                    rate: currentRate,
+                    original_price: finalOrigPrice,
+                    quantity: qty,
+                    total: finalOrigPrice * qty
+                };
+            }).filter(item => item.product_id > 0 && item.quantity > 0);
+
+            // Persist back to localStorage
+            if (this.cartItems.length > 0) {
+                localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+            }
+        } else {
+            this.cartItems = [];
+        }
+
+        this.calculateTotals();
     }
     
     calculateTotals() {
         this.orderValue = this.cartItems.reduce((total, item) => {
-            // Always use original_price for order value calculation
-            const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null) ? item.original_price : (item.rate || item.price || 0);
-            return total + (originalPrice * (item.quantity || item.qty || 0));
+            const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
+                ? Number(item.original_price)
+                : Number(item.rate || item.price || 0);
+            return total + (originalPrice * Number(item.quantity || item.qty || 0));
         }, 0);
         
         // Apply discounts
@@ -338,10 +421,10 @@ class SmartCheckout {
         
         // Apply coupon discount if available
         if (this.couponData) {
-            finalTotal -= this.couponData.discount_amount;
+            finalTotal -= (this.couponData.discount_amount || 0);
         }
         
-        this.finalTotal = Math.round(finalTotal * 100) / 100;
+        this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
         
         this.updateDisplay();
     }
@@ -349,27 +432,39 @@ class SmartCheckout {
     updateDisplay() {
         // Update cart items
         const container = document.getElementById('cart-items-container');
+        if (!container) return;
+
         if (this.cartItems.length === 0) {
             container.innerHTML = '<p class="text-gray-500 text-center py-4">Your cart is empty</p>';
+            document.getElementById('order-value').textContent = '₹0.00';
+            document.getElementById('discount-70').textContent = '-₹0.00';
+            document.getElementById('discount-15').textContent = '-₹0.00';
+            document.getElementById('coupon-discount').textContent = '-₹0.00';
+            document.getElementById('packing-charge').textContent = '₹0.00';
+            document.getElementById('final-total').textContent = '₹0.00';
+            document.getElementById('cart-subtotal').textContent = '₹0.00';
+            this.validateForm();
             return;
         }
         
         let html = '';
         this.cartItems.forEach((item, index) => {
-            const name = item.product_name || item.name || item.item_name || 'Product';
+            const name = item.product_name || item.name || 'Product';
             const qty = item.quantity || item.qty || 0;
-            const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null) ? item.original_price : (item.rate || item.price || 0);
+            const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
+                ? Number(item.original_price)
+                : Number(item.rate || item.price || 0);
             const total = originalPrice * qty;
             
             html += `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div class="flex-1">
-                        <h4 class="font-medium text-gray-900">${name}</h4>
-                        <p class="text-sm text-gray-600">Qty: ${qty} × ₹${originalPrice.toFixed(2)}</p>
+                        <h4 class="font-bold text-gray-900 text-sm sm:text-base">${name}</h4>
+                        <p class="text-xs sm:text-sm text-gray-600">Qty: ${qty} × ₹${originalPrice.toFixed(2)}</p>
                     </div>
                     <div class="text-right">
-                        <p class="font-medium text-gray-900">₹${total.toFixed(2)}</p>
-                        <button onclick="smartCheckout.removeItem(${index})" class="text-red-600 text-sm hover:text-red-800">Remove</button>
+                        <p class="font-extrabold text-purple-950 text-sm sm:text-base">₹${total.toFixed(2)}</p>
+                        <button type="button" onclick="smartCheckout.removeItem(${index})" class="text-red-600 text-xs font-bold hover:text-red-800 transition-colors">Remove</button>
                     </div>
                 </div>
             `;
@@ -386,10 +481,12 @@ class SmartCheckout {
         document.getElementById('order-value').textContent = `₹${this.orderValue.toFixed(2)}`;
         document.getElementById('discount-70').textContent = `-₹${discount70.toFixed(2)}`;
         document.getElementById('discount-15').textContent = `-₹${discount15.toFixed(2)}`;
-        document.getElementById('coupon-discount').textContent = `-₹${this.couponData ? this.couponData.discount_amount.toFixed(2) : '0.00'}`;
+        document.getElementById('coupon-discount').textContent = `-₹${this.couponData ? Number(this.couponData.discount_amount || 0).toFixed(2) : '0.00'}`;
         document.getElementById('packing-charge').textContent = `₹${packingCharge.toFixed(2)}`;
         document.getElementById('final-total').textContent = `₹${this.finalTotal.toFixed(2)}`;
         document.getElementById('cart-subtotal').textContent = `₹${this.orderValue.toFixed(2)}`;
+
+        this.validateForm();
     }
     
     async applyCoupon() {
@@ -599,10 +696,10 @@ class SmartCheckout {
                 this.clearPreviousSessionData();
                 localStorage.removeItem('cartItems');
                 
-                // Show success message before redirect
-                this.showSuccessMessage('Order placed successfully! Redirecting...');
-                
-                // Redirect to order confirmation
+                // Show success message
+                this.showSuccessMessage('Order placed successfully! PDF Bill has been sent to your WhatsApp.');
+
+                // Redirect after brief delay
                 setTimeout(() => {
                     window.location.href = result.redirect_url;
                 }, 1500);

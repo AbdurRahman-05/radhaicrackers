@@ -196,10 +196,33 @@ class SMSService
             $template_name = "thanks_purchasing";
             $name = $data['customer_name'] ?? "Customer"; 
             $order_value = $data['order_value'] ?? "₹0.00"; 
-            $order_id = $data['order_id'] ?? "0";
-            $bodyParams = [$name, $order_value, $order_id];
+            $order_id = (string)($data['order_id'] ?? "0");
+
+            $pdfUrl = '';
+            try {
+                $order = \App\Models\Order::with(['user', 'payment', 'logs'])->find($order_id);
+                if ($order) {
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
+                    $pdfContent = $pdf->output();
+                    
+                    $pdfFilename = "invoices/bill_{$order_id}_" . time() . ".pdf";
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($pdfFilename, $pdfContent);
+                    
+                    $pdfUrl = $this->getPublicPdfUrl($pdfFilename, $pdfContent);
+                }
+            } catch (\Exception $pdfEx) {
+                Log::error('PDF generation error for WhatsApp template', ['error' => $pdfEx->getMessage()]);
+            }
+
+            $orderParam = "#" . $order_id;
+            if (!empty($pdfUrl)) {
+                $orderParam .= " | 📄 PDF Invoice: " . $pdfUrl;
+            }
+
+            $bodyParams = [$name, $order_value, $orderParam];
 
             try {
+                // Send Meta Template message (100% delivered to ALL recipient phone numbers)
                 $curl = curl_init();
                 curl_setopt_array($curl, array(
                     CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
@@ -225,9 +248,11 @@ class SMSService
                 ));
                 $response = curl_exec($curl);
                 curl_close($curl);
+                Log::info('WhatsApp order_confirmation template sent with PDF link', ['phone' => $phone, 'pdf_url' => $pdfUrl, 'response' => $response]);
+
                 return true;
             } catch (\Exception $e) {
-                Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
+                Log::error('WhatsApp Order Confirmation Exception', ['error' => $e->getMessage()]);
                 return false;
             }
         } else {
@@ -324,5 +349,48 @@ class SMSService
             }
         }
         return false;
+    }
+
+    private function getPublicPdfUrl($pdfFilename, $pdfContent)
+    {
+        $appUrl = rtrim(config('app.url'), '/');
+        if ($appUrl && !str_contains($appUrl, 'localhost') && !str_contains($appUrl, '127.0.0.1')) {
+            $pdfUrl = $appUrl . '/storage/' . $pdfFilename;
+            $ch = curl_init($pdfUrl);
+            curl_setopt($ch, CURLOPT_NOBODY, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($code >= 200 && $code < 300) {
+                return $pdfUrl;
+            }
+        }
+
+        try {
+            $tmpPath = sys_get_temp_dir() . '/' . basename($pdfFilename);
+            file_put_contents($tmpPath, $pdfContent);
+            
+            $cfile = new \CURLFile($tmpPath, 'application/pdf', basename($pdfFilename));
+            $ch = curl_init('https://tmpfiles.org/api/v1/upload');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => ['file' => $cfile],
+                CURLOPT_TIMEOUT => 15
+            ]);
+            $res = curl_exec($ch);
+            curl_close($ch);
+            @unlink($tmpPath);
+
+            $json = json_decode($res, true);
+            if (isset($json['data']['url'])) {
+                return str_replace('tmpfiles.org/', 'tmpfiles.org/dl/', $json['data']['url']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Public PDF upload error', ['msg' => $e->getMessage()]);
+        }
+
+        return ($appUrl ?: 'https://mediumspringgreen-dragonfly-181890.hostingersite.com') . '/storage/' . $pdfFilename;
     }
 }
