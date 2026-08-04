@@ -24,10 +24,19 @@ class Orders extends Component
     public $dateFrom = '';
     public $date_to = '';
     public $dateTo = '';
-    public $selected_year = '2026';
-    public $selectedYear = '2026';
+    public $selected_year = '';
+    public $selectedYear = '';
     public $delivery_type_filter = 'all';
     public $deliveryTypeFilter = 'all';
+
+    public function mount()
+    {
+        if (empty($this->selected_year) && empty($this->selectedYear)) {
+            $currentYear = (string)date('Y');
+            $this->selected_year = $currentYear;
+            $this->selectedYear = $currentYear;
+        }
+    }
 
     // Inline receive amount editing
     public $editingReceiveAmountId = null;
@@ -82,8 +91,8 @@ class Orders extends Component
     public function updatedDateTo($val) { $this->date_to = $val; $this->resetPage(); }
     public function updatedDate_to($val) { $this->dateTo = $val; $this->resetPage(); }
 
-    public function updatedSelectedYear($val) { $this->selected_year = $val; $this->resetPage(); }
-    public function updatedSelected_year($val) { $this->selectedYear = $val; $this->resetPage(); }
+    public function updatedSelectedYear($val) { $this->selected_year = $val; $this->selectedYear = $val; $this->resetPage(); }
+    public function updatedSelected_year($val) { $this->selected_year = $val; $this->selectedYear = $val; $this->resetPage(); }
 
     public function updatedNewItemSearch()
     {
@@ -128,8 +137,9 @@ class Orders extends Component
         $this->dateFrom = '';
         $this->date_to = '';
         $this->dateTo = '';
-        $this->selected_year = '';
-        $this->selectedYear = '';
+        $currentYear = (string)date('Y');
+        $this->selected_year = $currentYear;
+        $this->selectedYear = $currentYear;
         $this->delivery_type_filter = 'all';
         $this->deliveryTypeFilter = 'all';
         $this->resetPage();
@@ -206,8 +216,8 @@ class Orders extends Component
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $selectedYear = !empty($this->selected_year) ? $this->selected_year : $this->selectedYear;
-        if (!empty($selectedYear)) {
+        $selectedYear = ($this->selected_year !== null && $this->selected_year !== '') ? $this->selected_year : (($this->selectedYear !== null && $this->selectedYear !== '') ? $this->selectedYear : '');
+        if (!empty($selectedYear) && $selectedYear !== 'all') {
             $query->whereYear('created_at', $selectedYear);
         }
 
