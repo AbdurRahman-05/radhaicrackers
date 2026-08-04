@@ -212,7 +212,7 @@ class SMSService
                         $pdfUrl = "https://mediumspringgreen-dragonfly-181890.hostingersite.com/public-pdf/{$order_id}";
                     }
 
-                    // Send Meta Approved Document Template (order_bill_pdf)
+                    // Send Meta Approved Document Template (order_bill_pdf) - ONLY for 1st message
                     $docCurl = curl_init();
                     curl_setopt_array($docCurl, array(
                         CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
@@ -258,12 +258,106 @@ class SMSService
                     ));
                     $docResponse = curl_exec($docCurl);
                     curl_close($docCurl);
-                    Log::info('WhatsApp Approved Document Template (order_bill_pdf) sent', ['phone' => $phone, 'pdf_url' => $pdfUrl, 'response' => $docResponse]);
+                    Log::info('WhatsApp Approved Document Template (order_bill_pdf) sent for order_confirmation', ['phone' => $phone, 'pdf_url' => $pdfUrl, 'response' => $docResponse]);
 
                     return true;
                 }
             } catch (\Exception $e) {
                 Log::error('WhatsApp Order Confirmation Exception', ['error' => $e->getMessage()]);
+                return false;
+            }
+        } elseif ($context === 'payment_paid' && !empty($data)) {
+            $name = $data['customer_name'] ?? "Customer"; 
+            $order_value = $data['order_value'] ?? "₹0.00"; 
+            $order_id = (string)($data['order_id'] ?? "0");
+            $param3 = "Order #{$order_id}. ";
+
+            try {
+                $curl = curl_init();
+                curl_setopt_array($curl, array(
+                    CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_CUSTOMREQUEST => 'POST',
+                    CURLOPT_POSTFIELDS => json_encode([
+                        'messaging_product' => 'whatsapp',
+                        'recipient_type' => 'individual',
+                        'to' => $phone,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => 'second_msg',
+                            'language' => ['code' => 'en_US'],
+                            'components' => [
+                                [
+                                    'type' => 'body',
+                                    'parameters' => [
+                                        ['type' => 'text', 'text' => $name],
+                                        ['type' => 'text', 'text' => $order_value],
+                                        ['type' => 'text', 'text' => $param3]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]),
+                    CURLOPT_HTTPHEADER => array(
+                        'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                        'Content-Type: application/json'
+                    ),
+                ));
+                $response = curl_exec($curl);
+                curl_close($curl);
+                Log::info('WhatsApp payment_paid (second_msg) template sent', ['phone' => $phone, 'response' => $response]);
+                return true;
+            } catch (\Exception $e) {
+                Log::error('WhatsApp Payment Paid Exception', ['error' => $e->getMessage()]);
+                return false;
+            }
+        } elseif ($context === 'order_dispatched' && !empty($data)) {
+            $name = $data['customer_name'] ?? "Customer"; 
+            $order_id = (string)($data['order_id'] ?? "0");
+            $provider = $data['transport_provider'] ?? '';
+            $details = $data['transport_details'] ?? '';
+            $order_value = $data['order_value'] ?? "₹0.00";
+            $param3 = ($provider ?: 'Lorry Transport') . ($details ? " ({$details})" : '');
+
+            try {
+                $curl = curl_init();
+                curl_setopt_array($curl, array(
+                    CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_CUSTOMREQUEST => 'POST',
+                    CURLOPT_POSTFIELDS => json_encode([
+                        'messaging_product' => 'whatsapp',
+                        'recipient_type' => 'individual',
+                        'to' => $phone,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => '3_message',
+                            'language' => ['code' => 'en_US'],
+                            'components' => [
+                                [
+                                    'type' => 'body',
+                                    'parameters' => [
+                                        ['type' => 'text', 'text' => $name],
+                                        ['type' => 'text', 'text' => "#{$order_id}"],
+                                        ['type' => 'text', 'text' => $param3]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]),
+                    CURLOPT_HTTPHEADER => array(
+                        'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                        'Content-Type: application/json'
+                    ),
+                ));
+                $response = curl_exec($curl);
+                curl_close($curl);
+                Log::info('WhatsApp order_dispatched (3_message) template sent', ['phone' => $phone, 'response' => $response]);
+                return true;
+            } catch (\Exception $e) {
+                Log::error('WhatsApp Order Dispatched Exception', ['error' => $e->getMessage()]);
                 return false;
             }
         } else {

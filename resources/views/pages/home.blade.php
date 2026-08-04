@@ -325,14 +325,14 @@ document.getElementById('nav1').classList.add('bg-opacity-100');
         <div class="flex flex-col text-left">
             <div class="flex items-center gap-1.5">
                 <span class="text-xs sm:text-sm font-extrabold text-white tracking-wide leading-tight group-hover:text-yellow-300 transition-colors">
-                    Cost Estimator
+                    Quick Price Calculator
                 </span>
                 <span class="bg-yellow-400 text-purple-950 font-black text-[9px] px-1.5 py-0.2 rounded-full uppercase animate-bounce shadow-sm">
                     70% OFF
                 </span>
             </div>
             <span class="text-[10px] text-yellow-300/90 font-semibold leading-none mt-0.5 flex items-center gap-0.5">
-                Click to Calculate &rarr;
+                Instant Order & Estimate &rarr;
             </span>
         </div>
     </div>
