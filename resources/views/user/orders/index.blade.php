@@ -224,21 +224,13 @@
                 </div>
 
                 <!-- Card Footer Actions -->
-                <div class="bg-gray-100 p-3.5 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="bg-gray-100 p-3.5 border-t border-gray-200 flex items-center justify-between gap-2">
                     <a href="{{ route('user.orders.show', $order->id) }}" class="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#2D0B5A] hover:bg-purple-900 text-white font-extrabold text-xs py-2 px-3 rounded-xl shadow transition-all">
                         <svg class="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
                         View Details
-                    </a>
-
-                    @php
-                        $waService = app(\App\Services\WhatsAppService::class);
-                        $waUrl = $waService->generateOrderWhatsAppUrl($order);
-                    @endphp
-                    <a href="{{ $waUrl }}" target="_blank" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-2 px-3 rounded-xl shadow transition-all" title="Send WhatsApp message & PDF Bill link">
-                        💬 WhatsApp
                     </a>
 
                     <a href="{{ route('user.orders.invoice_pdf', $order->id) }}" target="_blank" class="inline-flex items-center gap-1.5 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs py-2 px-3 rounded-xl shadow transition-all">

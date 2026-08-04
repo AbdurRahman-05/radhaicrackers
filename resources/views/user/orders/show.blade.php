@@ -208,13 +208,6 @@
             <a href="{{ route('user.orders') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm">
                 ← Back to Orders
             </a>
-            @php
-                $waService = app(\App\Services\WhatsAppService::class);
-                $waUrl = $waService->generateOrderWhatsAppUrl($order);
-            @endphp
-            <a href="{{ $waUrl }}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors font-bold text-sm flex items-center gap-1.5 shadow">
-                💬 Send PDF Bill via WhatsApp
-            </a>
             <a href="{{ route('user.orders.invoice_pdf', $order->id) }}" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm">
                 📄 Download Invoice PDF
             </a>
