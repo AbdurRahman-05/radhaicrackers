@@ -8,13 +8,21 @@ use Illuminate\Support\Facades\Log;
 class SMSService
 {
     protected $apiKey;
+    protected $senderId;
+    protected $route;
+    protected $baseUrl;
+    protected $otpTemplateId;
 
     public function __construct()
     {
-        $this->apiKey = config('services.lionsms.api_key') ?: config('services.sms.key');
+        $this->apiKey        = config('services.lionsms.api_key', 'dcd3c5c00112b83116657d7f656660a1');
+        $this->senderId      = config('services.lionsms.sender_id', 'RADHTR');
+        $this->route         = config('services.lionsms.route', '7');
+        $this->baseUrl       = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
+        $this->otpTemplateId = config('services.lionsms.otp_template_id', '1107172187374253331');
     }
 
-    public function sendOTP($phone, $otp, $context = 'Login')
+    public function sendOtp($phone, $otp, $context = 'Login')
     {
         $rawPhone = preg_replace('/[^0-9]/', '', $phone);
         if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
@@ -23,25 +31,19 @@ class SMSService
             $rawPhone = substr($rawPhone, 1);
         }
 
-        $baseUrl    = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
-        $apiKey     = config('services.lionsms.api_key', 'dcd3c5c00112b83116657d7f656660a1');
-        $senderId   = config('services.lionsms.sender_id', 'RADHTR');
-        $templateId = config('services.lionsms.otp_template_id', '1107172187374253331');
-
-        // Exact DLT registered message pattern for Radhe Traders
+        // Use the exact message and template as provided
         $message = "Your OTP for Login {$otp} Please do not share this code with anyone for your security. -Radhe Traders";
-
         $params = [
-            'key'        => $apiKey,
-            'sender'     => $senderId,
+            'key'        => $this->apiKey,
+            'sender'     => $this->senderId,
             'number'     => $rawPhone,
-            'route'      => 7, // Route 7 is the dedicated transactional DLT OTP route
+            'route'      => 7, // Use route 7 for OTP as per user API
             'sms'        => $message,
-            'templateid' => $templateId,
+            'templateid' => $this->otpTemplateId,
         ];
 
         try {
-            $response = Http::timeout(10)->get($baseUrl, $params);
+            $response = Http::timeout(10)->get($this->baseUrl, $params);
 
             Log::info('LionSMS API response', [
                 'phone' => $rawPhone,
@@ -49,7 +51,12 @@ class SMSService
                 'body' => $response->body()
             ]);
 
-            return $response->successful();
+            if ($response->successful()) {
+                return true;
+            } else {
+                Log::error('LionSMS HTTP error', ['response' => $response->body()]);
+                return false;
+            }
         } catch (\Exception $e) {
             Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
             return false;
