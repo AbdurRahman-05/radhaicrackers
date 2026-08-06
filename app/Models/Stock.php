@@ -83,10 +83,13 @@ public function images()
         $sources = [
             public_path('storage/' . $cleanPath),
             storage_path('app/public/' . $cleanPath),
-            public_path($cleanPath),
-            storage_path('app/' . $cleanPath),
             public_path('storage/stocks/' . $filename),
             storage_path('app/public/stocks/' . $filename),
+            public_path('storage/homepage_products/' . $filename),
+            storage_path('app/public/homepage_products/' . $filename),
+            public_path('uploads/' . $filename),
+            public_path($cleanPath),
+            storage_path('app/' . $cleanPath),
         ];
 
         $foundSource = null;
@@ -107,6 +110,7 @@ public function images()
             public_path('storage/' . $cleanPath),
             public_path('storage/stocks/' . $filename),
             public_path('uploads/' . $filename),
+            public_path($filename),
         ];
 
         foreach ($targets as $target) {
@@ -126,7 +130,7 @@ public function images()
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {
-            return asset('images/firework-default.png');
+            return url('images/firework-default.png');
         }
 
         if (filter_var($this->image, FILTER_VALIDATE_URL)) {
@@ -144,9 +148,25 @@ public function images()
             $cleanPath = substr($cleanPath, 7);
         }
 
+        $filename = basename($cleanPath);
+
+        // If path is a bare filename without folder, prepend stocks/
+        if (!str_contains($cleanPath, '/')) {
+            $cleanPath = 'stocks/' . $cleanPath;
+        }
+
         self::syncUploadedFile($cleanPath);
 
-        return asset('storage/' . $cleanPath);
+        // Check if physical file exists in stocks folder or direct path
+        if (file_exists(public_path('storage/' . $cleanPath)) || file_exists(storage_path('app/public/' . $cleanPath))) {
+            return url('storage/' . $cleanPath);
+        }
+
+        if (file_exists(public_path('storage/stocks/' . $filename)) || file_exists(storage_path('app/public/stocks/' . $filename))) {
+            return url('storage/stocks/' . $filename);
+        }
+
+        return url('storage/' . $cleanPath);
     }
 
     public function scopeActive($query)

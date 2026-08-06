@@ -373,4 +373,35 @@ Route::get('/stocks/{path}', function ($path) {
     return redirect('/storage/stocks/' . $path);
 })->where('path', '.*');
 
+// Direct root image route fallback handler for images without /storage/ prefix
+Route::get('/{filename}', function ($filename) {
+    $cleanFilename = basename($filename);
+    $candidates = [
+        public_path('storage/stocks/' . $cleanFilename),
+        storage_path('app/public/stocks/' . $cleanFilename),
+        public_path('storage/homepage_products/' . $cleanFilename),
+        storage_path('app/public/homepage_products/' . $cleanFilename),
+        public_path('uploads/' . $cleanFilename),
+        public_path('storage/' . $cleanFilename),
+        storage_path('app/public/' . $cleanFilename),
+        public_path($cleanFilename),
+    ];
+    foreach ($candidates as $filePath) {
+        if (file_exists($filePath) && !is_dir($filePath)) {
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            $mimeTypes = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+            ];
+            $mime = $mimeTypes[$ext] ?? 'image/jpeg';
+            return response()->file($filePath, ['Content-Type' => $mime]);
+        }
+    }
+    abort(404);
+})->where('filename', '.*?\.(jpg|jpeg|png|gif|webp|svg)$');
+
 

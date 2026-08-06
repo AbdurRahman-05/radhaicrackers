@@ -29,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (str_contains(request()->header('host', ''), 'radhecrackers.com') || request()->secure() || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Auto-run schema migration logic for GST and Transport fields
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('orders')) {
