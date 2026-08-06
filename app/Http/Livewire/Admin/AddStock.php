@@ -84,6 +84,7 @@ class AddStock extends Component
             $imagePath = null;
             if ($this->image) {
                 $imagePath = $this->image->store('stocks', 'public');
+                Stock::syncUploadedFile($imagePath);
             }
 
             Stock::create([

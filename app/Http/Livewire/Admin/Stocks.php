@@ -189,6 +189,7 @@ class Stocks extends Component
         // Handle image upload
         if ($this->image) {
             $imagePath = $this->image->store('stocks', 'public');
+            Stock::syncUploadedFile($imagePath);
             $data['image'] = $imagePath;
         }
 
@@ -228,6 +229,7 @@ class Stocks extends Component
             }
             
             $imagePath = $this->image->store('stocks', 'public');
+            Stock::syncUploadedFile($imagePath);
             $data['image'] = $imagePath;
         }
 

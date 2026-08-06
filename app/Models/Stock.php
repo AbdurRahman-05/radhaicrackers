@@ -63,6 +63,66 @@ public function images()
 
     protected $appends = ['image_url'];
 
+    public static function syncUploadedFile($filePath)
+    {
+        if (empty($filePath) || filter_var($filePath, FILTER_VALIDATE_URL)) {
+            return;
+        }
+
+        $cleanPath = ltrim($filePath, '/');
+        if (str_starts_with($cleanPath, 'public/storage/')) {
+            $cleanPath = substr($cleanPath, 15);
+        } elseif (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        } elseif (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+
+        $filename = basename($cleanPath);
+
+        $sources = [
+            public_path('storage/' . $cleanPath),
+            storage_path('app/public/' . $cleanPath),
+            public_path($cleanPath),
+            storage_path('app/' . $cleanPath),
+            public_path('storage/stocks/' . $filename),
+            storage_path('app/public/stocks/' . $filename),
+        ];
+
+        $foundSource = null;
+        foreach ($sources as $src) {
+            if (file_exists($src) && !is_dir($src)) {
+                $foundSource = $src;
+                break;
+            }
+        }
+
+        if (!$foundSource) {
+            return;
+        }
+
+        $targets = [
+            storage_path('app/public/' . $cleanPath),
+            storage_path('app/public/stocks/' . $filename),
+            public_path('storage/' . $cleanPath),
+            public_path('storage/stocks/' . $filename),
+            public_path('uploads/' . $filename),
+        ];
+
+        foreach ($targets as $target) {
+            if ($target === $foundSource) {
+                continue;
+            }
+            $targetDir = dirname($target);
+            if (!is_dir($targetDir)) {
+                @mkdir($targetDir, 0755, true);
+            }
+            if (!file_exists($target) || filesize($target) !== filesize($foundSource)) {
+                @copy($foundSource, $target);
+            }
+        }
+    }
+
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {
@@ -83,6 +143,8 @@ public function images()
         } elseif (str_starts_with($cleanPath, 'public/')) {
             $cleanPath = substr($cleanPath, 7);
         }
+
+        self::syncUploadedFile($cleanPath);
 
         return asset('storage/' . $cleanPath);
     }

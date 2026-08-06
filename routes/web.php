@@ -350,6 +350,7 @@ Route::get('/storage/{path}', function ($path) {
 
     foreach ($candidates as $filePath) {
         if (file_exists($filePath) && !is_dir($filePath)) {
+            \App\Models\Stock::syncUploadedFile($path);
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $mimeTypes = [
                 'jpg' => 'image/jpeg',

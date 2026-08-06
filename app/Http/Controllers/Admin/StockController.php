@@ -279,6 +279,7 @@ class StockController extends Controller
             $imagePath = null;
             if ($request->hasFile('image')) {
                 $imagePath = $request->file('image')->store('stocks', 'public');
+                Stock::syncUploadedFile($imagePath);
             }
 
             // Get category name from ID
@@ -370,6 +371,7 @@ class StockController extends Controller
                 }
                 
                 $imagePath = $request->file('image')->store('stocks', 'public');
+                Stock::syncUploadedFile($imagePath);
                 $data['image'] = $imagePath;
             }
 
