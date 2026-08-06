@@ -30,56 +30,84 @@ class StockController extends Controller
     }
 
     /**
-     * Bulk deactivate all stocks for a specific year
+     * Bulk deactivate all stocks for a specific year or all-time
      */
     public function bulkDeactivateYear(Request $request)
     {
         try {
-            $year = $request->input('year', 2025);
-            $count = Stock::whereYear('created_at', $year)->update(['is_active' => false]);
-            return redirect()->back()->with('success', "Deactivated {$count} stock items created in year {$year}!");
+            $year = $request->input('year');
+            $query = Stock::query();
+            if ($year && $year !== 'all') {
+                $query->whereYear('created_at', $year);
+                $msgYear = "created in year {$year}";
+            } else {
+                $msgYear = "all-time";
+            }
+            $count = $query->update(['is_active' => false]);
+            return redirect()->back()->with('success', "Deactivated {$count} stock items ({$msgYear})!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to bulk deactivate stocks: ' . $e->getMessage());
         }
     }
 
     /**
-     * Bulk hide all stocks from shop for a specific year
+     * Bulk hide all stocks from shop for a specific year or all-time
      */
     public function bulkHideYear(Request $request)
     {
         try {
-            $year = $request->input('year', 2025);
-            $count = Stock::whereYear('created_at', $year)->update(['show_on_shop' => false]);
-            return redirect()->back()->with('success', "Hidden {$count} stock items from shop for year {$year}!");
+            $year = $request->input('year');
+            $query = Stock::query();
+            if ($year && $year !== 'all') {
+                $query->whereYear('created_at', $year);
+                $msgYear = "for year {$year}";
+            } else {
+                $msgYear = "all-time";
+            }
+            $count = $query->update(['show_on_shop' => false]);
+            return redirect()->back()->with('success', "Hidden {$count} stock items from shop ({$msgYear})!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to bulk hide stocks: ' . $e->getMessage());
         }
     }
 
     /**
-     * Bulk activate all stocks for a specific year
+     * Bulk activate all stocks for a specific year or all-time
      */
     public function bulkActivateYear(Request $request)
     {
         try {
-            $year = $request->input('year', 2026);
-            $count = Stock::whereYear('created_at', $year)->update(['is_active' => true]);
-            return redirect()->back()->with('success', "Activated {$count} stock items created in year {$year}!");
+            $year = $request->input('year');
+            $query = Stock::query();
+            if ($year && $year !== 'all') {
+                $query->whereYear('created_at', $year);
+                $msgYear = "created in year {$year}";
+            } else {
+                $msgYear = "all-time";
+            }
+            $count = $query->update(['is_active' => true]);
+            return redirect()->back()->with('success', "Activated {$count} stock items ({$msgYear})!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to bulk activate stocks: ' . $e->getMessage());
         }
     }
 
     /**
-     * Bulk show all stocks on shop for a specific year
+     * Bulk show/unhide all stocks on shop for a specific year or all-time
      */
     public function bulkShowYear(Request $request)
     {
         try {
-            $year = $request->input('year', 2026);
-            $count = Stock::whereYear('created_at', $year)->update(['show_on_shop' => true]);
-            return redirect()->back()->with('success', "Set {$count} stock items visible on shop for year {$year}!");
+            $year = $request->input('year');
+            $query = Stock::query();
+            if ($year && $year !== 'all') {
+                $query->whereYear('created_at', $year);
+                $msgYear = "for year {$year}";
+            } else {
+                $msgYear = "all-time";
+            }
+            $count = $query->update(['show_on_shop' => true]);
+            return redirect()->back()->with('success', "Set {$count} stock items visible on shop ({$msgYear})!");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to bulk show stocks: ' . $e->getMessage());
         }
