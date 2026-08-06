@@ -235,11 +235,16 @@ class StockController extends Controller
             return $released->concat($unreleased)->values();
         });
 
-        $totalStocks = Stock::count();
-        $activeStocks = Stock::where('is_active', true)->count();
-        $availableStocks = Stock::where('show_on_shop', true)->count();
-        $outOfStock = Stock::where('show_on_shop', false)->count();
-        $totalValue = Stock::sum(\DB::raw('quantity * price'));
+        $statsQuery = Stock::query()
+            ->when($selectedYear !== '' && $selectedYear !== null, function($query) use ($selectedYear) {
+                $query->whereYear('created_at', $selectedYear);
+            });
+
+        $totalStocks = (clone $statsQuery)->count();
+        $activeStocks = (clone $statsQuery)->where('is_active', true)->count();
+        $availableStocks = (clone $statsQuery)->where('show_on_shop', true)->count();
+        $outOfStock = (clone $statsQuery)->where('show_on_shop', false)->count();
+        $totalValue = (clone $statsQuery)->sum(\DB::raw('quantity * price'));
 
         return view('admin.stocks.index-new', compact(
             'categories', 'stocksByCategory', 'totalStocks', 'activeStocks', 

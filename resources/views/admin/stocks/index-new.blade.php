@@ -43,19 +43,19 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-blue-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-blue-600">{{ $totalStocks }}</div>
-            <div class="text-sm text-blue-600">Total Items</div>
+            <div class="text-sm text-blue-600">Total Items {{ $selectedYear ? "($selectedYear)" : "" }}</div>
         </div>
         <div class="bg-green-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-green-600">{{ $activeStocks }}</div>
-            <div class="text-sm text-green-600">Active Items</div>
+            <div class="text-sm text-green-600">Active Items {{ $selectedYear ? "($selectedYear)" : "" }}</div>
         </div>
         <div class="bg-yellow-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-yellow-600">{{ $availableStocks }}</div>
-            <div class="text-sm text-yellow-600">Available</div>
+            <div class="text-sm text-yellow-600">Available {{ $selectedYear ? "($selectedYear)" : "" }}</div>
         </div>
         <div class="bg-red-50 p-4 rounded-lg">
             <div class="text-2xl font-bold text-red-600">{{ $outOfStock }}</div>
-            <div class="text-sm text-red-600">Out of Stock</div>
+            <div class="text-sm text-red-600">Out of Stock {{ $selectedYear ? "($selectedYear)" : "" }}</div>
         </div>
     </div>
 
@@ -63,7 +63,7 @@
     <div class="bg-purple-50 p-4 rounded-lg mb-6">
         <div class="text-center">
             <div class="text-3xl font-bold text-purple-600">₹{{ number_format($totalValue, 2) }}</div>
-            <div class="text-sm text-purple-600">Total Stock Value</div>
+            <div class="text-sm text-purple-600">Total Stock Value {{ $selectedYear ? "($selectedYear)" : "" }}</div>
         </div>
     </div>
 
