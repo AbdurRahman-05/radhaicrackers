@@ -14,6 +14,10 @@ class AdminLoginController extends Controller
      */
     public function showLoginForm()
     {
+        if (Auth::check() && Auth::user()->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+
         return view('auth.admin-login');
     }
 
@@ -27,6 +31,10 @@ class AdminLoginController extends Controller
             'password' => 'required|string',
         ]);
 
+        if (Auth::check() && !Auth::user()->is_admin) {
+            Auth::logout();
+        }
+
         $credentials = $request->only('email', 'password');
         $credentials['is_admin'] = true;
         $credentials['is_active'] = true;
@@ -34,7 +42,7 @@ class AdminLoginController extends Controller
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->route('admin.dashboard');
         }
 
         throw ValidationException::withMessages([

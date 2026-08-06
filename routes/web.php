@@ -177,12 +177,17 @@ Route::post('/admin/stocks/{id}/toggle-active', [App\Http\Controllers\Admin\Stoc
     
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Admin Login (guest middleware applied)
-    Route::middleware('guest')->group(function () {
-        Route::get('/login', [App\Http\Controllers\Auth\AdminLoginController::class, 'showLoginForm'])->name('login');
-        Route::post('/login', [App\Http\Controllers\Auth\AdminLoginController::class, 'login']);
+    // Admin index redirect
+    Route::get('/', function () {
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('admin.login');
     });
-    
+
+    // Admin Login
+    Route::get('/login', [App\Http\Controllers\Auth\AdminLoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [App\Http\Controllers\Auth\AdminLoginController::class, 'login']);
     Route::post('/logout', [App\Http\Controllers\Auth\AdminLoginController::class, 'logout'])->name('logout');
 
     // Protected Admin Routes
