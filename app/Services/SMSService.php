@@ -417,41 +417,130 @@ class SMSService
     {
         if ($context === 'order_confirmation' && !empty($data)) {
             $template_name = "neworder";
-            $order_value = $data['order_value'] ?? "₹0.00"; 
-            $order_id = $data['order_id'] ?? "0";
-            $bodyParams = [$order_id, $order_value, $phone];
-
-            try {
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 10,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => json_encode([
-                        'to' => '9943930432',
-                        'phoneNoId' => '747598631767762',
-                        'type' => 'template',
-                        'name' => $template_name,
-                        'language' => 'en_US',
-                        'bodyParams' => $bodyParams
-                    ]),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Bearer ca4869c05587ab6e2c2052011dfa8190296a1c1d08a357f7d4a5f6e89e9568b7',
-                        'Content-Type: application/json'
-                    ),
-                ));
-                $response = curl_exec($curl);
-                curl_close($curl);
-                return true;
-            } catch (\Exception $e) {
-                Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
-                return false;
+            $order_value = (string)($data['order_value'] ?? "₹0.00"); 
+            $order_id = (string)($data['order_id'] ?? "0");
+            $custPhone = (string)$phone;
+            
+            // Format customer contact display (10 digits) for template parameter 3
+            $rawCustPhone = preg_replace('/[^0-9]/', '', $custPhone);
+            if (strlen($rawCustPhone) === 12 && str_starts_with($rawCustPhone, '91')) {
+                $contactDisplay = substr($rawCustPhone, 2);
+            } else {
+                $contactDisplay = $rawCustPhone;
             }
+
+            // Primary Admin numbers to receive lead notifications
+            $adminNumbers = ['919943930432', '918807060809', '919751048974'];
+            
+            // Check dynamic database settings for whatsapp business number
+            try {
+                $settingPhone = \DB::table('settings')->where('key', 'whatsapp_business_number')->value('value') 
+                             ?? \DB::table('settings')->where('key', 'business_phone')->value('value');
+                if ($settingPhone) {
+                    $cleanSettingPhone = preg_replace('/[^0-9]/', '', $settingPhone);
+                    if (strlen($cleanSettingPhone) === 10) {
+                        $cleanSettingPhone = '91' . $cleanSettingPhone;
+                    }
+                    if (strlen($cleanSettingPhone) === 12 && !in_array($cleanSettingPhone, $adminNumbers)) {
+                        $adminNumbers[] = $cleanSettingPhone;
+                    }
+                }
+            } catch (\Exception $settingEx) {
+                // Ignore DB error if table is unavailable
+            }
+
+            $successCount = 0;
+
+            foreach (array_unique($adminNumbers) as $adminPhone) {
+                // 1. Send via Meta Integration API (Primary Endpoint)
+                try {
+                    $curl = curl_init();
+                    curl_setopt_array($curl, [
+                        CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT => 20,
+                        CURLOPT_CUSTOMREQUEST => 'POST',
+                        CURLOPT_POSTFIELDS => json_encode([
+                            'messaging_product' => 'whatsapp',
+                            'recipient_type' => 'individual',
+                            'to' => $adminPhone,
+                            'type' => 'template',
+                            'template' => [
+                                'name' => $template_name,
+                                'language' => ['code' => 'en_US'],
+                                'components' => [
+                                    [
+                                        'type' => 'body',
+                                        'parameters' => [
+                                            ['type' => 'text', 'text' => $order_id],
+                                            ['type' => 'text', 'text' => $order_value],
+                                            ['type' => 'text', 'text' => $contactDisplay]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]),
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok',
+                            'Content-Type: application/json'
+                        ],
+                    ]);
+                    $response = curl_exec($curl);
+                    $err = curl_error($curl);
+                    curl_close($curl);
+
+                    Log::info('WhatsApp Admin Lead Message Meta Response', [
+                        'admin_phone' => $adminPhone,
+                        'order_id' => $order_id,
+                        'response' => $response,
+                        'error' => $err
+                    ]);
+
+                    if (!$err && !empty($response)) {
+                        $successCount++;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('WhatsApp Admin Lead Message Integration Exception', ['error' => $e->getMessage()]);
+                }
+
+                // 2. Also send via legacy v2 endpoint as backup
+                try {
+                    $curl2 = curl_init();
+                    curl_setopt_array($curl2, [
+                        CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_ENCODING => '',
+                        CURLOPT_MAXREDIRS => 10,
+                        CURLOPT_TIMEOUT => 10,
+                        CURLOPT_FOLLOWLOCATION => true,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_CUSTOMREQUEST => 'POST',
+                        CURLOPT_POSTFIELDS => json_encode([
+                            'to' => $adminPhone,
+                            'phoneNoId' => '747598631767762',
+                            'type' => 'template',
+                            'name' => $template_name,
+                            'language' => 'en_US',
+                            'bodyParams' => [$order_id, $order_value, $contactDisplay]
+                        ]),
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: Bearer ca4869c05587ab6e2c2052011dfa8190296a1c1d08a357f7d4a5f6e89e9568b7',
+                            'Content-Type: application/json'
+                        ],
+                    ]);
+                    $response2 = curl_exec($curl2);
+                    curl_close($curl2);
+
+                    Log::info('WhatsApp Admin Lead Message v2 Response', [
+                        'admin_phone' => $adminPhone,
+                        'response' => $response2
+                    ]);
+                } catch (\Exception $e2) {
+                    Log::error('WhatsApp Admin Lead Message v2 Exception', ['error' => $e2->getMessage()]);
+                }
+            }
+
+            return $successCount > 0;
         }
         return false;
     }

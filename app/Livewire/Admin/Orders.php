@@ -165,6 +165,141 @@ class Orders extends Component
         // All active stocks for adding new items in modal
         $allStocks = Stock::where('is_active', true)->orderBy('item_name')->get();
 
+        // Today's Actions Breakdown
+        $todayDate = \Carbon\Carbon::today();
+
+        $todayOrders = Order::with('user')->whereDate('created_at', $todayDate)->latest()->get();
+        $todayOrdersCount = $todayOrders->count();
+        $todayOrdersRevenue = $todayOrders->sum(function($o) {
+            return (float)($o->total_amount ?: ($o->total ?: 0));
+        });
+
+        $todayLogs = \App\Models\OrderLog::with(['order.user', 'order'])->whereDate('created_at', $todayDate)->latest()->get();
+
+        $todayPayments = \App\Models\Payment::with(['order.user', 'order'])
+            ->where(function($q) use ($todayDate) {
+                $q->whereDate('created_at', $todayDate)
+                  ->orWhereDate('verified_at', $todayDate);
+            })
+            ->latest()
+            ->get();
+        $todayPaymentsVerifiedCount = $todayPayments->where('status', 'verified')->count();
+        $todayPaymentsVerifiedAmount = $todayPayments->where('status', 'verified')->sum('amount');
+
+        $todayUsers = \App\Models\User::whereDate('created_at', $todayDate)->latest()->get();
+        $todayUsersCount = $todayUsers->count();
+
+        $todayGstBills = \App\Models\GstBill::whereDate('created_at', $todayDate)->latest()->get();
+        $todayGstBillsCount = $todayGstBills->count();
+        $todayGstBillsAmount = $todayGstBills->sum('grand_total');
+
+        $todayTimeline = collect();
+
+        foreach ($todayOrders as $orderItem) {
+            $customerName = $orderItem->customer_name ?: ($orderItem->user->name ?? 'Guest Customer');
+            $customerMobile = $orderItem->customer_mobile ?: ($orderItem->user->phone ?? '');
+            $amount = '₹' . number_format($orderItem->total_amount ?: $orderItem->total, 2);
+            
+            $todayTimeline->push([
+                'timestamp' => $orderItem->created_at,
+                'time' => $orderItem->created_at->format('h:i A'),
+                'type' => 'order_created',
+                'badge' => '🛍️ New Order',
+                'badge_color' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                'icon' => 'fas fa-shopping-cart text-emerald-600',
+                'title' => "Order #{$orderItem->id} placed by {$customerName}",
+                'subtitle' => "Mobile: " . ($customerMobile ?: 'N/A') . " • Total: {$amount}",
+                'status_badge' => strtoupper($orderItem->status),
+                'status_color' => $orderItem->status === 'completed' ? 'bg-green-500 text-white' : ($orderItem->status === 'confirmed' ? 'bg-blue-500 text-white' : ($orderItem->status === 'dispatched' ? 'bg-purple-500 text-white' : 'bg-yellow-500 text-white')),
+                'link' => route('admin.orders', ['search' => $orderItem->id]),
+            ]);
+        }
+
+        foreach ($todayLogs as $log) {
+            $orderId = $log->order_id;
+            $customerName = $log->order ? ($log->order->customer_name ?: ($log->order->user->name ?? 'Customer')) : 'Customer';
+            
+            $todayTimeline->push([
+                'timestamp' => $log->created_at,
+                'time' => $log->created_at->format('h:i A'),
+                'type' => 'order_log',
+                'badge' => '🔄 Status Update',
+                'badge_color' => 'bg-blue-100 text-blue-800 border-blue-300',
+                'icon' => 'fas fa-sync-alt text-blue-600',
+                'title' => "Order #{$orderId} ({$customerName}) status changed",
+                'subtitle' => $log->notes ?: "Status updated to " . ucfirst($log->status),
+                'status_badge' => strtoupper($log->status ?: 'UPDATED'),
+                'status_color' => 'bg-gray-700 text-white',
+                'link' => route('admin.orders', ['search' => $orderId]),
+            ]);
+        }
+
+        foreach ($todayPayments as $payment) {
+            $orderId = $payment->order_id;
+            $amt = '₹' . number_format($payment->amount, 2);
+            $isVerified = $payment->status === 'verified';
+            
+            $todayTimeline->push([
+                'timestamp' => $payment->verified_at ?: $payment->created_at,
+                'time' => ($payment->verified_at ?: $payment->created_at)->format('h:i A'),
+                'type' => 'payment',
+                'badge' => $isVerified ? '✅ Payment Verified' : '💳 Payment Submitted',
+                'badge_color' => $isVerified ? 'bg-green-100 text-green-800 border-green-300' : 'bg-amber-100 text-amber-800 border-amber-300',
+                'icon' => $isVerified ? 'fas fa-check-circle text-green-600' : 'fas fa-credit-card text-amber-600',
+                'title' => "Payment of {$amt} for Order #{$orderId}",
+                'subtitle' => "UPI / Txn: " . ($payment->transaction_id ?: ($payment->upi_id ?: 'N/A')) . ($payment->notes ? " • Notes: {$payment->notes}" : ""),
+                'status_badge' => strtoupper($payment->status),
+                'status_color' => $isVerified ? 'bg-green-600 text-white' : 'bg-amber-600 text-white',
+                'link' => route('admin.payments'),
+            ]);
+        }
+
+        foreach ($todayUsers as $u) {
+            $todayTimeline->push([
+                'timestamp' => $u->created_at,
+                'time' => $u->created_at->format('h:i A'),
+                'type' => 'user_registered',
+                'badge' => '👤 User Registered',
+                'badge_color' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
+                'icon' => 'fas fa-user-plus text-indigo-600',
+                'title' => "New customer registration: {$u->name}",
+                'subtitle' => "Phone: " . ($u->phone ?: 'N/A') . " • Email: " . ($u->email ?: 'N/A'),
+                'status_badge' => 'REGISTERED',
+                'status_color' => 'bg-indigo-600 text-white',
+                'link' => route('admin.users'),
+            ]);
+        }
+
+        foreach ($todayGstBills as $gb) {
+            $amt = '₹' . number_format($gb->grand_total, 2);
+            $todayTimeline->push([
+                'timestamp' => $gb->created_at,
+                'time' => $gb->created_at->format('h:i A'),
+                'type' => 'gst_bill',
+                'badge' => '🧾 GST Bill Created',
+                'badge_color' => 'bg-purple-100 text-purple-800 border-purple-300',
+                'icon' => 'fas fa-file-invoice-dollar text-purple-600',
+                'title' => "GST Bill #{$gb->bill_number} generated for {$gb->customer_name}",
+                'subtitle' => "Grand Total: {$amt} • GST / Aadhaar: " . ($gb->customer_gstin ?: 'N/A'),
+                'status_badge' => 'GENERATED',
+                'status_color' => 'bg-purple-600 text-white',
+                'link' => route('admin.gst-bills.index', ['search' => $gb->bill_number]),
+            ]);
+        }
+
+        $todayTimeline = $todayTimeline->sortByDesc('timestamp')->values();
+
+        $todayBreakdown = [
+            'orders_count' => $todayOrdersCount,
+            'orders_revenue' => $todayOrdersRevenue,
+            'payments_count' => $todayPaymentsVerifiedCount,
+            'payments_amount' => $todayPaymentsVerifiedAmount,
+            'users_count' => $todayUsersCount,
+            'gst_bills_count' => $todayGstBillsCount,
+            'gst_bills_amount' => $todayGstBillsAmount,
+            'timeline' => $todayTimeline,
+        ];
+
         return view('livewire.admin.orders', [
             'orders' => $orders,
             'totalOrders' => $totalOrders,
@@ -175,6 +310,7 @@ class Orders extends Component
             'availableYears' => $availableYears,
             'available_years' => $availableYears,
             'allStocks' => $allStocks,
+            'todayBreakdown' => $todayBreakdown,
         ])->layout('layouts.admin');
     }
 
@@ -737,5 +873,74 @@ class Orders extends Component
     {
         $this->editingReceiveAmountId = null;
         $this->receiveAmountInput = '';
+    }
+
+    public function exportOrders()
+    {
+        $selectedYear = $this->selected_year ?: $this->selectedYear;
+
+        $query = Order::with(['user', 'items', 'payment']);
+
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
+
+        if (!empty($this->search)) {
+            $search = $this->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_mobile', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_city', 'like', "%{$search}%");
+            });
+        }
+
+        $status = $this->status_filter !== 'all' ? $this->status_filter : $this->statusFilter;
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $dateFrom = $this->date_from ?: $this->dateFrom;
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        $dateTo = $this->date_to ?: $this->dateTo;
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $orders = $query->latest()->get();
+
+        $filename = 'orders_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
+
+        $csvData = [];
+        $csvData[] = ['Order ID', 'Customer Name', 'Phone', 'Email', 'City', 'State', 'Total Amount', 'Status', 'Payment Status', 'Created Date'];
+
+        foreach ($orders as $order) {
+            $csvData[] = [
+                $order->id,
+                $order->customer_name ?: ($order->user->name ?? 'Guest'),
+                $order->customer_mobile ?: ($order->user->phone ?? ''),
+                $order->customer_email ?: ($order->user->email ?? ''),
+                $order->customer_city ?? '',
+                $order->customer_state ?? '',
+                $order->total_amount ?: $order->total,
+                $order->status,
+                $order->payment_status ?? ($order->payment && $order->payment->verified_at ? 'paid' : 'pending'),
+                $order->created_at ? $order->created_at->format('Y-m-d H:i:s') : ''
+            ];
+        }
+
+        $csvContent = '';
+        foreach ($csvData as $row) {
+            $csvContent .= implode(',', array_map(function($field) {
+                return '"' . str_replace('"', '""', $field) . '"';
+            }, $row)) . "\n";
+        }
+
+        session(['export_csv_content' => $csvContent, 'export_csv_filename' => $filename]);
+        $this->dispatch('download-csv');
     }
 }

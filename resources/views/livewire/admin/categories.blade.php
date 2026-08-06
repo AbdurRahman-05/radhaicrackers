@@ -31,8 +31,8 @@
 
     <!-- Search and Filters -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="flex flex-col sm:flex-row gap-4">
-            <div class="flex-1">
+        <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <div class="flex-1 w-full">
                 <label for="search" class="sr-only">Search categories</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -40,6 +40,15 @@
                     </div>
                     <input wire:model.live="search" type="text" id="search" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Search categories...">
                 </div>
+            </div>
+            <div class="w-full sm:w-64 flex items-center gap-2">
+                <label class="text-xs font-semibold text-gray-600 whitespace-nowrap">Filter Year:</label>
+                <select wire:model.live="selected_year" class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="">All Years</option>
+                    @foreach($available_years as $yr)
+                        <option value="{{ $yr }}">Year {{ $yr }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
     </div>

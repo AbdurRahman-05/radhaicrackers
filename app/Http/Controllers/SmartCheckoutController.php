@@ -223,6 +223,7 @@ class SmartCheckoutController extends Controller
                 ];
                 $customerPhone = $order->customer_mobile ?: (auth()->user()->phone ?? '');
                 $smsService->sendWhatsApp($customerPhone, '', 'order_confirmation', $waData);
+                $smsService->sendWhatsAppAdmin($customerPhone, '', 'order_confirmation', $waData);
 
                 $whatsappService = app(\App\Services\WhatsAppService::class);
                 $whatsappUrl = $whatsappService->generateOrderWhatsAppUrl($order);

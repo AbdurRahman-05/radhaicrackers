@@ -585,7 +585,13 @@ class AdminController extends Controller
         }
 
         // Fallback: generate CSV directly
+        $selectedYear = $request->input('selected_year', $request->input('year'));
+
         $query = Order::with(['user', 'items']);
+
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -601,15 +607,15 @@ class AdminController extends Controller
 
         $orders = $query->get();
 
-        return $this->exportOrdersCSV($orders);
+        return $this->exportOrdersCSV($orders, $selectedYear);
     }
 
     /**
      * Export Orders CSV
      */
-    private function exportOrdersCSV($orders)
+    private function exportOrdersCSV($orders, $selectedYear = null)
     {
-        $filename = 'orders_' . date('Y-m-d_H-i-s') . '.csv';
+        $filename = 'orders_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename={$filename}",
@@ -654,8 +660,13 @@ class AdminController extends Controller
         }
 
         // Fallback: generate CSV directly
-        $users = User::withCount('orders')->get();
-        return $this->exportUsersCSV($users);
+        $selectedYear = $request->input('selected_year', $request->input('year'));
+        $query = User::withCount('orders');
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
+        $users = $query->get();
+        return $this->exportUsersCSV($users, $selectedYear);
     }
 
     /**
@@ -677,10 +688,18 @@ class AdminController extends Controller
         }
 
         // Fallback: generate CSV directly
-        $payments = Payment::with(['order.user'])->get();
-        return $this->exportPaymentsCSV($payments);
+        $selectedYear = $request->input('selected_year', $request->input('year'));
+        $query = Payment::with(['order.user']);
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
+        $payments = $query->get();
+        return $this->exportPaymentsCSV($payments, $selectedYear);
     }
 
+    /**
+     * Export Stocks
+     */
     /**
      * Export Stocks
      */
@@ -699,17 +718,91 @@ class AdminController extends Controller
                 ->header('Content-Disposition', "attachment; filename={$filename}");
         }
 
-        // Fallback: generate CSV directly
-        $stocks = Stock::all();
-        return $this->exportStocksCSV($stocks);
+        // Fallback: generate CSV directly with year filtering
+        $selectedYear = $request->has('selected_year') ? $request->input('selected_year') : ($request->has('year') ? $request->input('year') : null);
+
+        $query = Stock::query();
+
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->whereYear('created_at', $selectedYear);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('item_name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status_filter')) {
+            $status = $request->input('status_filter');
+            switch($status) {
+                case 'active':
+                    $query->where('is_active', true);
+                    break;
+                case 'inactive':
+                    $query->where('is_active', false);
+                    break;
+                case 'available':
+                    $query->where('show_on_shop', true);
+                    break;
+                case 'out_of_stock':
+                    $query->where('show_on_shop', false);
+                    break;
+            }
+        }
+
+        $stocks = $query->get();
+
+        // Calculate year-specific ordered counts
+        $ordersQuery = \App\Models\Order::query()->whereNotIn('status', ['cancelled', 'pending']);
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $ordersQuery->whereYear('created_at', $selectedYear);
+        }
+        $orders = $ordersQuery->get();
+
+        $countByStockId = [];
+        $countByName = [];
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $name = $item['product_name'] ?? $item['item_name'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($qty > 0) {
+                        if ($pId) $countByStockId[$pId] = ($countByStockId[$pId] ?? 0) + $qty;
+                        if ($name) $countByName[$name] = ($countByName[$name] ?? 0) + $qty;
+                    }
+                }
+            } else {
+                foreach ($ord->items as $oi) {
+                    $qty = (int)($oi->quantity ?? 0);
+                    if ($qty > 0) {
+                        if ($oi->stock_id) $countByStockId[$oi->stock_id] = ($countByStockId[$oi->stock_id] ?? 0) + $qty;
+                        if ($oi->product_name) $countByName[$oi->product_name] = ($countByName[$oi->product_name] ?? 0) + $qty;
+                    }
+                }
+            }
+        }
+
+        foreach ($stocks as $stock) {
+            if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+                $stock->ordered_count = $countByStockId[$stock->id] ?? $countByName[$stock->item_name] ?? 0;
+            }
+        }
+
+        return $this->exportStocksCSV($stocks, $selectedYear);
     }
 
     /**
      * Export Users CSV
      */
-    private function exportUsersCSV($users)
+    private function exportUsersCSV($users, $selectedYear = null)
     {
-        $filename = 'users_' . date('Y-m-d_H-i-s') . '.csv';
+        $filename = 'users_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
         
         $headers = [
             'Content-Type' => 'text/csv',
@@ -743,9 +836,9 @@ class AdminController extends Controller
     /**
      * Export Payments CSV
      */
-    private function exportPaymentsCSV($payments)
+    private function exportPaymentsCSV($payments, $selectedYear = null)
     {
-        $filename = 'payments_' . date('Y-m-d_H-i-s') . '.csv';
+        $filename = 'payments_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
         
         $headers = [
             'Content-Type' => 'text/csv',
@@ -780,9 +873,9 @@ class AdminController extends Controller
     /**
      * Export Stocks CSV
      */
-    private function exportStocksCSV($stocks)
+    private function exportStocksCSV($stocks, $selectedYear = null)
     {
-        $filename = 'stocks_' . date('Y-m-d_H-i-s') . '.csv';
+        $filename = 'stocks_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename={$filename}",

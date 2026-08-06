@@ -55,7 +55,21 @@ class OrderController extends Controller
 
         // Send WhatsApp notification
         $whatsappService = app(WhatsAppService::class);
-        $whatsappService->sendOrderConfirmation($order);
+        $whatsappUrl = $whatsappService->sendOrderConfirmation($order);
+
+        try {
+            $smsService = new \App\Services\SMSService();
+            $waData = [
+                'customer_name' => $order->customer_name ?: (auth()->user()->name ?? 'Customer'),
+                'order_value' => '₹' . number_format($order->total_amount ?: $order->total, 2),
+                'order_id' => (string)$order->id
+            ];
+            $customerPhone = $order->customer_mobile ?: (auth()->user()->phone ?? '');
+            $smsService->sendWhatsApp($customerPhone, '', 'order_confirmation', $waData);
+            $smsService->sendWhatsAppAdmin($customerPhone, '', 'order_confirmation', $waData);
+        } catch (\Exception $waEx) {
+            \Illuminate\Support\Facades\Log::error('OrderController WhatsApp error: ' . $waEx->getMessage());
+        }
 
         // Generate PDF
         $pdfService = app(PDFService::class);

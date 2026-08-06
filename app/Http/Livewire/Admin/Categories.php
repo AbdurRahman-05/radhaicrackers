@@ -22,6 +22,22 @@ class Categories extends Component
     public $selectedCategoryId = null;
     public $categoryToDelete = null;
 
+    public $selected_year = '';
+    public $available_years = [];
+
+    public function mount()
+    {
+        $this->selected_year = (string)date('Y');
+        $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
+            ->distinct()->orderBy('year', 'desc')->pluck('year')->toArray();
+        $stockYears = \App\Models\Stock::selectRaw('YEAR(created_at) as year')
+            ->distinct()->orderBy('year', 'desc')->pluck('year')->toArray();
+
+        $years = array_values(array_unique(array_merge($orderYears, $stockYears, [(int)date('Y'), 2025])));
+        rsort($years);
+        $this->available_years = $years;
+    }
+
     // Form properties
     public $name = '';
     public $slug = '';
@@ -71,7 +87,7 @@ class Categories extends Component
 
    public function render()
     {
-        $query = Category::withCount('stocks');
+        $query = Category::query();
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
@@ -83,11 +99,28 @@ class Categories extends Component
             ->orderBy('sort_order')
             ->paginate(10);
 
+        // Compute active stock counts per category filtered by selected year
+        $selectedYear = $this->selected_year;
+        foreach ($categories as $category) {
+            $category->stocks_count = \App\Models\Stock::query()
+                ->where('is_active', true)
+                ->where(function($q) use ($category) {
+                    $q->where('category', $category->name)
+                      ->orWhere('category_id', $category->id)
+                      ->orWhere('category', (string)$category->id);
+                })
+                ->when($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all', function($q) use ($selectedYear) {
+                    $q->whereYear('created_at', $selectedYear);
+                })
+                ->count();
+        }
+
         $parentCategories = Category::where('is_active', true)->orderBy('name')->get();
 
         return view('livewire.admin.categories', [
             'categories' => $categories,
             'parentCategories' => $parentCategories,
+            'available_years' => $this->available_years,
         ])->layout('layouts.admin');
     }
 

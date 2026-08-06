@@ -113,24 +113,108 @@ class StockController extends Controller
         }
     }
     /**
-     * Export ordered items (product name and count only) as CSV
+     * Export ordered items (product name, category, and count) as CSV based on selected year
      */
-    /**
-     * Export ordered items (product name and count only) as CSV
-     */
-    public function exportOrderedItems()
+    public function exportOrderedItems(Request $request)
     {
-        $orderedItems = \App\Models\Stock::where('ordered_count', '>', 0)
-            ->get(['item_name', 'ordered_count']);
+        $selectedYear = $request->has('selected_year') ? $request->input('selected_year') : ($request->has('year') ? $request->input('year') : (string)date('Y'));
 
-        $csv = "Product Name,Ordered Count\n";
-        foreach ($orderedItems as $item) {
-            $csv .= '"' . str_replace('"', '""', $item->item_name) . '",' . $item->ordered_count . "\n";
+        // Query non-cancelled and non-pending orders for selected year
+        $ordersQuery = \App\Models\Order::query()->whereNotIn('status', ['cancelled', 'pending']);
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $ordersQuery->whereYear('created_at', $selectedYear);
+        }
+        $orders = $ordersQuery->get();
+
+        $countByStockId = [];
+        $countByName = [];
+
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $name = $item['product_name'] ?? $item['item_name'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($qty > 0) {
+                        if ($pId) {
+                            $countByStockId[$pId] = ($countByStockId[$pId] ?? 0) + $qty;
+                        }
+                        if ($name) {
+                            $countByName[$name] = ($countByName[$name] ?? 0) + $qty;
+                        }
+                    }
+                }
+            } else {
+                foreach ($ord->items as $oi) {
+                    $qty = (int)($oi->quantity ?? 0);
+                    if ($qty > 0) {
+                        if ($oi->stock_id) {
+                            $countByStockId[$oi->stock_id] = ($countByStockId[$oi->stock_id] ?? 0) + $qty;
+                        }
+                        if ($oi->product_name) {
+                            $countByName[$oi->product_name] = ($countByName[$oi->product_name] ?? 0) + $qty;
+                        }
+                    }
+                }
+            }
+        }
+
+        $stocksQuery = Stock::query();
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $stocksQuery->where(function($q) use ($search) {
+                $q->where('item_name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%");
+            });
+        }
+        if ($request->filled('status_filter')) {
+            $status = $request->input('status_filter');
+            switch($status) {
+                case 'active':
+                    $stocksQuery->where('is_active', true);
+                    break;
+                case 'inactive':
+                    $stocksQuery->where('is_active', false);
+                    break;
+                case 'available':
+                    $stocksQuery->where('show_on_shop', true);
+                    break;
+                case 'out_of_stock':
+                    $stocksQuery->where('show_on_shop', false);
+                    break;
+            }
+        }
+
+        $stocks = $stocksQuery->get();
+
+        $filename = 'ordered_items_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "all_") . date('Y-m-d_H-i-s') . '.csv';
+
+        $csv = "Product Name,Category,Ordered Count\n";
+        $processedNames = [];
+        foreach ($stocks as $stock) {
+            $count = $countByStockId[$stock->id] ?? $countByName[$stock->item_name] ?? 0;
+            if ($count > 0) {
+                $csv .= '"' . str_replace('"', '""', $stock->item_name) . '",'
+                      . '"' . str_replace('"', '""', $stock->category) . '",'
+                      . $count . "\n";
+                $processedNames[$stock->item_name] = true;
+            }
+        }
+
+        // Add any ordered items whose name was not matched to a Stock record
+        foreach ($countByName as $name => $cnt) {
+            if ($cnt > 0 && !isset($processedNames[$name])) {
+                $csv .= '"' . str_replace('"', '""', $name) . '",'
+                      . '"Other",'
+                      . $cnt . "\n";
+            }
         }
 
         return response($csv)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="ordered_items.csv"');
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
     }
     public function index()
     {

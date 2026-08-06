@@ -62,6 +62,148 @@
         </div>
     </div>
 
+    <!-- Today's Actions Breakdown Card -->
+    @if(isset($todayBreakdown))
+    <div class="mb-6 bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-[#1E093B] to-purple-900 px-6 py-4 flex items-center justify-between text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-700/50 flex items-center justify-center text-xl">
+                    ⚡
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-base tracking-wide text-white">Today's Breakdown & Live Actions</h3>
+                    <p class="text-xs text-purple-200">Real-time summary of today's customer orders, payments, updates & activity</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-purple-800/80 text-purple-200 text-xs font-bold rounded-full border border-purple-600/50 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                LIVE TODAY ({{ now()->format('d M Y') }})
+            </span>
+        </div>
+
+        <!-- Today Summary Stat Cards -->
+        <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 bg-purple-50/50 border-b border-purple-100">
+            <!-- Today Orders -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
+                <div class="flex items-center justify-between text-xs text-gray-500 font-medium mb-1">
+                    <span>🛍️ Orders Today</span>
+                    <span class="text-emerald-600 font-bold">₹{{ number_format($todayBreakdown['orders_revenue'], 2) }}</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">
+                    {{ number_format($todayBreakdown['orders_count']) }} <span class="text-xs font-normal text-gray-500">Orders</span>
+                </div>
+            </div>
+
+            <!-- Today Verified Payments -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-100">
+                <div class="flex items-center justify-between text-xs text-gray-500 font-medium mb-1">
+                    <span>💳 Paid & Verified</span>
+                    <span class="text-blue-600 font-bold">₹{{ number_format($todayBreakdown['payments_amount'], 2) }}</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">
+                    {{ number_format($todayBreakdown['payments_count']) }} <span class="text-xs font-normal text-gray-500">Verified</span>
+                </div>
+            </div>
+
+            <!-- Today New Registrations -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-indigo-100">
+                <div class="flex items-center justify-between text-xs text-gray-500 font-medium mb-1">
+                    <span>👤 New Customers</span>
+                    <span class="text-indigo-600 font-bold">Today</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">
+                    {{ number_format($todayBreakdown['users_count']) }} <span class="text-xs font-normal text-gray-500">Registered</span>
+                </div>
+            </div>
+
+            <!-- Today GST Bills -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-purple-100">
+                <div class="flex items-center justify-between text-xs text-gray-500 font-medium mb-1">
+                    <span>🧾 GST Bills</span>
+                    <span class="text-purple-600 font-bold">₹{{ number_format($todayBreakdown['gst_bills_amount'], 2) }}</span>
+                </div>
+                <div class="text-2xl font-extrabold text-gray-900">
+                    {{ number_format($todayBreakdown['gst_bills_count']) }} <span class="text-xs font-normal text-gray-500">Generated</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today Action Timeline Feed -->
+        <div class="p-5" x-data="{ activeTab: 'all' }">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-list-ul text-purple-600"></i> Today's Live Actions Stream
+                </h4>
+                
+                <!-- Quick Filter Tabs -->
+                <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg text-xs font-medium">
+                    <button @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-white shadow text-purple-700 font-bold' : 'text-gray-600 hover:text-gray-900'" class="px-3 py-1 rounded-md transition-all">
+                        All ({{ $todayBreakdown['timeline']->count() }})
+                    </button>
+                    <button @click="activeTab = 'order_created'" :class="activeTab === 'order_created' ? 'bg-white shadow text-purple-700 font-bold' : 'text-gray-600 hover:text-gray-900'" class="px-3 py-1 rounded-md transition-all">
+                        Orders ({{ $todayBreakdown['orders_count'] }})
+                    </button>
+                    <button @click="activeTab = 'order_log'" :class="activeTab === 'order_log' ? 'bg-white shadow text-purple-700 font-bold' : 'text-gray-600 hover:text-gray-900'" class="px-3 py-1 rounded-md transition-all">
+                        Status Updates
+                    </button>
+                    <button @click="activeTab = 'payment'" :class="activeTab === 'payment' ? 'bg-white shadow text-purple-700 font-bold' : 'text-gray-600 hover:text-gray-900'" class="px-3 py-1 rounded-md transition-all">
+                        Payments
+                    </button>
+                    <button @click="activeTab = 'user_registered'" :class="activeTab === 'user_registered' ? 'bg-white shadow text-purple-700 font-bold' : 'text-gray-600 hover:text-gray-900'" class="px-3 py-1 rounded-md transition-all">
+                        Registrations
+                    </button>
+                </div>
+            </div>
+
+            @if($todayBreakdown['timeline']->count() > 0)
+                <div class="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                    @foreach($todayBreakdown['timeline'] as $action)
+                        <div x-show="activeTab === 'all' || activeTab === '{{ $action['type'] }}'" class="p-3 rounded-xl border border-gray-100 hover:border-purple-200 bg-gray-50/50 hover:bg-white transition-all shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
+                                    <i class="{{ $action['icon'] }}"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-md border {{ $action['badge_color'] }}">
+                                            {{ $action['badge'] }}
+                                        </span>
+                                        <span class="text-xs font-semibold text-gray-900">
+                                            {{ $action['title'] }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ $action['subtitle'] }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100">
+                                <div class="text-right">
+                                    <span class="px-2 py-0.5 text-[10px] font-bold rounded {{ $action['status_color'] }}">
+                                        {{ $action['status_badge'] }}
+                                    </span>
+                                    <div class="text-[11px] text-gray-400 font-mono mt-0.5">
+                                        <i class="far fa-clock text-[10px] mr-0.5"></i> {{ $action['time'] }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto text-lg mb-2">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-gray-700">No actions recorded today yet</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">New orders, status changes and payment verifications will stream live here</p>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <!-- Filters -->
     <div class="bg-gray-50 p-4 rounded-lg mb-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">

@@ -42,18 +42,62 @@ class Stocks extends Component
 
     public function exportOrderedItems()
     {
-        // Get all stocks with ordered_count > 0
-        $stocks = $this->getFilteredStocks()->get();
-        $ordered = $stocks->filter(function($stock) {
-            return $stock->ordered_count > 0;
-        });
+        $selectedYear = $this->selected_year;
 
-        $filename = 'ordered_items_' . date('Y-m-d_H-i-s') . '.csv';
-        $csvData = [];
-        $csvData[] = ['Product Name', 'Ordered Count'];
-        foreach ($ordered as $stock) {
-            $csvData[] = [$stock->item_name, $stock->ordered_count];
+        // Query non-cancelled and non-pending orders for selected year
+        $ordersQuery = \App\Models\Order::query()->whereNotIn('status', ['cancelled', 'pending']);
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $ordersQuery->whereYear('created_at', $selectedYear);
         }
+        $orders = $ordersQuery->get();
+
+        $countByStockId = [];
+        $countByName = [];
+
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $name = $item['product_name'] ?? $item['item_name'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($qty > 0) {
+                        if ($pId) $countByStockId[$pId] = ($countByStockId[$pId] ?? 0) + $qty;
+                        if ($name) $countByName[$name] = ($countByName[$name] ?? 0) + $qty;
+                    }
+                }
+            } else {
+                foreach ($ord->items as $oi) {
+                    $qty = (int)($oi->quantity ?? 0);
+                    if ($qty > 0) {
+                        if ($oi->stock_id) $countByStockId[$oi->stock_id] = ($countByStockId[$oi->stock_id] ?? 0) + $qty;
+                        if ($oi->product_name) $countByName[$oi->product_name] = ($countByName[$oi->product_name] ?? 0) + $qty;
+                    }
+                }
+            }
+        }
+
+        $stocks = $this->getFilteredStocks()->get();
+
+        $filename = 'ordered_items_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "all_") . date('Y-m-d_H-i-s') . '.csv';
+
+        $csvData = [];
+        $csvData[] = ['Product Name', 'Category', 'Ordered Count'];
+        $processedNames = [];
+        foreach ($stocks as $stock) {
+            $count = $countByStockId[$stock->id] ?? $countByName[$stock->item_name] ?? 0;
+            if ($count > 0) {
+                $csvData[] = [$stock->item_name, $stock->category, $count];
+                $processedNames[$stock->item_name] = true;
+            }
+        }
+
+        foreach ($countByName as $name => $cnt) {
+            if ($cnt > 0 && !isset($processedNames[$name])) {
+                $csvData[] = [$name, 'Other', $cnt];
+            }
+        }
+
         $csvContent = '';
         foreach ($csvData as $row) {
             $csvContent .= implode(',', array_map(function($field) {
@@ -344,19 +388,53 @@ class Stocks extends Component
 
     public function exportStocks()
     {
-        $stocks = $this->getFilteredStocks();
-        
-        $filename = 'stocks_' . date('Y-m-d_H-i-s') . '.csv';
+        $selectedYear = $this->selected_year;
+        $stocks = $this->getFilteredStocks()->get();
+
+        // Calculate year-specific ordered counts
+        $ordersQuery = \App\Models\Order::query()->whereNotIn('status', ['cancelled', 'pending']);
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $ordersQuery->whereYear('created_at', $selectedYear);
+        }
+        $orders = $ordersQuery->get();
+
+        $countByStockId = [];
+        $countByName = [];
+        foreach ($orders as $ord) {
+            $items = is_array($ord->items_json) ? $ord->items_json : json_decode($ord->items_json ?? '[]', true);
+            if (is_array($items) && count($items) > 0) {
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                    $name = $item['product_name'] ?? $item['item_name'] ?? null;
+                    $qty = (int)($item['quantity'] ?? 0);
+                    if ($qty > 0) {
+                        if ($pId) $countByStockId[$pId] = ($countByStockId[$pId] ?? 0) + $qty;
+                        if ($name) $countByName[$name] = ($countByName[$name] ?? 0) + $qty;
+                    }
+                }
+            } else {
+                foreach ($ord->items as $oi) {
+                    $qty = (int)($oi->quantity ?? 0);
+                    if ($qty > 0) {
+                        if ($oi->stock_id) $countByStockId[$oi->stock_id] = ($countByStockId[$oi->stock_id] ?? 0) + $qty;
+                        if ($oi->product_name) $countByName[$oi->product_name] = ($countByName[$oi->product_name] ?? 0) + $qty;
+                    }
+                }
+            }
+        }
+
+        $filename = 'stocks_' . ($selectedYear && $selectedYear !== 'all' ? "year_{$selectedYear}_" : "") . date('Y-m-d_H-i-s') . '.csv';
         
         $csvData = [];
         
         // CSV headers
         $csvData[] = [
             'item_name', 'category', 'description', 'quantity', 'price', 
-            'original_price', 'discount_percentage', 'is_active'
+            'original_price', 'discount_percentage', 'is_active', 'ordered_count'
         ];
 
         foreach ($stocks as $stock) {
+            $orderedCount = $countByStockId[$stock->id] ?? $countByName[$stock->item_name] ?? 0;
             $csvData[] = [
                 $stock->item_name,
                 $stock->category,
@@ -365,7 +443,8 @@ class Stocks extends Component
                 $stock->price,
                 $stock->original_price ?? '',
                 $stock->discount_percentage ?? '',
-                $stock->is_active ? '1' : '0'
+                $stock->is_active ? '1' : '0',
+                $orderedCount
             ];
         }
 
