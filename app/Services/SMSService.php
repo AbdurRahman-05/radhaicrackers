@@ -19,6 +19,8 @@ class SMSService
         $rawPhone = preg_replace('/[^0-9]/', '', $phone);
         if (strlen($rawPhone) === 12 && str_starts_with($rawPhone, '91')) {
             $rawPhone = substr($rawPhone, 2);
+        } elseif (strlen($rawPhone) === 11 && str_starts_with($rawPhone, '0')) {
+            $rawPhone = substr($rawPhone, 1);
         }
 
         $baseUrl    = config('services.lionsms.base_url', 'https://msg.lionsms.com/api/smsapi');
