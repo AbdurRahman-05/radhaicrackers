@@ -107,6 +107,18 @@
                         <i class="fas fa-star w-5 h-5 mr-3"></i>
                         Home Page Products
                     </a>
+
+                    <a href="{{ route('admin.content') }}" 
+                       class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.content*') ? 'bg-gray-700' : '' }}">
+                        <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
+                        Content Pages
+                    </a>
+
+                    <a href="{{ route('admin.settings') }}" 
+                       class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.settings*') ? 'bg-gray-700' : '' }}">
+                        <i class="fas fa-video w-5 h-5 mr-3 text-yellow-400"></i>
+                        <span class="flex-1">Video Popup & Settings</span>
+                    </a>
                 </div>
             </nav>
         </div>

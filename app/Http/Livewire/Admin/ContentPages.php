@@ -81,10 +81,31 @@ class ContentPages extends Component
 
     private function setSetting($key, $value)
     {
-        \DB::table('settings')->updateOrInsert(
-            ['key' => $key],
-            ['value' => $value, 'updated_at' => now()]
-        );
+        $existing = \DB::table('settings')->where('key', $key)->first();
+        if ($existing) {
+            \DB::table('settings')->where('key', $key)->update([
+                'value' => $value,
+                'updated_at' => now(),
+            ]);
+        } else {
+            try {
+                \DB::table('settings')->insert([
+                    'key' => $key,
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                $maxId = (int) (\DB::table('settings')->max('id') ?? 0);
+                \DB::table('settings')->insert([
+                    'id' => $maxId + 1,
+                    'key' => $key,
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 
     public function saveAbout()

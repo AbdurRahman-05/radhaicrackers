@@ -591,5 +591,8 @@
             }
         });
     </script>
+
+    {{-- Site Opening Video Popup Component --}}
+    @include('components.popup-video')
 </body>
 </html> 

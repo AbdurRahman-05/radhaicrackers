@@ -100,8 +100,16 @@ class AppServiceProvider extends ServiceProvider
                     $table->foreign('gst_bill_id')->references('id')->on('gst_bills')->onDelete('cascade');
                 });
             }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `settings` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT");
+                } catch (\Exception $e) {
+                    // ignore if already auto-increment
+                }
+            }
         } catch (\Exception $e) {
-            \Log::error('Schema migration failed for GST fields/tables: ' . $e->getMessage());
+            \Log::error('Schema migration failed for GST/settings fields/tables: ' . $e->getMessage());
         }
         
         Livewire::component('stock-image-upload', \App\Http\Livewire\StockImageUpload::class);

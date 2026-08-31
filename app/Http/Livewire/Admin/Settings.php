@@ -20,6 +20,17 @@ class Settings extends Component
     public $enableAutoExpiry = true;
     public $enableWhatsAppLogs = true;
 
+    // Popup Video Settings
+    public $popupVideoEnabled = false;
+    public $popupVideoUrl = '';
+    public $popupVideoTitle = '✨ Radhe Crackers - Festival Specials';
+    public $popupVideoAutoplay = true;
+    public $popupVideoMuted = true;
+    public $popupVideoFrequency = 'once_per_session'; // 'always', 'once_per_session', 'once_per_day'
+    public $popupVideoShowOn = 'home'; // 'home', 'all'
+    public $popupVideoCtaText = '🔥 Explore Products & Offers';
+    public $popupVideoCtaUrl = '/sale-products';
+
     protected $rules = [
         'businessName' => 'required|string|max:255',
         'businessEmail' => 'required|email|max:255',
@@ -34,6 +45,15 @@ class Settings extends Component
         'enableAutoRelease' => 'boolean',
         'enableAutoExpiry' => 'boolean',
         'enableWhatsAppLogs' => 'boolean',
+        'popupVideoEnabled' => 'boolean',
+        'popupVideoUrl' => 'nullable|string|max:500',
+        'popupVideoTitle' => 'nullable|string|max:255',
+        'popupVideoAutoplay' => 'boolean',
+        'popupVideoMuted' => 'boolean',
+        'popupVideoFrequency' => 'required|string|in:always,once_per_session,once_per_day',
+        'popupVideoShowOn' => 'required|string|in:home,all',
+        'popupVideoCtaText' => 'nullable|string|max:100',
+        'popupVideoCtaUrl' => 'nullable|string|max:255',
     ];
 
     public function mount()
@@ -56,6 +76,17 @@ class Settings extends Component
         $this->enableAutoRelease = (bool) $this->getSetting('enable_auto_release', true);
         $this->enableAutoExpiry = (bool) $this->getSetting('enable_auto_expiry', true);
         $this->enableWhatsAppLogs = (bool) $this->getSetting('enable_whatsapp_logs', true);
+
+        // Load Popup Video Settings
+        $this->popupVideoEnabled = (bool) $this->getSetting('popup_video_enabled', false);
+        $this->popupVideoUrl = $this->getSetting('popup_video_url', '');
+        $this->popupVideoTitle = $this->getSetting('popup_video_title', '✨ Radhe Crackers - Festival Specials');
+        $this->popupVideoAutoplay = (bool) $this->getSetting('popup_video_autoplay', true);
+        $this->popupVideoMuted = (bool) $this->getSetting('popup_video_muted', true);
+        $this->popupVideoFrequency = $this->getSetting('popup_video_frequency', 'once_per_session');
+        $this->popupVideoShowOn = $this->getSetting('popup_video_show_on', 'home');
+        $this->popupVideoCtaText = $this->getSetting('popup_video_cta_text', '🔥 Explore Products & Offers');
+        $this->popupVideoCtaUrl = $this->getSetting('popup_video_cta_url', '/sale-products');
     }
 
     private function getSetting($key, $default = '')
@@ -65,10 +96,32 @@ class Settings extends Component
 
     private function setSetting($key, $value)
     {
-        \DB::table('settings')->updateOrInsert(
-            ['key' => $key],
-            ['value' => $value, 'updated_at' => now()]
-        );
+        $existing = \DB::table('settings')->where('key', $key)->first();
+        if ($existing) {
+            \DB::table('settings')->where('key', $key)->update([
+                'value' => $value,
+                'updated_at' => now(),
+            ]);
+        } else {
+            try {
+                \DB::table('settings')->insert([
+                    'key' => $key,
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // If id is not auto-incrementing, generate next id explicitly
+                $maxId = (int) (\DB::table('settings')->max('id') ?? 0);
+                \DB::table('settings')->insert([
+                    'id' => $maxId + 1,
+                    'key' => $key,
+                    'value' => $value,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 
     public function saveBusinessSettings()
@@ -113,6 +166,74 @@ class Settings extends Component
         $this->setSetting('enable_whatsapp_logs', $this->enableWhatsAppLogs);
 
         session()->flash('success', 'System settings saved successfully!');
+    }
+
+    public function savePopupVideoSettings()
+    {
+        $this->validate([
+            'popupVideoEnabled' => 'boolean',
+            'popupVideoUrl' => 'nullable|string|max:500',
+            'popupVideoTitle' => 'nullable|string|max:255',
+            'popupVideoAutoplay' => 'boolean',
+            'popupVideoMuted' => 'boolean',
+            'popupVideoFrequency' => 'required|string|in:always,once_per_session,once_per_day',
+            'popupVideoShowOn' => 'required|string|in:home,all',
+            'popupVideoCtaText' => 'nullable|string|max:100',
+            'popupVideoCtaUrl' => 'nullable|string|max:255',
+        ]);
+
+        $this->setSetting('popup_video_enabled', $this->popupVideoEnabled ? '1' : '0');
+        $this->setSetting('popup_video_url', trim($this->popupVideoUrl));
+        $this->setSetting('popup_video_title', trim($this->popupVideoTitle));
+        $this->setSetting('popup_video_autoplay', $this->popupVideoAutoplay ? '1' : '0');
+        $this->setSetting('popup_video_muted', $this->popupVideoMuted ? '1' : '0');
+        $this->setSetting('popup_video_frequency', $this->popupVideoFrequency);
+        $this->setSetting('popup_video_show_on', $this->popupVideoShowOn);
+        $this->setSetting('popup_video_cta_text', trim($this->popupVideoCtaText));
+        $this->setSetting('popup_video_cta_url', trim($this->popupVideoCtaUrl));
+
+        session()->flash('success', 'Site Opening Video Popup settings saved successfully!');
+    }
+
+    public function getEmbedUrlProperty()
+    {
+        if (empty($this->popupVideoUrl)) {
+            return '';
+        }
+
+        $url = trim($this->popupVideoUrl);
+        $videoId = '';
+
+        // Match youtube shorts
+        if (preg_match('/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/i', $url, $matches)) {
+            $videoId = $matches[1];
+        }
+        // Match standard watch URL or youtu.be or embed
+        elseif (preg_match('/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i', $url, $matches)) {
+            $videoId = $matches[1];
+        }
+        // Match raw 11 character ID
+        elseif (preg_match('/^[a-zA-Z0-9_-]{11}$/', $url)) {
+            $videoId = $url;
+        }
+
+        if ($videoId) {
+            $params = [
+                'enablejsapi' => 1,
+                'rel' => 0,
+                'modestbranding' => 1,
+                'playsinline' => 1,
+            ];
+            if ($this->popupVideoAutoplay) {
+                $params['autoplay'] = 1;
+            }
+            if ($this->popupVideoMuted) {
+                $params['mute'] = 1;
+            }
+            return 'https://www.youtube.com/embed/' . $videoId . '?' . http_build_query($params);
+        }
+
+        return $url;
     }
 
     public function resetToDefaults()
