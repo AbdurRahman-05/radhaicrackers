@@ -233,11 +233,20 @@ class Categories extends Component
         }
     }
 
+    public $productCount = 0;
+    public $deleteAction = 'delete_products';
+    public $reassignCategoryId = '';
+
     public function delete($categoryId)
     {
         try {
             $category = Category::findOrFail($categoryId);
             $this->categoryToDelete = $category;
+            $this->productCount = \App\Models\Stock::where('category', $category->name)
+                ->orWhere('category_id', $category->id)
+                ->count();
+            $this->deleteAction = 'delete_products';
+            $this->reassignCategoryId = '';
             $this->showDeleteModal = true;
         } catch (\Exception $e) {
             session()->flash('error', 'An error occurred while loading the category: ' . $e->getMessage());
@@ -254,25 +263,47 @@ class Categories extends Component
 
             $category = $this->categoryToDelete;
             
-            // Check if category has children
+            // Reassign any subcategories to parent
             if ($category->hasChildren()) {
-                session()->flash('error', 'Cannot delete category with subcategories. Please delete subcategories first.');
-                return;
+                Category::where('parent_id', $category->id)->update(['parent_id' => $category->parent_id]);
             }
 
-            // Check if category has stocks
-            if ($category->stocks()->exists()) {
-                session()->flash('error', 'Cannot delete category that has products. Please reassign or delete products first.');
-                return;
+            // Handle associated products
+            $stocksQuery = \App\Models\Stock::where('category', $category->name)
+                ->orWhere('category_id', $category->id);
+            
+            $stockCount = $stocksQuery->count();
+
+            if ($stockCount > 0) {
+                if ($this->deleteAction === 'delete_products') {
+                    // Delete the products belonging to this category
+                    $stocksQuery->delete();
+                } elseif ($this->deleteAction === 'reassign' && !empty($this->reassignCategoryId)) {
+                    $targetCategory = Category::find($this->reassignCategoryId);
+                    if ($targetCategory) {
+                        $stocksQuery->update([
+                            'category' => $targetCategory->name,
+                            'category_id' => $targetCategory->id,
+                        ]);
+                    }
+                } else {
+                    // Uncategorize products
+                    $stocksQuery->update([
+                        'category' => 'Uncategorized',
+                        'category_id' => null,
+                    ]);
+                }
             }
 
             $categoryName = $category->name;
             $deletedSortOrder = $category->sort_order;
             $category->delete();
+
             // Shift down sort_order for categories above the deleted slot
             Category::where('sort_order', '>', $deletedSortOrder)
                 ->decrement('sort_order');
-            session()->flash('success', "Category '{$categoryName}' deleted successfully!");
+
+            session()->flash('success', "Category '{$categoryName}' and its settings were deleted successfully!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'An error occurred while deleting the category: ' . $e->getMessage());
@@ -285,6 +316,9 @@ class Categories extends Component
     {
         $this->showDeleteModal = false;
         $this->categoryToDelete = null;
+        $this->productCount = 0;
+        $this->deleteAction = 'delete_products';
+        $this->reassignCategoryId = '';
     }
 
     public function toggleStatus($categoryId)

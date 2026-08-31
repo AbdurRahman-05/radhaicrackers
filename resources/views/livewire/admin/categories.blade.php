@@ -274,13 +274,50 @@
                                     <p class="text-sm text-gray-500">
                                         Are you sure you want to delete the category "<strong>{{ $categoryToDelete->name ?? '' }}</strong>"? This action cannot be undone.
                                     </p>
+
+                                    @if($productCount > 0)
+                                        <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
+                                            <div class="flex items-center gap-2 text-amber-800 font-bold text-xs mb-2">
+                                                <i class="fas fa-boxes"></i> This category has {{ $productCount }} product(s)
+                                            </div>
+                                            <p class="text-xs text-gray-600 mb-3">Choose what to do with the products inside this category:</p>
+
+                                            <div class="space-y-2 text-xs text-gray-700">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" wire:model="deleteAction" value="delete_products" class="text-red-600 focus:ring-red-500">
+                                                    <span class="font-medium text-red-700">Delete category AND all {{ $productCount }} products</span>
+                                                </label>
+
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" wire:model="deleteAction" value="reassign" class="text-blue-600 focus:ring-blue-500">
+                                                    <span class="font-medium">Move products to another category</span>
+                                                </label>
+
+                                                @if($deleteAction === 'reassign')
+                                                    <div class="ml-5 mt-1">
+                                                        <select wire:model="reassignCategoryId" class="w-full text-xs border border-gray-300 rounded p-1.5 focus:ring-blue-500 focus:border-blue-500">
+                                                            <option value="">-- Select Target Category --</option>
+                                                            @foreach(\App\Models\Category::where('id', '!=', $categoryToDelete->id ?? 0)->ordered()->get() as $otherCat)
+                                                                <option value="{{ $otherCat->id }}">{{ $otherCat->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                @endif
+
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" wire:model="deleteAction" value="uncategorize" class="text-gray-600 focus:ring-gray-500">
+                                                    <span class="font-medium text-gray-700">Delete category only (leave products as "Uncategorized")</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button wire:click="confirmDelete" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                            Delete
+                            Confirm Delete
                         </button>
                         <button wire:click="closeDeleteModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             Cancel
