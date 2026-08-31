@@ -275,17 +275,17 @@
                                         Are you sure you want to delete the category "<strong>{{ $categoryToDelete->name ?? '' }}</strong>"? This action cannot be undone.
                                     </p>
 
-                                    @if($productCount > 0)
+                                    @if(($productCount ?? 0) > 0)
                                         <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
                                             <div class="flex items-center gap-2 text-amber-800 font-bold text-xs mb-2">
-                                                <i class="fas fa-boxes"></i> This category has {{ $productCount }} product(s)
+                                                <i class="fas fa-boxes"></i> This category has {{ $productCount ?? 0 }} product(s)
                                             </div>
                                             <p class="text-xs text-gray-600 mb-3">Choose what to do with the products inside this category:</p>
 
                                             <div class="space-y-2 text-xs text-gray-700">
                                                 <label class="flex items-center gap-2 cursor-pointer">
                                                     <input type="radio" wire:model="deleteAction" value="delete_products" class="text-red-600 focus:ring-red-500">
-                                                    <span class="font-medium text-red-700">Delete category AND all {{ $productCount }} products</span>
+                                                    <span class="font-medium text-red-700">Delete category AND all {{ $productCount ?? 0 }} products</span>
                                                 </label>
 
                                                 <label class="flex items-center gap-2 cursor-pointer">

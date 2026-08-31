@@ -21,6 +21,9 @@ class Categories extends Component
     public $sortDirection = 'asc';
     public $selectedCategoryId = null;
     public $categoryToDelete = null;
+    public $productCount = 0;
+    public $deleteAction = 'uncategorize';
+    public $reassignCategoryId = '';
 
     public $selected_year = '';
     public $available_years = [];
