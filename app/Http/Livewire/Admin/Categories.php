@@ -234,7 +234,7 @@ class Categories extends Component
     }
 
     public $productCount = 0;
-    public $deleteAction = 'delete_products';
+    public $deleteAction = 'uncategorize'; // Safe default: keeps all products intact
     public $reassignCategoryId = '';
 
     public function delete($categoryId)
@@ -245,7 +245,7 @@ class Categories extends Component
             $this->productCount = \App\Models\Stock::where('category', $category->name)
                 ->orWhere('category_id', $category->id)
                 ->count();
-            $this->deleteAction = 'delete_products';
+            $this->deleteAction = 'uncategorize';
             $this->reassignCategoryId = '';
             $this->showDeleteModal = true;
         } catch (\Exception $e) {
