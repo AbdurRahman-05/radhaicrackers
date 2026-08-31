@@ -214,6 +214,9 @@
                                             @if($stock->category)
                                                 <div class="text-[11px] text-blue-600 font-medium">{{ $stock->category }}</div>
                                             @endif
+                                            @if($stock->description)
+                                                <div class="text-[11px] text-gray-500 truncate max-w-[200px]" title="{{ $stock->description }}"><i class="fas fa-align-left text-[9px] mr-1 text-gray-400"></i>{{ $stock->description }}</div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
