@@ -88,9 +88,11 @@ class Categories extends Component
     }
 
 
-   public function render()
+    public function render()
     {
+        $selectedYear = $this->selected_year;
         $query = Category::query();
+
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
@@ -98,6 +100,23 @@ class Categories extends Component
                   ->orWhere('description', 'like', '%' . $this->search . '%');
             });
         }
+
+        if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
+            $query->where(function($q) use ($selectedYear) {
+                $q->whereExists(function($sub) use ($selectedYear) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('stocks')
+                        ->whereYear('stocks.created_at', $selectedYear)
+                        ->where(function($sq) {
+                            $sq->whereColumn('stocks.category', 'categories.name')
+                               ->orWhereColumn('stocks.category_id', 'categories.id')
+                               ->orWhereColumn('stocks.category', 'categories.id');
+                        });
+                })
+                ->orWhereYear('categories.created_at', $selectedYear);
+            });
+        }
+
         $categories = $query->orderBy($this->sortField, $this->sortDirection)
             ->orderBy('sort_order')
             ->paginate(10);
