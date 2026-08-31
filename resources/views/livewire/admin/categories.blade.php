@@ -51,6 +51,57 @@
                 </select>
             </div>
         </div>
+
+        <!-- Bulk Quick Actions -->
+        <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 text-xs text-gray-500 font-semibold">
+                <i class="fas fa-bolt text-amber-500"></i> Quick Bulk Actions:
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                @if(in_array(2025, $available_years))
+                    <button wire:click="bulkDeactivateByYear(2025)" 
+                            wire:confirm="Are you sure you want to DISABLE all 2025 categories?" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition">
+                        <i class="fas fa-eye-slash mr-1"></i> Disable All 2025
+                    </button>
+                    <button wire:click="bulkActivateByYear(2025)" 
+                            wire:confirm="Are you sure you want to ENABLE all 2025 categories?" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition">
+                        <i class="fas fa-check mr-1"></i> Enable All 2025
+                    </button>
+                @endif
+
+                @if(in_array(2026, $available_years))
+                    <button wire:click="bulkDeactivateByYear(2026)" 
+                            wire:confirm="Are you sure you want to DISABLE all 2026 categories?" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition">
+                        <i class="fas fa-eye-slash mr-1"></i> Disable All 2026
+                    </button>
+                    <button wire:click="bulkActivateByYear(2026)" 
+                            wire:confirm="Are you sure you want to ENABLE all 2026 categories?" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition">
+                        <i class="fas fa-check mr-1"></i> Enable All 2026
+                    </button>
+                @endif
+
+                <button wire:click="bulkDeactivateAll" 
+                        wire:confirm="Are you sure you want to DISABLE ALL categories?" 
+                        type="button" 
+                        class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 transition">
+                    <i class="fas fa-power-off mr-1"></i> Disable All
+                </button>
+                <button wire:click="bulkActivateAll" 
+                        wire:confirm="Are you sure you want to ENABLE ALL categories?" 
+                        type="button" 
+                        class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 transition">
+                    <i class="fas fa-toggle-on mr-1"></i> Enable All
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Categories Table -->

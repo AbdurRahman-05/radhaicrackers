@@ -402,6 +402,76 @@ class Categories extends Component
         $this->resetValidation();
     }
 
+    public function bulkDeactivateByYear($year)
+    {
+        try {
+            $updated = Category::where(function($q) use ($year) {
+                $q->whereExists(function($sub) use ($year) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('stocks')
+                        ->whereYear('stocks.created_at', $year)
+                        ->where(function($sq) {
+                            $sq->whereColumn('stocks.category', 'categories.name')
+                               ->orWhereColumn('stocks.category_id', 'categories.id')
+                               ->orWhereColumn('stocks.category', 'categories.id');
+                        });
+                })
+                ->orWhereYear('categories.created_at', $year);
+            })->update(['is_active' => false]);
+
+            session()->flash('success', "Deactivated categories associated with year {$year} ({$updated} updated)!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to deactivate categories: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkActivateByYear($year)
+    {
+        try {
+            $updated = Category::where(function($q) use ($year) {
+                $q->whereExists(function($sub) use ($year) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('stocks')
+                        ->whereYear('stocks.created_at', $year)
+                        ->where(function($sq) {
+                            $sq->whereColumn('stocks.category', 'categories.name')
+                               ->orWhereColumn('stocks.category_id', 'categories.id')
+                               ->orWhereColumn('stocks.category', 'categories.id');
+                        });
+                })
+                ->orWhereYear('categories.created_at', $year);
+            })->update(['is_active' => true]);
+
+            session()->flash('success', "Activated categories associated with year {$year} ({$updated} updated)!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to activate categories: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkDeactivateAll()
+    {
+        try {
+            $updated = Category::query()->update(['is_active' => false]);
+            session()->flash('success', "All categories have been deactivated ({$updated} categories)!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to deactivate all categories: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkActivateAll()
+    {
+        try {
+            $updated = Category::query()->update(['is_active' => true]);
+            session()->flash('success', "All categories have been activated ({$updated} categories)!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to activate all categories: ' . $e->getMessage());
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
