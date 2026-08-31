@@ -13,10 +13,18 @@ class PriceListController extends Controller
 {
     private function getCategoriesOrderCase()
     {
-        // Get categories ordered by sort_order from database
+        // Get categories ordered by sort_order from database that have active products
         $categories = Category::where('is_active', true)
+            ->whereHas('stocks', function($q) {
+                $q->where('is_active', true)->where('show_on_shop', true);
+            })
             ->orderBy('sort_order')
             ->get();
+
+        // If no categories have direct relation match, fallback to all active categories
+        if ($categories->isEmpty()) {
+            $categories = Category::where('is_active', true)->orderBy('sort_order')->get();
+        }
 
         // Create the CASE statement for ordering categories
         $orderByCase = "CASE category ";

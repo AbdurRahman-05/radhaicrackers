@@ -25,6 +25,7 @@ class ExpressShopController extends Controller
         }
 
         $stockData = [];
+        $activeCategories = [];
         $totalAmount = 0;
 
         foreach ($categories as $category) {
@@ -33,29 +34,30 @@ class ExpressShopController extends Controller
             // Get stocks for this category (handle both name and ID matching)
             $stocks = Stock::query()
                 ->where('is_active', 1)
-                ->where(function($q) {
-                    $q->where('quantity', '>', 0)
-                       ->orWhere('show_on_shop', 1);
-                })
+                ->where('show_on_shop', 1)
                 ->where(function($q) use ($categoryName, $category) {
                     $q->where('category', $categoryName)
-                      ->orWhere('category', $category->id);
+                      ->orWhere('category', (string)$category->id)
+                      ->orWhere('category_id', $category->id);
                 })
+                ->orderBy('order_within_category', 'asc')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Always show the category, even if it has no products
-            $stockData[$categoryName] = $stocks;
-            // Calculate total based on minimum quantity (1) for each product
-            foreach ($stocks as $stock) {
-                $totalAmount += $stock->price;
+            // Only show categories that have products available for the current active inventory
+            if ($stocks->isNotEmpty()) {
+                $stockData[$categoryName] = $stocks;
+                $activeCategories[] = $category;
+                foreach ($stocks as $stock) {
+                    $totalAmount += $stock->price;
+                }
             }
         }
 
         return view('pages.express-shop', [
             'stockData' => $stockData,
             'totalAmount' => $totalAmount,
-            'categories' => $categories,
+            'categories' => !empty($activeCategories) ? collect($activeCategories) : $categories,
             'categoryMapping' => $categoryMapping
         ]);
     }
