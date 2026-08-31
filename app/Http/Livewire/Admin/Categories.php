@@ -233,17 +233,25 @@ class Categories extends Component
         }
     }
 
-    public $productCount = 0;
-    public $deleteAction = 'uncategorize'; // Safe default: keeps all products intact
-    public $reassignCategoryId = '';
+    public function updatedSelectedYear()
+    {
+        $this->resetPage();
+    }
 
     public function delete($categoryId)
     {
         try {
             $category = Category::findOrFail($categoryId);
             $this->categoryToDelete = $category;
-            $this->productCount = \App\Models\Stock::where('category', $category->name)
-                ->orWhere('category_id', $category->id)
+            $selectedYear = $this->selected_year;
+            $this->productCount = \App\Models\Stock::where(function($q) use ($category) {
+                    $q->where('category', $category->name)
+                      ->orWhere('category_id', $category->id)
+                      ->orWhere('category', (string)$category->id);
+                })
+                ->when($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all', function($q) use ($selectedYear) {
+                    $q->whereYear('created_at', $selectedYear);
+                })
                 ->count();
             $this->deleteAction = 'uncategorize';
             $this->reassignCategoryId = '';
@@ -262,21 +270,28 @@ class Categories extends Component
             }
 
             $category = $this->categoryToDelete;
+            $selectedYear = $this->selected_year;
             
             // Reassign any subcategories to parent
             if ($category->hasChildren()) {
                 Category::where('parent_id', $category->id)->update(['parent_id' => $category->parent_id]);
             }
 
-            // Handle associated products
-            $stocksQuery = \App\Models\Stock::where('category', $category->name)
-                ->orWhere('category_id', $category->id);
+            // Handle associated products isolated by selected year (if year selected) or all
+            $stocksQuery = \App\Models\Stock::where(function($q) use ($category) {
+                    $q->where('category', $category->name)
+                      ->orWhere('category_id', $category->id)
+                      ->orWhere('category', (string)$category->id);
+                })
+                ->when($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all', function($q) use ($selectedYear) {
+                    $q->whereYear('created_at', $selectedYear);
+                });
             
             $stockCount = $stocksQuery->count();
 
             if ($stockCount > 0) {
                 if ($this->deleteAction === 'delete_products') {
-                    // Delete the products belonging to this category
+                    // Delete only the products in the selected scope
                     $stocksQuery->delete();
                 } elseif ($this->deleteAction === 'reassign' && !empty($this->reassignCategoryId)) {
                     $targetCategory = Category::find($this->reassignCategoryId);
@@ -295,15 +310,25 @@ class Categories extends Component
                 }
             }
 
+            // If deleting for all years or category has no products in other years, delete category
+            $otherYearsCount = \App\Models\Stock::where(function($q) use ($category) {
+                    $q->where('category', $category->name)
+                      ->orWhere('category_id', $category->id)
+                      ->orWhere('category', (string)$category->id);
+                })
+                ->count();
+
             $categoryName = $category->name;
             $deletedSortOrder = $category->sort_order;
-            $category->delete();
 
-            // Shift down sort_order for categories above the deleted slot
-            Category::where('sort_order', '>', $deletedSortOrder)
-                ->decrement('sort_order');
+            if ($otherYearsCount === 0 || empty($selectedYear)) {
+                $category->delete();
+                Category::where('sort_order', '>', $deletedSortOrder)->decrement('sort_order');
+                session()->flash('success', "Category '{$categoryName}' deleted successfully!");
+            } else {
+                session()->flash('success', "Category '{$categoryName}' cleared for {$selectedYear} products!");
+            }
 
-            session()->flash('success', "Category '{$categoryName}' and its settings were deleted successfully!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'An error occurred while deleting the category: ' . $e->getMessage());

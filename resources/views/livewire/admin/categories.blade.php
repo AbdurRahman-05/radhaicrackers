@@ -124,7 +124,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $category->stocks_count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                    {{ $category->stocks_count }} {{ Str::plural('product', $category->stocks_count) }}
+                                    {{ $category->stocks_count }} {{ Str::plural('product', $category->stocks_count) }} {{ $selected_year ? "({$selected_year})" : "" }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
