@@ -218,8 +218,8 @@ class StockController extends Controller
     }
     public function index()
     {
-        // Fetch all categories (active, ordered)
-        $categories = Category::active()->ordered()->get();
+        // Fetch all categories in order so stock management displays all items regardless of category active toggle
+        $categories = Category::ordered()->get();
         
         // Available years from orders
         $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
