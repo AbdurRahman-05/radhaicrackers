@@ -6,6 +6,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Radhe Crackers - Bringing Joy, Spark by Spark')</title>
     
+    @yield('meta')
+    @hasSection('meta')
+    @else
+        <meta name="description" content="Order best quality Sivakasi fireworks and Diwali crackers online at wholesale prices with door delivery from Radhe Crackers.">
+        <meta name="keywords" content="sivakasi crackers, buy crackers online, diwali fireworks, radhe crackers">
+        <meta property="og:title" content="Radhe Crackers - Bringing Joy, Spark by Spark">
+        <meta property="og:description" content="Order best quality Sivakasi fireworks and Diwali crackers online at wholesale prices.">
+        <meta property="og:type" content="website">
+    @endif
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     

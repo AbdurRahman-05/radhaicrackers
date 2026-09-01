@@ -259,11 +259,59 @@
 
                         <!-- Youtube URL Input starts here -->
                         <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Youtube URL</label>
-                    <input type="text" name="youtube_url" value="{{ old('youtube_url', $stock->youtube_url) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 @error('youtube_url') border-red-500 @enderror">
-                    @error('youtube_url') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                </div>  
-    
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Youtube URL</label>
+                            <input type="text" name="youtube_url" value="{{ old('youtube_url', $stock->youtube_url) }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 @error('youtube_url') border-red-500 @enderror" placeholder="https://www.youtube.com/watch?v=...">
+                            @error('youtube_url') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>  
+                    </div>
+                </div>
+
+                <!-- SEO & Meta Tags -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">SEO & Meta Tags</h3>
+                    <p class="text-sm text-gray-500 mb-4">Improve Google search rankings and social media share previews</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Meta Title -->
+                        <div>
+                            <label for="meta_title" class="block text-sm font-medium text-gray-700 mb-2">
+                                Meta Title (SEO Title)
+                            </label>
+                            <input type="text" id="meta_title" name="meta_title" value="{{ old('meta_title', $stock->meta_title) }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('meta_title') border-red-500 @enderror"
+                                   placeholder="e.g. Buy 4&quot; Gold Lakshmi Online - Best Sivakasi Crackers">
+                            <p class="mt-1 text-xs text-gray-500">Recommended length: 50-60 characters</p>
+                            @error('meta_title')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Meta Description -->
+                        <div>
+                            <label for="meta_description" class="block text-sm font-medium text-gray-700 mb-2">
+                                Meta Description (SEO Description)
+                            </label>
+                            <textarea id="meta_description" name="meta_description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('meta_description') border-red-500 @enderror"
+                                      placeholder="Brief summary of the product for search engine snippets">{{ old('meta_description', $stock->meta_description) }}</textarea>
+                            <p class="mt-1 text-xs text-gray-500">Recommended length: 150-160 characters</p>
+                            @error('meta_description')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Meta Keywords -->
+                        <div>
+                            <label for="meta_keywords" class="block text-sm font-medium text-gray-700 mb-2">
+                                Meta Keywords (Comma separated)
+                            </label>
+                            <input type="text" id="meta_keywords" name="meta_keywords" value="{{ old('meta_keywords', $stock->meta_keywords) }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 @error('meta_keywords') border-red-500 @enderror"
+                                   placeholder="e.g. gold lakshmi, sivakasi crackers, diwali fireworks">
+                            @error('meta_keywords')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 

@@ -355,6 +355,9 @@ class StockController extends Controller
             'special_discount_percentage' => 'nullable|integer|min:0|max:100',
             'category' => 'required|string|max:255',
             'is_active' => 'boolean',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:1000',
+            'meta_keywords' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'youtube_url' => 'nullable|string|max:255' //newly added
         ]);
@@ -375,6 +378,9 @@ class StockController extends Controller
             $stock = Stock::create([
                 'item_name' => $request->item_name,
                 'description' => $request->description,
+                'meta_title' => $request->meta_title,
+                'meta_description' => $request->meta_description,
+                'meta_keywords' => $request->meta_keywords,
                 'quantity' => $request->quantity,
                 'price' => $request->price,
                 'original_price' => $request->original_price > 0 ? $request->original_price : null,
@@ -422,6 +428,9 @@ class StockController extends Controller
             'special_discount_percentage' => 'nullable|integer|min:0|max:100',
             'category' => 'required|string|max:255',
             'is_active' => 'boolean',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:1000',
+            'meta_keywords' => 'nullable|string|max:1000',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'youtube_url' => 'nullable|string|max:255' //newly added
         ]);
@@ -436,6 +445,9 @@ class StockController extends Controller
             $data = [
                 'item_name' => $request->item_name,
                 'description' => $request->description,
+                'meta_title' => $request->meta_title,
+                'meta_description' => $request->meta_description,
+                'meta_keywords' => $request->meta_keywords,
                 'quantity' => $request->quantity,
                 'price' => $request->price,
                 'original_price' => $request->original_price > 0 ? $request->original_price : null,
@@ -686,6 +698,9 @@ class StockController extends Controller
                 'item_name' => trim($rowData['item_name']),
                 'category' => trim($category),
                 'description' => trim($rowData['description'] ?? ''),
+                'meta_title' => !empty($rowData['meta_title']) ? trim($rowData['meta_title']) : null,
+                'meta_description' => !empty($rowData['meta_description']) ? trim($rowData['meta_description']) : null,
+                'meta_keywords' => !empty($rowData['meta_keywords']) ? trim($rowData['meta_keywords']) : null,
                 'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0), // Default to 0 if empty
                 'price' => $this->parseNumeric($rowData['price'] ?? 0, 'float'), // Price should be provided in CSV
                 'original_price' => $this->parseNumeric($rowData['original_price'] ?? null, 'float'),
@@ -890,16 +905,16 @@ class StockController extends Controller
         
         $data = [
             // Headers
-            ['item_name', 'category', 'description', 'quantity', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'is_active', 'show_on_shop', 'is_popular', 'is_latest', 'expires_at', 'ordered_count', 'last_released_at', 'next_release_at', 'youtube_url', 'image'],
+            ['item_name', 'category', 'description', 'meta_title', 'meta_description', 'meta_keywords', 'quantity', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'is_active', 'show_on_shop', 'is_popular', 'is_latest', 'expires_at', 'ordered_count', 'last_released_at', 'next_release_at', 'youtube_url', 'image'],
             
             // Sample data rows matching your CSV structure
-            ['4" Gold Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '31', '120', '70', '15', '1', '0', '0', '0', '', '', '', '', '', ''],
-            ['2 3/4" Kuruvi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['4" Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '15', '60', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['Red Bijili', 'BIJILI CRACKERS', '1 Pkt/50 Pcs', '', '18', '72', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['Hydro Bomb', 'BOMB', '1 Box/10 Pcs', '', '67', '264', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['7 cm Electric Sparklers', 'SPARKLERS', '1 Box/10 Pcs', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['Flower Pots Big', 'FlOWER POTS - Regular', '1 Box/10 Pcs', '', '57', '224', '70', '15', '1', '1', '0', '0', '', '', '', '', '', '']
+            ['4" Gold Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', 'Buy 4" Gold Lakshmi Online - Sivakasi Crackers', 'Premium 4 inch Gold Lakshmi single flash crackers at wholesale prices.', 'gold lakshmi, single flash, diwali crackers', '', '31', '120', '70', '15', '1', '0', '0', '0', '', '', '', '', '', ''],
+            ['2 3/4" Kuruvi', 'SINGLE FLASH', '1 Pkt/5 Pcs', 'Buy 2 3/4" Kuruvi Crackers Online', 'Best quality traditional 2 3/4 Kuruvi crackers from Sivakasi.', 'kuruvi crackers, single flash', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['4" Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '', '', '', '15', '60', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['Red Bijili', 'BIJILI CRACKERS', '1 Pkt/50 Pcs', 'Red Bijili Crackers 50 Pcs Pack', 'Authentic Red Bijili sound crackers pack for Diwali celebrations.', 'red bijili, bijili crackers', '', '18', '72', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['Hydro Bomb', 'BOMB', '1 Box/10 Pcs', '', '', '', '', '67', '264', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['7 cm Electric Sparklers', 'SPARKLERS', '1 Box/10 Pcs', '', '', '', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['Flower Pots Big', 'FlOWER POTS - Regular', '1 Box/10 Pcs', '', '', '', '', '57', '224', '70', '15', '1', '1', '0', '0', '', '', '', '', '', '']
         ];
         
         if ($format === 'xlsx') {

@@ -227,9 +227,13 @@
                                     @if($product->image)
                                         <img src="{{ $product->image_url }}" 
                                              alt="{{ $product->item_name }}" 
-                                             class="w-24 h-24 object-cover rounded-lg mx-auto mb-2" onclick="openGalleryModal({{ $product->id }}, '{{ addslashes($product->item_name) }}')">
+                                             class="w-24 h-24 object-cover rounded-lg mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform shadow-sm"
+                                             onclick="openProductModal({{ $product->id }})"
+                                             title="Click to view details">
                                     @else
-                                        <div class="text-4xl mb-2">
+                                        <div class="text-4xl mb-2 cursor-pointer hover:scale-110 transition-transform inline-block" 
+                                             onclick="openProductModal({{ $product->id }})"
+                                             title="Click to view details">
                                             @switch($product->category)
                                                 @case('BOMBS')
                                                     💣
@@ -261,44 +265,27 @@
                                         </div>
                                     @endif
                                 </div>
-                                
-                                <!-- Gallery Modal -->
-<div id="galleryModal" class="fixed inset-0 bg-black bg-opacity-75 overflow-y-auto h-full w-full z-50 hidden">
-    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium text-gray-900" id="galleryModalTitle">Product Gallery</h3>
-            <button onclick="closeGalleryModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <!-- Carousel Container -->
-        <div id="carouselContainer" class="w-full flex flex-col items-center mb-6">
-            <div class="relative w-full max-w-lg flex items-center justify-center">
-                <button id="carouselPrev" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-blue-500 hover:text-white text-blue-700 shadow-lg rounded-full w-10 h-10 flex items-center justify-center z-10 transition-all duration-200 border border-blue-200" style="display:none">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <div class="overflow-hidden rounded-2xl shadow-xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white w-full h-72 flex items-center justify-center">
-                    <img id="carouselImage" src="" alt="Gallery Image" class="object-contain w-full h-full transition-transform duration-300 ease-in-out" />
-                </div>
-                <button id="carouselNext" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-blue-500 hover:text-white text-blue-700 shadow-lg rounded-full w-10 h-10 flex items-center justify-center z-10 transition-all duration-200 border border-blue-200" style="display:none">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </button>
-            </div>
-            <div id="carouselIndicators" class="flex justify-center mt-4 space-x-3">
-                <!-- Dots will be rendered here by JS -->
-            </div>
-        </div>
-        <div id="galleryImages" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-2"></div>
-    </div>
-</div>
 
-
-                                <h3 class="font-semibold text-gray-900 mb-2 text-center">{{ $product->item_name }}</h3>
+                                <h3 class="font-semibold text-gray-900 mb-1 text-center cursor-pointer hover:text-orange-600 transition-colors"
+                                    onclick="openProductModal({{ $product->id }})"
+                                    title="Click to view details">
+                                    {{ $product->item_name }}
+                                </h3>
                                 @if($product->description)
-                                    <p class="text-sm text-gray-600 mb-2 text-center">{{ $product->description }}</p>
+                                    <p class="text-xs text-gray-500 mb-2 text-center cursor-pointer hover:text-gray-700" 
+                                       onclick="openProductModal({{ $product->id }})">
+                                        {{ $product->description }}
+                                    </p>
                                 @endif
+                                
+                                <div class="text-center mb-2">
+                                    <button type="button" onclick="openProductModal({{ $product->id }})" class="inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors mb-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        View Details
+                                    </button>
+                                </div>
                                 
                                 <div class="text-center mb-3">
                                     @if($product->original_price && $product->original_price > $product->price)
@@ -803,101 +790,362 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 
+<!-- Full Product Details & Meta Description Popup Modal -->
+<div id="productDetailsModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm overflow-y-auto h-full w-full z-50 hidden transition-opacity duration-300">
+    <div class="relative top-4 sm:top-10 mx-auto p-4 sm:p-6 border w-11/12 max-w-3xl shadow-2xl rounded-2xl bg-white text-gray-900 mb-10">
+        <!-- Close Button -->
+        <button type="button" onclick="closeProductModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
+            <!-- Left: Product Media Gallery -->
+            <div class="flex flex-col items-center">
+                <div class="relative w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 h-64 sm:h-80 flex items-center justify-center shadow-inner">
+                    <button id="modalCarouselPrev" type="button" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-orange-500 hover:text-white text-gray-800 shadow-md rounded-full w-9 h-9 flex items-center justify-center z-10 transition-all border border-gray-200" style="display:none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+
+                    <img id="modalProductImage" src="" alt="Product Image" class="object-contain max-h-full max-w-full p-2 transition-all duration-300" />
+                    <div id="modalFallbackIcon" class="text-6xl hidden">🎆</div>
+
+                    <button id="modalCarouselNext" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-orange-500 hover:text-white text-gray-800 shadow-md rounded-full w-9 h-9 flex items-center justify-center z-10 transition-all border border-gray-200" style="display:none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+                <!-- Carousel Indicators & Thumbnails -->
+                <div id="modalCarouselIndicators" class="flex flex-wrap justify-center gap-2 mt-3"></div>
+                <div id="modalGalleryThumbnails" class="flex flex-wrap justify-center gap-2 mt-2"></div>
+            </div>
+
+            <!-- Right: Product Information & Meta Description -->
+            <div class="flex flex-col justify-between space-y-4">
+                <div>
+                    <!-- Badges -->
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <span id="modalCategoryBadge" class="bg-amber-100 text-amber-900 font-semibold text-xs px-3 py-1 rounded-full uppercase tracking-wider"></span>
+                        <span id="modalDiscountBadge" class="bg-red-500 text-white font-bold text-xs px-2.5 py-1 rounded-full hidden"></span>
+                        <span id="modalSpecialBadge" class="bg-purple-600 text-white font-bold text-xs px-2.5 py-1 rounded-full hidden"></span>
+                        <span id="modalStockStatus" class="font-semibold text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-800"></span>
+                    </div>
+
+                    <!-- Product Name -->
+                    <h2 id="modalProductName" class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight"></h2>
+                    
+                    <!-- Packaging Info (e.g. 1 Pkt/5 Pcs) -->
+                    <p id="modalPackagingInfo" class="text-xs sm:text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5"></p>
+
+                    <!-- Price Block -->
+                    <div class="flex items-baseline gap-3 my-3 p-3 bg-orange-50/70 rounded-xl border border-orange-100">
+                        <span id="modalProductPrice" class="text-2xl font-extrabold text-orange-600"></span>
+                        <span id="modalOriginalPrice" class="text-sm text-gray-400 line-through hidden"></span>
+                        <span id="modalSavingsBadge" class="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-md ml-auto hidden"></span>
+                    </div>
+
+                    <!-- Meta Description Section -->
+                    <div id="modalMetaDescContainer" class="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/80 shadow-sm">
+                        <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-900 mb-1.5">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Product Overview
+                        </div>
+                        <p id="modalMetaDescription" class="text-sm text-gray-700 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Meta Keywords / Tags -->
+                    <div id="modalKeywordsContainer" class="mt-3 hidden">
+                        <span class="text-xs font-semibold text-gray-500 block mb-1">Keywords / Tags:</span>
+                        <div id="modalKeywordsBadges" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+
+                    <!-- YouTube Video Button -->
+                    <div id="modalYoutubeContainer" class="mt-3 hidden">
+                        <button id="modalYoutubeBtn" type="button" class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition-colors">
+                            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                            Watch Video Demonstration
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal Quantity & Action Controls -->
+                <div id="modalActionSection" class="pt-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center rounded-xl p-1.5 text-white shadow-sm" style="background-color: #1E093B;">
+                            <button type="button" onclick="modalChangeQty(-1)" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg hover:opacity-90 active:scale-95 transition-all" style="background-color: rgb(182, 113, 33);">-</button>
+                            <input type="number" id="modalQtyInput" value="0" min="0" onchange="modalSetQty(this.value)" class="w-12 text-center bg-transparent border-none text-white font-bold text-sm focus:ring-0">
+                            <button type="button" onclick="modalChangeQty(1)" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg hover:opacity-90 active:scale-95 transition-all" style="background-color: rgb(182, 113, 33);">+</button>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 block">Item Total</span>
+                            <span id="modalItemSubtotal" class="text-lg font-bold text-gray-900">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Stock images data for gallery modal
-const stockImages = {};
+// Products catalog data with SEO / Meta tags
+const productsCatalog = {
+    @foreach($products as $product)
+    {{ $product->id }}: {
+        id: {{ $product->id }},
+        name: {!! json_encode($product->item_name) !!},
+        category: {!! json_encode($product->category) !!},
+        description: {!! json_encode($product->description ?? '') !!},
+        meta_title: {!! json_encode($product->meta_title ?? '') !!},
+        meta_description: {!! json_encode($product->meta_description ?? '') !!},
+        meta_keywords: {!! json_encode($product->meta_keywords ?? '') !!},
+        price: {{ (float)$product->price }},
+        original_price: {{ (float)($product->original_price ?? 0) }},
+        discount_percentage: {{ (int)($product->discount_percentage ?? 0) }},
+        special_discount_percentage: {{ (int)($product->special_discount_percentage ?? 0) }},
+        youtube_url: {!! json_encode($product->youtube_url ?? '') !!},
+        show_on_shop: {{ $product->show_on_shop ? 'true' : 'false' }},
+        image_url: {!! json_encode($product->image_url ?? '') !!},
+        images: [
+            @php $imgArr = []; @endphp
+            @if($product->images->count())
+                @foreach($product->images as $img)
+                    @php
+                        $imgPath = ltrim($img->image_path, '/');
+                        $imgArr[] = asset($imgPath);
+                    @endphp
+                @endforeach
+            @elseif($product->image)
+                @php $imgArr[] = $product->image_url; @endphp
+            @endif
+            {!! collect($imgArr)->map(function($url){ return '"'.$url.'"'; })->implode(',') !!}
+        ]
+    },
+    @endforeach
+};
 
-@foreach($products as $product)
-    stockImages[{{ $product->id }}] = [
-        @php $imgArr = []; @endphp
-        @if($product->images->count())
-            @foreach($product->images as $img)
-                @php
-                    $imgPath = ltrim($img->image_path, '/');
-                    $imgArr[] = asset($imgPath);
-                @endphp
-            @endforeach
-        @elseif($product->image)
-            @php $imgArr[] = $product->image_url; @endphp
-        @endif
-        {!! collect($imgArr)->map(function($url){ return '"'.$url.'"'; })->implode(',') !!}
-    ];
-@endforeach
+let currentModalProductId = null;
+let currentModalImageIndex = 0;
 
-function openGalleryModal(productId, productName) {
-    const images = stockImages[productId] || [];
-    // Carousel logic
-    const carouselContainer = document.getElementById('carouselContainer');
-    const carouselImage = document.getElementById('carouselImage');
-    const carouselPrev = document.getElementById('carouselPrev');
-    const carouselNext = document.getElementById('carouselNext');
-    const carouselIndicators = document.getElementById('carouselIndicators');
-    let currentIndex = 0;
-    if (images.length > 0) {
-        carouselImage.src = images[0];
-        carouselContainer.style.display = 'flex';
-        carouselPrev.style.display = images.length > 1 ? 'block' : 'none';
-        carouselNext.style.display = images.length > 1 ? 'block' : 'none';
-        // Indicators
-        carouselIndicators.innerHTML = '';
-        images.forEach((img, idx) => {
-            const dot = document.createElement('button');
-            dot.className = 'w-3 h-3 rounded-full ' + (idx === 0 ? 'bg-blue-600' : 'bg-gray-300');
-            dot.onclick = () => showCarouselImage(idx);
-            carouselIndicators.appendChild(dot);
-        });
+function openProductModal(productId) {
+    const product = productsCatalog[productId];
+    if (!product) return;
+
+    currentModalProductId = productId;
+    currentModalImageIndex = 0;
+
+    // Set Text Content
+    document.getElementById('modalProductName').textContent = product.name;
+    document.getElementById('modalCategoryBadge').textContent = product.category;
+    document.getElementById('modalPackagingInfo').textContent = product.description ? '📦 ' + product.description : '';
+
+    // Pricing
+    document.getElementById('modalProductPrice').textContent = '₹' + product.price.toFixed(2);
+    const originalPriceEl = document.getElementById('modalOriginalPrice');
+    const savingsBadgeEl = document.getElementById('modalSavingsBadge');
+    if (product.original_price > product.price) {
+        originalPriceEl.textContent = '₹' + product.original_price.toFixed(2);
+        originalPriceEl.classList.remove('hidden');
+        const savings = product.original_price - product.price;
+        savingsBadgeEl.textContent = 'Save ₹' + savings.toFixed(2);
+        savingsBadgeEl.classList.remove('hidden');
     } else {
-        carouselContainer.style.display = 'none';
+        originalPriceEl.classList.add('hidden');
+        savingsBadgeEl.classList.add('hidden');
     }
-    function showCarouselImage(idx) {
-        currentIndex = idx;
-        carouselImage.src = images[idx];
-        Array.from(carouselIndicators.children).forEach((dot, i) => {
-            dot.className = 'w-3 h-3 rounded-full ' + (i === idx ? 'bg-blue-600' : 'bg-gray-300');
-        });
-    }
-    carouselPrev.onclick = function() {
-        if (currentIndex > 0) showCarouselImage(currentIndex - 1);
-    };
-    carouselNext.onclick = function() {
-        if (currentIndex < images.length - 1) showCarouselImage(currentIndex + 1);
-    };
-    // Show first image
-    showCarouselImage(0);
-    // ...existing code for galleryImages grid...
-    const galleryImagesDiv = document.getElementById('galleryImages');
-    galleryImagesDiv.innerHTML = '';
-    if (images.length === 0) {
-        galleryImagesDiv.innerHTML = '<div class="col-span-2 text-center text-gray-500">No gallery images available.</div>';
+
+    // Discounts
+    const discountBadgeEl = document.getElementById('modalDiscountBadge');
+    if (product.discount_percentage > 0) {
+        discountBadgeEl.textContent = product.discount_percentage + '% OFF';
+        discountBadgeEl.classList.remove('hidden');
     } else {
-        images.forEach(src => {
-            const img = document.createElement('img');
-            img.src = src;
-            img.className = 'w-full h-32 object-cover rounded-lg shadow';
-            galleryImagesDiv.appendChild(img);
-        });
+        discountBadgeEl.classList.add('hidden');
     }
-    document.getElementById('galleryModalTitle').textContent = productName + ' - Gallery';
-    document.getElementById('galleryModal').classList.remove('hidden');
+
+    const specialBadgeEl = document.getElementById('modalSpecialBadge');
+    if (product.special_discount_percentage > 0) {
+        specialBadgeEl.textContent = '+' + product.special_discount_percentage + '% Special';
+        specialBadgeEl.classList.remove('hidden');
+    } else {
+        specialBadgeEl.classList.add('hidden');
+    }
+
+    // Stock Status
+    const stockStatusEl = document.getElementById('modalStockStatus');
+    const actionSectionEl = document.getElementById('modalActionSection');
+    if (product.show_on_shop) {
+        stockStatusEl.textContent = 'Available';
+        stockStatusEl.className = 'font-semibold text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-800';
+        actionSectionEl.classList.remove('hidden');
+    } else {
+        stockStatusEl.textContent = 'Out of Stock';
+        stockStatusEl.className = 'font-semibold text-xs px-2.5 py-1 rounded-full bg-red-100 text-red-800';
+        actionSectionEl.classList.add('hidden');
+    }
+
+    // Meta Description
+    const metaDescEl = document.getElementById('modalMetaDescription');
+    const metaContainerEl = document.getElementById('modalMetaDescContainer');
+    const displayDesc = product.meta_description || product.description || ('Premium ' + product.name + ' (' + product.category + ') Sivakasi crackers available online at best wholesale rates.');
+    metaDescEl.textContent = displayDesc;
+
+    // Meta Keywords / Tags
+    const keywordsContainerEl = document.getElementById('modalKeywordsContainer');
+    const keywordsBadgesEl = document.getElementById('modalKeywordsBadges');
+    keywordsBadgesEl.innerHTML = '';
+    if (product.meta_keywords) {
+        const keywords = product.meta_keywords.split(',').map(k => k.trim()).filter(Boolean);
+        if (keywords.length > 0) {
+            keywords.forEach(kw => {
+                const badge = document.createElement('span');
+                badge.className = 'text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md border border-gray-200';
+                badge.textContent = '#' + kw;
+                keywordsBadgesEl.appendChild(badge);
+            });
+            keywordsContainerEl.classList.remove('hidden');
+        } else {
+            keywordsContainerEl.classList.add('hidden');
+        }
+    } else {
+        keywordsContainerEl.classList.add('hidden');
+    }
+
+    // YouTube Video
+    const youtubeContainer = document.getElementById('modalYoutubeContainer');
+    const youtubeBtn = document.getElementById('modalYoutubeBtn');
+    if (product.youtube_url) {
+        youtubeContainer.classList.remove('hidden');
+        youtubeBtn.onclick = function() {
+            openVideoModal(product.youtube_url, product.name);
+        };
+    } else {
+        youtubeContainer.classList.add('hidden');
+    }
+
+    // Setup Gallery / Carousel
+    setupModalGallery(product);
+
+    // Sync Quantity
+    syncModalQuantity();
+
+    // Show Modal
+    document.getElementById('productDetailsModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
-function closeGalleryModal() {
-    document.getElementById('galleryModal').classList.add('hidden');
-    document.body.style.overflow = 'auto';
+function setupModalGallery(product) {
+    const images = product.images && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : []);
+    const imgEl = document.getElementById('modalProductImage');
+    const fallbackEl = document.getElementById('modalFallbackIcon');
+    const prevBtn = document.getElementById('modalCarouselPrev');
+    const nextBtn = document.getElementById('modalCarouselNext');
+    const indicatorsEl = document.getElementById('modalCarouselIndicators');
+    const thumbsEl = document.getElementById('modalGalleryThumbnails');
+
+    indicatorsEl.innerHTML = '';
+    thumbsEl.innerHTML = '';
+
+    if (images.length > 0) {
+        imgEl.src = images[0];
+        imgEl.classList.remove('hidden');
+        fallbackEl.classList.add('hidden');
+
+        prevBtn.style.display = images.length > 1 ? 'flex' : 'none';
+        nextBtn.style.display = images.length > 1 ? 'flex' : 'none';
+
+        prevBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (currentModalImageIndex > 0) {
+                showModalImage(images, currentModalImageIndex - 1);
+            }
+        };
+
+        nextBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (currentModalImageIndex < images.length - 1) {
+                showModalImage(images, currentModalImageIndex + 1);
+            }
+        };
+
+        if (images.length > 1) {
+            images.forEach((src, idx) => {
+                const thumb = document.createElement('img');
+                thumb.src = src;
+                thumb.className = 'w-10 h-10 object-cover rounded-lg border-2 cursor-pointer transition-all ' + (idx === 0 ? 'border-orange-500 shadow-md scale-105' : 'border-gray-200 opacity-70 hover:opacity-100');
+                thumb.onclick = () => showModalImage(images, idx);
+                thumbsEl.appendChild(thumb);
+            });
+        }
+    } else {
+        imgEl.classList.add('hidden');
+        fallbackEl.classList.remove('hidden');
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
 }
 
-// Close gallery modal when clicking outside
-document.getElementById('galleryModal').addEventListener('click', function(e) {
+function showModalImage(images, idx) {
+    currentModalImageIndex = idx;
+    const imgEl = document.getElementById('modalProductImage');
+    imgEl.src = images[idx];
+
+    const thumbsEl = document.getElementById('modalGalleryThumbnails');
+    Array.from(thumbsEl.children).forEach((thumb, i) => {
+        if (i === idx) {
+            thumb.className = 'w-10 h-10 object-cover rounded-lg border-2 cursor-pointer transition-all border-orange-500 shadow-md scale-105';
+        } else {
+            thumb.className = 'w-10 h-10 object-cover rounded-lg border-2 cursor-pointer transition-all border-gray-200 opacity-70 hover:opacity-100';
+        }
+    });
+}
+
+function syncModalQuantity() {
+    if (!currentModalProductId) return;
+    const cardInput = document.getElementById('quantity-' + currentModalProductId);
+    const qty = cardInput ? parseInt(cardInput.value) || 0 : 0;
+    document.getElementById('modalQtyInput').value = qty;
+    
+    const product = productsCatalog[currentModalProductId];
+    if (product) {
+        document.getElementById('modalItemSubtotal').textContent = '₹' + (qty * product.price).toFixed(2);
+    }
+}
+
+function modalChangeQty(delta) {
+    if (!currentModalProductId) return;
+    updateQuantity(currentModalProductId, delta);
+    syncModalQuantity();
+}
+
+function modalSetQty(val) {
+    if (!currentModalProductId) return;
+    setManualQuantity(currentModalProductId, val);
+    syncModalQuantity();
+}
+
+function closeProductModal() {
+    document.getElementById('productDetailsModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    currentModalProductId = null;
+}
+
+// Close on background click
+document.getElementById('productDetailsModal').addEventListener('click', function(e) {
     if (e.target === this) {
-        closeGalleryModal();
+        closeProductModal();
     }
 });
 
-// Close gallery modal with Escape key
+// Close on Escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        closeGalleryModal();
+        closeProductModal();
     }
 });
 </script>

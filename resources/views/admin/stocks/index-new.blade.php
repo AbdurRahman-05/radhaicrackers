@@ -217,6 +217,9 @@
                                             @if($stock->description)
                                                 <div class="text-[11px] text-gray-500 truncate max-w-[200px]" title="{{ $stock->description }}"><i class="fas fa-align-left text-[9px] mr-1 text-gray-400"></i>{{ $stock->description }}</div>
                                             @endif
+                                            @if($stock->meta_description)
+                                                <div class="text-[10px] text-amber-800 bg-amber-50 rounded px-1 py-0.5 mt-0.5 truncate max-w-[200px]" title="SEO Description: {{ $stock->meta_description }}"><i class="fas fa-globe text-[9px] mr-1 text-amber-600"></i>{{ $stock->meta_description }}</div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>

@@ -113,9 +113,12 @@
                             @endif
                         </div>
                         
-                        <h3 class="font-semibold text-gray-900 mb-2 text-center">{{ $product->item_name }}</h3>
+                        <h3 class="font-semibold text-gray-900 mb-1 text-center">{{ $product->item_name }}</h3>
                         @if($product->description)
-                            <p class="text-sm text-gray-600 mb-3 text-center">{{ $product->description }}</p>
+                            <p class="text-xs font-medium text-gray-700 mb-1 text-center">{{ $product->description }}</p>
+                        @endif
+                        @if($product->meta_description)
+                            <p class="text-xs text-gray-500 mb-2 text-center line-clamp-2 px-1" title="{{ $product->meta_description }}">{{ $product->meta_description }}</p>
                         @endif
                         
                         <div class="text-center mb-3">

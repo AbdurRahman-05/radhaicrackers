@@ -179,6 +179,9 @@
                                                     </td>
                                                     <td class="px-4 py-4 whitespace-nowrap">
                                                         <div class="text-sm text-gray-500">{{ $stock->description ?: 'No description available' }}</div>
+                                                        @if($stock->meta_description)
+                                                            <div class="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-1 max-w-xs truncate" title="{{ $stock->meta_description }}">{{ $stock->meta_description }}</div>
+                                                        @endif
                                                     </td>
                                                     <td class="px-4 py-4 whitespace-nowrap">
                                                         <div class="text-sm text-gray-900">
