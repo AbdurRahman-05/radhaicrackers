@@ -893,9 +893,9 @@ class StockController extends Controller
             ['item_name', 'category', 'description', 'quantity', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'is_active', 'show_on_shop', 'is_popular', 'is_latest', 'expires_at', 'ordered_count', 'last_released_at', 'next_release_at', 'youtube_url', 'image'],
             
             // Sample data rows matching your CSV structure
-            ['"4"" Gold Lakshmi"', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '31', '120', '70', '15', '1', '0', '0', '0', '', '', '', '', '', ''],
-            ['"2 3/4"" Kuruvi"', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
-            ['"4"" Lakshmi"', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '15', '60', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['4" Gold Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '31', '120', '70', '15', '1', '0', '0', '0', '', '', '', '', '', ''],
+            ['2 3/4" Kuruvi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
+            ['4" Lakshmi', 'SINGLE FLASH', '1 Pkt/5 Pcs', '', '15', '60', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
             ['Red Bijili', 'BIJILI CRACKERS', '1 Pkt/50 Pcs', '', '18', '72', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
             ['Hydro Bomb', 'BOMB', '1 Box/10 Pcs', '', '67', '264', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
             ['7 cm Electric Sparklers', 'SPARKLERS', '1 Box/10 Pcs', '', '7', '28', '70', '15', '1', '1', '0', '0', '', '', '', '', '', ''],
@@ -942,7 +942,7 @@ class StockController extends Controller
                 
                 public function array(): array
                 {
-                    return $this->data;
+                    return array_slice($this->data, 1);
                 }
                 
                 public function headings(): array
@@ -953,7 +953,7 @@ class StockController extends Controller
             
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to generate Excel template: ' . $e->getMessage());
-            return redirect()->route('admin.stocks.download-template');
+            return redirect()->route('admin.stocks');
         }
     }
         // bulk upload stock data ends here

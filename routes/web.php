@@ -232,7 +232,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/stocks/logs', function () {
             return view('admin.stocks.logs');
         })->name('stocks.logs');
-        Route::post('/stocks/download-template', [App\Http\Controllers\Admin\StockController::class, 'downloadTemplate'])->name('stocks.download-template');
+        Route::match(['get', 'post'], '/stocks/download-template', [App\Http\Controllers\Admin\StockController::class, 'downloadTemplate'])->name('stocks.download-template');
         Route::post('/stocks/import-csv', [App\Http\Controllers\Admin\StockController::class, 'importCsv'])->name('stocks.import-csv');
         Route::post('/stocks/preview-import', [App\Http\Controllers\Admin\StockController::class, 'previewImport'])->name('stocks.preview-import');
         Route::post('/stocks/bulk-deactivate-year', [App\Http\Controllers\Admin\StockController::class, 'bulkDeactivateYear'])->name('stocks.bulk-deactivate-year');
