@@ -163,51 +163,98 @@ class BulkUpload extends Component
     private function importCsvFile()
     {
         $path = $this->uploadFile->getRealPath();
-        $data = [];
+        $content = file_get_contents($path);
+        
+        if ($content === false || trim($content) === '') {
+            throw new \Exception('Invalid or empty CSV file');
+        }
+
+        // Strip UTF-8 BOM if present
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $content = substr($content, 3);
+        }
+        $content = preg_replace('/^\x{FEFF}/u', '', $content);
+
+        // Auto-detect delimiter
+        $firstLine = strtok($content, "\r\n");
+        $delimiter = ',';
+        if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
+            $delimiter = ';';
+        }
+
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, $content);
+        rewind($stream);
+
+        $rawHeader = fgetcsv($stream, 0, $delimiter, '"');
+        if (!$rawHeader) {
+            fclose($stream);
+            throw new \Exception('Invalid CSV header');
+        }
+
+        $header = array_map(function($h) {
+            $clean = preg_replace('/^[\xEF\xBB\xBF\x{FEFF}\x{200B}]+/u', '', trim((string)$h));
+            $clean = strtolower(trim(str_replace([' ', '-', '/'], '_', $clean)));
+            $aliases = [
+                'item_name' => ['item_name', 'name', 'product_name', 'product', 'item'],
+                'category' => ['category', 'cat', 'category_name'],
+                'description' => ['description', 'desc', 'packing', 'packaging', 'unit'],
+                'meta_title' => ['meta_title', 'seo_title', 'title_tag'],
+                'meta_description' => ['meta_description', 'seo_description', 'meta_desc'],
+                'meta_keywords' => ['meta_keywords', 'keywords', 'seo_keywords', 'tags'],
+                'quantity' => ['quantity', 'qty', 'stock'],
+                'price' => ['price', 'rate', 'unit_price', 'selling_price'],
+                'original_price' => ['original_price', 'mrp', 'orig_price'],
+                'discount_percentage' => ['discount_percentage', 'discount', 'discount_%', 'disc_%'],
+                'special_discount_percentage' => ['special_discount_percentage', 'special_discount', 'special_%'],
+                'is_active' => ['is_active', 'active', 'status'],
+                'show_on_shop' => ['show_on_shop', 'show_shop'],
+                'is_popular' => ['is_popular', 'popular'],
+                'is_latest' => ['is_latest', 'latest'],
+                'youtube_url' => ['youtube_url', 'youtube', 'video_url', 'video'],
+                'image' => ['image', 'image_url']
+            ];
+            foreach ($aliases as $standard => $list) {
+                if (in_array($clean, $list)) return $standard;
+            }
+            return $clean;
+        }, $rawHeader);
+
         $imported = 0;
         $skipped = 0;
         $errors = 0;
 
-        if (($handle = fopen($path, 'r')) !== false) {
-            setlocale(LC_ALL, 'en_US.UTF-8');
-            
-            $header = fgetcsv($handle, 0, ',', '"', '\\');
-            if (!$header) {
-                throw new \Exception('Invalid CSV file format');
-            }
-
-            // Clean headers
-            $header = array_map(function($h) {
-                return trim(strtolower(str_replace([' ', '-'], '_', $h)));
-            }, $header);
-
-            while (($row = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
-                try {
-                    // Skip empty rows
-                    if (empty(array_filter($row))) {
-                        $skipped++;
-                        continue;
-                    }
-
-                    $rowData = array_combine($header, $row);
-                    
-                    // Skip if essential fields are missing
-                    if (empty($rowData['item_name']) || empty($rowData['category'])) {
-                        $skipped++;
-                        continue;
-                    }
-
-                    // Create stock item
-                    Stock::create($this->processRowData($rowData));
-                    $imported++;
-
-                } catch (\Exception $e) {
-                    $errors++;
-                    Log::error('CSV row import error', ['row' => $row ?? [], 'error' => $e->getMessage()]);
+        while (($row = fgetcsv($stream, 0, $delimiter, '"')) !== false) {
+            try {
+                if (empty(array_filter($row, fn($v) => trim($v) !== ''))) {
+                    $skipped++;
+                    continue;
                 }
+
+                $headerCount = count($header);
+                $rowCount = count($row);
+                if ($rowCount < $headerCount) {
+                    $row = array_pad($row, $headerCount, '');
+                } elseif ($rowCount > $headerCount) {
+                    $row = array_slice($row, 0, $headerCount);
+                }
+
+                $rowData = array_combine($header, $row);
+                
+                if (empty(trim($rowData['item_name'] ?? '')) || empty(trim($rowData['category'] ?? ''))) {
+                    $skipped++;
+                    continue;
+                }
+
+                Stock::create($this->processRowData($rowData));
+                $imported++;
+
+            } catch (\Exception $e) {
+                $errors++;
+                Log::error('CSV row import error', ['row' => $row ?? [], 'error' => $e->getMessage()]);
             }
-            fclose($handle);
         }
+        fclose($stream);
 
         return [
             'imported' => $imported,
@@ -233,24 +280,59 @@ class BulkUpload extends Component
     {
         $data = [];
         $path = $this->uploadFile->getRealPath();
-        
-        if (($handle = fopen($path, 'r')) !== false) {
-            $count = 0;
-            while (($row = fgetcsv($handle, 0, ',', '"', '\\')) !== false && $count < 6) {
-                $data[] = $row;
-                $count++;
-            }
-            fclose($handle);
+        $content = file_get_contents($path);
+        if ($content === false) return [];
+
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $content = substr($content, 3);
         }
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, $content);
+        rewind($stream);
+
+        $count = 0;
+        while (($row = fgetcsv($stream, 0, ',', '"')) !== false && $count < 6) {
+            $data[] = $row;
+            $count++;
+        }
+        fclose($stream);
         
         return $data;
     }
 
     private function processRowData($rowData)
     {
-        return [
-            'item_name' => trim($rowData['item_name']),
-            'category' => trim($rowData['category']),
+        $rawCategory = trim($rowData['category'] ?? '');
+        $categoryId = null;
+        $categoryName = $rawCategory;
+
+        if (!empty($rawCategory)) {
+            if (is_numeric($rawCategory)) {
+                $catModel = \App\Models\Category::find($rawCategory);
+                if ($catModel) {
+                    $categoryId = $catModel->id;
+                    $categoryName = $catModel->name;
+                }
+            } else {
+                $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
+                if (!$catModel) {
+                    $maxSort = \App\Models\Category::max('sort_order') ?? 0;
+                    $catModel = \App\Models\Category::create([
+                        'name' => $rawCategory,
+                        'slug' => \Illuminate\Support\Str::slug($rawCategory),
+                        'is_active' => true,
+                        'sort_order' => $maxSort + 1,
+                    ]);
+                }
+                $categoryId = $catModel->id;
+                $categoryName = $catModel->name;
+            }
+        }
+
+        $data = [
+            'item_name' => trim($rowData['item_name'] ?? ''),
+            'category' => $categoryName,
+            'category_id' => $categoryId,
             'description' => trim($rowData['description'] ?? ''),
             'meta_title' => !empty($rowData['meta_title']) ? trim($rowData['meta_title']) : null,
             'meta_description' => !empty($rowData['meta_description']) ? trim($rowData['meta_description']) : null,
@@ -272,7 +354,6 @@ class BulkUpload extends Component
             'image' => trim($rowData['image'] ?? '')
         ];
 
-        // Only include meta columns if they exist in the database table
         if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
             unset($data['meta_title']);
         }

@@ -338,9 +338,64 @@ class StockController extends Controller
 
     public function addForm()
     {
+        // Sync any category names from stocks table that are missing in categories table
+        $this->syncMissingCategories();
+
         // Fetch categories from the database
         $categories = \App\Models\Category::active()->ordered()->pluck('name', 'id');
         return view('admin.stocks.add', compact('categories'));
+    }
+
+    public function edit($id)
+    {
+        $this->syncMissingCategories();
+        $stock = Stock::findOrFail($id);
+        // Fetch categories from the database
+        $categories = \App\Models\Category::active()->ordered()->pluck('name', 'id');
+        return view('admin.stocks.edit', compact('stock', 'categories'));
+    }
+
+    /**
+     * Automatically synchronize distinct categories from stocks table to categories table
+     */
+    public function syncMissingCategories()
+    {
+        try {
+            $existingCategories = \App\Models\Category::pluck('name', 'id')
+                ->mapWithKeys(fn($name, $id) => [strtolower(trim($name)) => $id])
+                ->toArray();
+
+            $distinctCategories = \App\Models\Stock::whereNotNull('category')
+                ->where('category', '!=', '')
+                ->distinct()
+                ->pluck('category');
+
+            $maxSort = \App\Models\Category::max('sort_order') ?? 0;
+
+            foreach ($distinctCategories as $catName) {
+                $trimmed = trim($catName);
+                if ($trimmed === '') continue;
+                $lower = strtolower($trimmed);
+
+                if (!isset($existingCategories[$lower])) {
+                    $maxSort++;
+                    $newCat = \App\Models\Category::create([
+                        'name' => $trimmed,
+                        'slug' => \Illuminate\Support\Str::slug($trimmed),
+                        'is_active' => true,
+                        'sort_order' => $maxSort,
+                    ]);
+                    $existingCategories[$lower] = $newCat->id;
+
+                    // Also link existing stocks with category_id
+                    \App\Models\Stock::where('category', $trimmed)
+                        ->whereNull('category_id')
+                        ->update(['category_id' => $newCat->id]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Category sync notice: ' . $e->getMessage());
+        }
     }
 //create stock function
     public function store(Request $request)
@@ -369,10 +424,22 @@ class StockController extends Controller
                 Stock::syncUploadedFile($imagePath);
             }
 
-            // Get category name from ID
-            $category = Category::find($request->category);
+            // Get category name from ID or name
+            $category = null;
+            if (is_numeric($request->category)) {
+                $category = Category::find($request->category);
+            }
             if (!$category) {
-                return back()->withInput()->with('error', 'Invalid category selected');
+                $category = Category::whereRaw('LOWER(name) = ?', [strtolower(trim($request->category))])->first();
+            }
+            if (!$category) {
+                $maxSort = Category::max('sort_order') ?? 0;
+                $category = Category::create([
+                    'name' => trim($request->category),
+                    'slug' => \Illuminate\Support\Str::slug(trim($request->category)),
+                    'is_active' => true,
+                    'sort_order' => $maxSort + 1
+                ]);
             }
 
             $stock = Stock::create([
@@ -399,19 +466,11 @@ class StockController extends Controller
             // Log the stock creation
             $stock->logAction('manual', 'Stock created with initial quantity: ' . $request->quantity);
 
-            return redirect()->route('admin.stocks')->with('success', 'Stock added successfully!');
+            return redirect()->route('admin.stocks')->with('success', 'Stock created successfully!');
             
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to add stock: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to create stock: ' . $e->getMessage());
         }
-    }
-
-    public function edit($id)
-    {
-        $stock = Stock::findOrFail($id);
-        // Fetch categories from the database
-        $categories = \App\Models\Category::active()->ordered()->pluck('name', 'id');
-        return view('admin.stocks.edit', compact('stock', 'categories'));
     }
 
     public function update(Request $request, $id)
@@ -436,10 +495,22 @@ class StockController extends Controller
         ]);
 
         try {
-            // Get category name from ID
-            $category = Category::find($request->category);
+            // Get category name from ID or name
+            $category = null;
+            if (is_numeric($request->category)) {
+                $category = Category::find($request->category);
+            }
             if (!$category) {
-                return back()->withInput()->with('error', 'Invalid category selected');
+                $category = Category::whereRaw('LOWER(name) = ?', [strtolower(trim($request->category))])->first();
+            }
+            if (!$category) {
+                $maxSort = Category::max('sort_order') ?? 0;
+                $category = Category::create([
+                    'name' => trim($request->category),
+                    'slug' => \Illuminate\Support\Str::slug(trim($request->category)),
+                    'is_active' => true,
+                    'sort_order' => $maxSort + 1
+                ]);
             }
 
             $data = [
@@ -456,25 +527,24 @@ class StockController extends Controller
                 'category' => $category->name,
                 'category_id' => $category->id,
                 'is_active' => $request->has('is_active'),
-                'youtube_url' => $request->youtube_url //newly added
+                'youtube_url' => $request->youtube_url
             ];
 
             // Handle image upload
             if ($request->hasFile('image')) {
                 // Delete old image if exists
                 if ($stock->image) {
-                    \Storage::disk('public')->delete($stock->image);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($stock->image);
                 }
                 
-                $imagePath = $request->file('image')->store('stocks', 'public');
-                Stock::syncUploadedFile($imagePath);
-                $data['image'] = $imagePath;
+                $data['image'] = $request->file('image')->store('stocks', 'public');
+                Stock::syncUploadedFile($data['image']);
             }
 
             // Handle image removal
             if ($request->has('remove_image') && $request->remove_image) {
                 if ($stock->image) {
-                    \Storage::disk('public')->delete($stock->image);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($stock->image);
                 }
                 $data['image'] = null;
             }
@@ -550,12 +620,12 @@ class StockController extends Controller
     public function importCsv(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls|max:2048'
+            'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls|max:10240'
         ]);
 
         try {
             $file = $request->file('csv_file');
-            $extension = $file->getClientOriginalExtension();
+            $extension = strtolower($file->getClientOriginalExtension());
             
             $imported = 0;
             $errors = [];
@@ -565,22 +635,24 @@ class StockController extends Controller
                 // Handle Excel files
                 $data = $this->readExcelFile($file);
                 
-                // Process Excel data (already has headers as keys)
-                foreach ($data as $index => $rowData) {
+                // Process Excel data
+                foreach ($data as $index => $rawRow) {
                     try {
+                        $rowData = $this->normalizeRowKeys($rawRow);
+
                         // Skip empty rows
                         if (empty($rowData['item_name']) && empty($rowData['category'])) {
                             $skipped++;
                             continue;
                         }
 
-                        // Validate required fields (only item_name and category are truly required)
-                        if (empty(trim($rowData['item_name'])) || empty(trim($rowData['category']))) {
+                        // Validate required fields
+                        if (empty(trim($rowData['item_name'] ?? '')) || empty(trim($rowData['category'] ?? ''))) {
                             $errors[] = "Row " . ($index + 2) . ": Missing required fields (item_name, category)";
                             continue;
                         }
 
-                        // Process data with enhanced field mapping
+                        // Process data with category auto-creation
                         $processedData = $this->processRowData($rowData, $index + 2);
                         if ($processedData['error']) {
                             $errors[] = $processedData['error'];
@@ -596,43 +668,48 @@ class StockController extends Controller
                 }
             } else {
                 // Handle CSV files with enhanced parsing
-                $data = $this->readCsvFileEnhanced($file);
+                $rows = $this->readCsvFileEnhanced($file);
                 
-                if (empty($data)) {
-                    throw new \Exception('No data found in CSV file');
+                if (empty($rows)) {
+                    throw new \Exception('No data found in CSV file.');
                 }
                 
-                // Skip header row and process data
-                $header = array_shift($data);
+                // First row is the header
+                $rawHeaders = array_shift($rows);
+                $normalizedHeaders = $this->normalizeHeaderList($rawHeaders);
                 
-                // Clean and normalize headers
-                $header = array_map(function($h) {
-                    return trim(strtolower(str_replace([' ', '-'], '_', $h)));
-                }, $header);
-                
-                foreach ($data as $index => $row) {
+                foreach ($rows as $index => $row) {
                     try {
                         // Skip empty rows
-                        if (empty(array_filter($row))) {
+                        if (empty(array_filter($row, fn($v) => trim($v) !== ''))) {
                             $skipped++;
                             continue;
                         }
 
-                        $rowData = array_combine($header, $row);
+                        // Match columns with headers
+                        $headerCount = count($normalizedHeaders);
+                        $rowCount = count($row);
+                        if ($rowCount < $headerCount) {
+                            $row = array_pad($row, $headerCount, '');
+                        } elseif ($rowCount > $headerCount) {
+                            $row = array_slice($row, 0, $headerCount);
+                        }
+
+                        $rowData = array_combine($normalizedHeaders, $row);
                         
                         // Skip if both item_name and category are empty
-                        if (empty($rowData['item_name']) && empty($rowData['category'])) {
+                        if (empty(trim($rowData['item_name'] ?? '')) && empty(trim($rowData['category'] ?? ''))) {
                             $skipped++;
                             continue;
                         }
 
-                        // Validate required fields (only item_name and category are truly required)
-                        if (empty(trim($rowData['item_name'])) || empty(trim($rowData['category']))) {
+                        // Validate required fields
+                        if (empty(trim($rowData['item_name'] ?? '')) || empty(trim($rowData['category'] ?? ''))) {
                             $errors[] = "Row " . ($index + 2) . ": Missing required fields (item_name, category)";
                             continue;
                         }
 
-                        // Process data with enhanced field mapping
+                        // Process data with category auto-creation
                         $processedData = $this->processRowData($rowData, $index + 2);
                         if ($processedData['error']) {
                             $errors[] = $processedData['error'];
@@ -648,6 +725,8 @@ class StockController extends Controller
                 }
             }
             
+            // Sync all categories once after batch import completes
+            $this->syncMissingCategories();
             
             $message = "Import completed! ";
             if ($imported > 0) {
@@ -681,28 +760,50 @@ class StockController extends Controller
     }
 
     /**
-     * Process row data with enhanced field mapping and validation
+     * Process row data with auto-category creation and field mapping
      */
     private function processRowData($rowData, $rowNumber)
     {
         try {
-            // Accept both category name and ID
-            $category = $rowData['category'] ?? '';
-            if (is_numeric($category)) {
-                $catModel = \App\Models\Category::find($category);
-                $category = $catModel ? $catModel->name : $rowData['category'];
+            $rawCategory = trim($rowData['category'] ?? '');
+            $categoryId = null;
+            $categoryName = $rawCategory;
+
+            // Automatically find or create Category in database so it appears in all dropdowns
+            if (!empty($rawCategory)) {
+                if (is_numeric($rawCategory)) {
+                    $catModel = \App\Models\Category::find($rawCategory);
+                    if ($catModel) {
+                        $categoryId = $catModel->id;
+                        $categoryName = $catModel->name;
+                    }
+                } else {
+                    $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
+                    if (!$catModel) {
+                        $maxSort = \App\Models\Category::max('sort_order') ?? 0;
+                        $catModel = \App\Models\Category::create([
+                            'name' => $rawCategory,
+                            'slug' => \Illuminate\Support\Str::slug($rawCategory),
+                            'is_active' => true,
+                            'sort_order' => $maxSort + 1,
+                        ]);
+                    }
+                    $categoryId = $catModel->id;
+                    $categoryName = $catModel->name;
+                }
             }
 
             // Enhanced data processing
             $data = [
-                'item_name' => trim($rowData['item_name']),
-                'category' => trim($category),
+                'item_name' => trim($rowData['item_name'] ?? ''),
+                'category' => $categoryName,
+                'category_id' => $categoryId,
                 'description' => trim($rowData['description'] ?? ''),
                 'meta_title' => !empty($rowData['meta_title']) ? trim($rowData['meta_title']) : null,
                 'meta_description' => !empty($rowData['meta_description']) ? trim($rowData['meta_description']) : null,
                 'meta_keywords' => !empty($rowData['meta_keywords']) ? trim($rowData['meta_keywords']) : null,
-                'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0), // Default to 0 if empty
-                'price' => $this->parseNumeric($rowData['price'] ?? 0, 'float'), // Price should be provided in CSV
+                'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0),
+                'price' => $this->parseNumeric($rowData['price'] ?? 0, 'float'),
                 'original_price' => $this->parseNumeric($rowData['original_price'] ?? null, 'float'),
                 'discount_percentage' => $this->parseNumeric($rowData['discount_percentage'] ?? null, 'int'),
                 'special_discount_percentage' => $this->parseNumeric($rowData['special_discount_percentage'] ?? null, 'int'),
@@ -711,23 +812,12 @@ class StockController extends Controller
                 'is_popular' => $this->parseBoolean($rowData['is_popular'] ?? 0),
                 'is_latest' => $this->parseBoolean($rowData['is_latest'] ?? 0),
                 'expires_at' => $this->parseDateTime($rowData['expires_at'] ?? null),
-                'ordered_count' => $this->parseNumeric($rowData['ordered_count'] ?? 0, 'int', 0), // Default to 0 if empty
+                'ordered_count' => $this->parseNumeric($rowData['ordered_count'] ?? 0, 'int', 0),
                 'last_released_at' => $this->parseDateTime($rowData['last_released_at'] ?? null) ?: now(),
                 'next_release_at' => $this->parseDateTime($rowData['next_release_at'] ?? null) ?: now()->addMinutes(10),
                 'youtube_url' => trim($rowData['youtube_url'] ?? ''),
                 'image' => trim($rowData['image'] ?? '')
             ];
-
-            // Only include meta columns if they exist in the database table
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
-                unset($data['meta_title']);
-            }
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_description')) {
-                unset($data['meta_description']);
-            }
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_keywords')) {
-                unset($data['meta_keywords']);
-            }
 
             // Additional validation
             if ($data['price'] <= 0) {
@@ -738,9 +828,6 @@ class StockController extends Controller
                 return ['error' => "Row {$rowNumber}: Quantity cannot be negative", 'data' => null];
             }
 
-            // Note: Allow quantity to be 0 (out of stock items)
-            // Only validate that it's not negative
-
             return ['error' => null, 'data' => $data];
 
         } catch (\Exception $e) {
@@ -749,29 +836,100 @@ class StockController extends Controller
     }
 
     /**
-     * Enhanced CSV reading with better handling of quotes and special characters
+     * Enhanced CSV reading with BOM removal and flexible line reading
      */
     private function readCsvFileEnhanced($file)
     {
         $path = $file->getRealPath();
-        $data = [];
+        $content = file_get_contents($path);
         
-        if (($handle = fopen($path, 'r')) !== false) {
-            // Set locale for proper character handling
-            setlocale(LC_ALL, 'en_US.UTF-8');
-            
-            while (($row = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
-                // Clean each field
-                $cleanRow = array_map(function($field) {
-                    return trim($field);
-                }, $row);
-                
-                $data[] = $cleanRow;
-            }
-            fclose($handle);
+        if ($content === false || trim($content) === '') {
+            return [];
         }
-        
+
+        // Strip UTF-8 BOM if present
+        if (str_starts_with($content, "\xEF\xBB\xBF")) {
+            $content = substr($content, 3);
+        }
+        $content = preg_replace('/^\x{FEFF}/u', '', $content);
+
+        // Auto-detect delimiter (, or ;)
+        $firstLine = strtok($content, "\r\n");
+        $delimiter = ',';
+        if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
+            $delimiter = ';';
+        }
+
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, $content);
+        rewind($stream);
+
+        $data = [];
+        while (($row = fgetcsv($stream, 0, $delimiter, '"')) !== false) {
+            $cleanRow = array_map(function($field) {
+                return trim((string)$field);
+            }, $row);
+            $data[] = $cleanRow;
+        }
+        fclose($stream);
+
         return $data;
+    }
+
+    /**
+     * Normalize an array of header names
+     */
+    private function normalizeHeaderList(array $headers): array
+    {
+        return array_map(function($h) {
+            // Strip any BOM or invisible chars
+            $clean = preg_replace('/^[\xEF\xBB\xBF\x{FEFF}\x{200B}]+/u', '', trim((string)$h));
+            $clean = strtolower(trim(str_replace([' ', '-', '/'], '_', $clean)));
+
+            $aliases = [
+                'item_name' => ['item_name', 'name', 'product_name', 'product', 'item'],
+                'category' => ['category', 'cat', 'category_name'],
+                'description' => ['description', 'desc', 'packing', 'packaging', 'unit'],
+                'meta_title' => ['meta_title', 'seo_title', 'title_tag', 'meta_title_tag'],
+                'meta_description' => ['meta_description', 'seo_description', 'meta_desc', 'meta_tag_description'],
+                'meta_keywords' => ['meta_keywords', 'keywords', 'seo_keywords', 'tags'],
+                'quantity' => ['quantity', 'qty', 'stock', 'available_qty'],
+                'price' => ['price', 'rate', 'unit_price', 'selling_price', 'our_price'],
+                'original_price' => ['original_price', 'mrp', 'orig_price', 'actual_price'],
+                'discount_percentage' => ['discount_percentage', 'discount', 'discount_%', 'disc_%', 'disc_percent'],
+                'special_discount_percentage' => ['special_discount_percentage', 'special_discount', 'special_discount_%', 'special_%'],
+                'is_active' => ['is_active', 'active', 'status'],
+                'show_on_shop' => ['show_on_shop', 'show_shop', 'available'],
+                'is_popular' => ['is_popular', 'popular'],
+                'is_latest' => ['is_latest', 'latest'],
+                'youtube_url' => ['youtube_url', 'youtube', 'video_url', 'video'],
+                'image' => ['image', 'image_url', 'photo']
+            ];
+
+            foreach ($aliases as $standard => $aliasList) {
+                if (in_array($clean, $aliasList)) {
+                    return $standard;
+                }
+            }
+
+            return $clean;
+        }, $headers);
+    }
+
+    /**
+     * Normalize key names for associative rows (e.g. from Excel)
+     */
+    private function normalizeRowKeys(array $row): array
+    {
+        $normalized = [];
+        $headerMap = $this->normalizeHeaderList(array_keys($row));
+        $values = array_values($row);
+
+        foreach ($headerMap as $index => $standardKey) {
+            $normalized[$standardKey] = $values[$index] ?? null;
+        }
+
+        return $normalized;
     }
 
     /**

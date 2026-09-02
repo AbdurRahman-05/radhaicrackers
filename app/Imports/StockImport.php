@@ -44,10 +44,41 @@ class StockImport implements
         }
 
         try {
-            $stock = new Stock([
+            $rawCategory = $this->cleanString($row['category']);
+            $categoryId = null;
+            $categoryName = $rawCategory;
+
+            if (!empty($rawCategory)) {
+                if (is_numeric($rawCategory)) {
+                    $catModel = \App\Models\Category::find($rawCategory);
+                    if ($catModel) {
+                        $categoryId = $catModel->id;
+                        $categoryName = $catModel->name;
+                    }
+                } else {
+                    $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
+                    if (!$catModel) {
+                        $maxSort = \App\Models\Category::max('sort_order') ?? 0;
+                        $catModel = \App\Models\Category::create([
+                            'name' => $rawCategory,
+                            'slug' => \Illuminate\Support\Str::slug($rawCategory),
+                            'is_active' => true,
+                            'sort_order' => $maxSort + 1,
+                        ]);
+                    }
+                    $categoryId = $catModel->id;
+                    $categoryName = $catModel->name;
+                }
+            }
+
+            $stockData = [
                 'item_name' => $this->cleanString($row['item_name']),
-                'category' => $this->cleanString($row['category']),
+                'category' => $categoryName,
+                'category_id' => $categoryId,
                 'description' => $this->cleanString($row['description'] ?? ''),
+                'meta_title' => !empty($row['meta_title']) ? $this->cleanString($row['meta_title']) : null,
+                'meta_description' => !empty($row['meta_description']) ? $this->cleanString($row['meta_description']) : null,
+                'meta_keywords' => !empty($row['meta_keywords']) ? $this->cleanString($row['meta_keywords']) : null,
                 'quantity' => $this->parseNumeric($row['quantity'] ?? 0, 'int'),
                 'price' => $this->parseNumeric($row['price'] ?? 0, 'float'),
                 'original_price' => $this->parseNumeric($row['original_price'] ?? null, 'float'),
@@ -63,8 +94,19 @@ class StockImport implements
                 'next_release_at' => $this->parseDateTime($row['next_release_at'] ?? null) ?: now()->addMinutes(10),
                 'youtube_url' => $this->cleanString($row['youtube_url'] ?? ''),
                 'image' => $this->cleanString($row['image'] ?? '')
-            ]);
+            ];
 
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
+                unset($stockData['meta_title']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_description')) {
+                unset($stockData['meta_description']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_keywords')) {
+                unset($stockData['meta_keywords']);
+            }
+
+            $stock = new Stock($stockData);
             $this->importedCount++;
             return $stock;
 
