@@ -271,6 +271,19 @@ class BulkUpload extends Component
             'youtube_url' => trim($rowData['youtube_url'] ?? ''),
             'image' => trim($rowData['image'] ?? '')
         ];
+
+        // Only include meta columns if they exist in the database table
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
+            unset($data['meta_title']);
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_description')) {
+            unset($data['meta_description']);
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_keywords')) {
+            unset($data['meta_keywords']);
+        }
+
+        return $data;
     }
 
     private function parseNumeric($value, $type = 'float')

@@ -718,6 +718,17 @@ class StockController extends Controller
                 'image' => trim($rowData['image'] ?? '')
             ];
 
+            // Only include meta columns if they exist in the database table
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
+                unset($data['meta_title']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_description')) {
+                unset($data['meta_description']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_keywords')) {
+                unset($data['meta_keywords']);
+            }
+
             // Additional validation
             if ($data['price'] <= 0) {
                 return ['error' => "Row {$rowNumber}: Price must be greater than 0", 'data' => null];

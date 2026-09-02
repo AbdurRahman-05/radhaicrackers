@@ -58,6 +58,20 @@ class AppServiceProvider extends ServiceProvider
                 });
             }
 
+            if (\Illuminate\Support\Facades\Schema::hasTable('stocks')) {
+                \Illuminate\Support\Facades\Schema::table('stocks', function ($table) {
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
+                        $table->string('meta_title', 255)->nullable()->after('description');
+                    }
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_description')) {
+                        $table->text('meta_description')->nullable()->after('meta_title');
+                    }
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_keywords')) {
+                        $table->text('meta_keywords')->nullable()->after('meta_description');
+                    }
+                });
+            }
+
             if (!\Illuminate\Support\Facades\Schema::hasTable('gst_bills')) {
                 \Illuminate\Support\Facades\Schema::create('gst_bills', function ($table) {
                     $table->id();
