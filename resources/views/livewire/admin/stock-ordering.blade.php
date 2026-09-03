@@ -81,8 +81,11 @@
                                     <div class="flex items-center gap-2">
                                         <input type="number" 
                                                wire:model="editingOrder"
-                                               class="w-20 px-2 py-1 border border-purple-400 rounded text-xs text-center font-bold focus:outline-none"
-                                               min="1">
+                                               wire:keydown.enter="saveOrder"
+                                               wire:keydown.escape="cancelEdit"
+                                               class="w-20 px-2 py-1 border border-purple-400 rounded text-xs text-center font-bold focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                               min="1"
+                                               autofocus>
                                         <button wire:click="saveOrder" class="text-green-600 hover:text-green-800 p-1" title="Save">
                                             <i class="fas fa-check"></i>
                                         </button>
@@ -91,10 +94,10 @@
                                         </button>
                                     </div>
                                 @else
-                                    <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded">
-                                        Order: {{ $item['order_within_category'] }}
+                                    <span class="text-xs font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded border border-gray-200">
+                                        Order: {{ (!empty($item['order_within_category']) && $item['order_within_category'] > 0) ? $item['order_within_category'] : $loop->iteration }}
                                     </span>
-                                    <button wire:click="startEditing({{ $item['id'] }}, {{ $item['order_within_category'] }})"
+                                    <button wire:click="startEditing({{ $item['id'] }}, {{ (!empty($item['order_within_category']) && $item['order_within_category'] > 0) ? $item['order_within_category'] : $loop->iteration }})"
                                             class="text-blue-600 hover:text-blue-800 p-1" title="Type custom order position">
                                         <i class="fas fa-edit text-xs"></i>
                                     </button>

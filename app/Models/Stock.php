@@ -62,9 +62,20 @@ public function images()
         'ordered_count' => 'integer',
         'is_popular' => 'boolean',
         'is_latest' => 'boolean',
+        'order_within_category' => 'integer',
     ];
 
     protected $appends = ['image_url'];
+
+    protected static function booted()
+    {
+        static::creating(function ($stock) {
+            if (empty($stock->order_within_category) && !empty($stock->category)) {
+                $maxOrder = static::where('category', $stock->category)->max('order_within_category') ?? 0;
+                $stock->order_within_category = $maxOrder + 1;
+            }
+        });
+    }
 
     public static function syncUploadedFile($filePath)
     {

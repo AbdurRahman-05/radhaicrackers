@@ -40,10 +40,37 @@ class StockOrdering extends Component
             ->orderBy('name')
             ->get();
         
-        // Get all active stocks with selected fields
+        // Auto-fix and sequence order_within_category for any categories having 0, null, or unsequenced items
+        foreach ($categories as $category) {
+            $categoryStocks = Stock::where('is_active', true)
+                ->where('category', $category->name)
+                ->orderByRaw('CASE WHEN order_within_category IS NULL OR order_within_category <= 0 THEN 999999 ELSE order_within_category END ASC')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $needsFix = false;
+            $expected = 1;
+            foreach ($categoryStocks as $s) {
+                if ((int)$s->order_within_category !== $expected) {
+                    $needsFix = true;
+                    break;
+                }
+                $expected++;
+            }
+
+            if ($needsFix && $categoryStocks->isNotEmpty()) {
+                $idx = 1;
+                foreach ($categoryStocks as $s) {
+                    Stock::where('id', $s->id)->update(['order_within_category' => $idx]);
+                    $idx++;
+                }
+            }
+        }
+
+        // Get all active stocks ordered by order_within_category
         $stocks = Stock::where('is_active', true)
-            ->orderBy('order_within_category')
-            ->orderBy('item_name')
+            ->orderByRaw('CASE WHEN order_within_category IS NULL OR order_within_category <= 0 THEN 999999 ELSE order_within_category END ASC')
+            ->orderBy('id', 'asc')
             ->get(['id', 'item_name', 'category', 'order_within_category', 'image']);
 
         // Initialize ordered groups with all categories
@@ -58,7 +85,10 @@ class StockOrdering extends Component
         // Group stocks by category
         foreach ($stocks as $stock) {
             if (isset($orderedGroups[$stock->category])) {
-                $orderedGroups[$stock->category]['items'][] = $stock->toArray();
+                $stockArray = $stock->toArray();
+                $currentCount = count($orderedGroups[$stock->category]['items']) + 1;
+                $stockArray['order_within_category'] = max(1, (int)($stockArray['order_within_category'] ?? $currentCount));
+                $orderedGroups[$stock->category]['items'][] = $stockArray;
             }
         }
 
@@ -73,7 +103,7 @@ class StockOrdering extends Component
     public function startEditing($itemId, $currentOrder)
     {
         $this->editingItem = $itemId;
-        $this->editingOrder = $currentOrder;
+        $this->editingOrder = max(1, (int)$currentOrder);
     }
 
     public function saveOrder()
@@ -82,8 +112,39 @@ class StockOrdering extends Component
             return;
         }
 
-        Stock::where('id', $this->editingItem)
-            ->update(['order_within_category' => max(1, (int)$this->editingOrder)]);
+        $stock = Stock::find($this->editingItem);
+        if ($stock) {
+            $newOrder = max(1, (int)$this->editingOrder);
+            $categoryName = $stock->category;
+
+            $otherStocks = Stock::where('is_active', true)
+                ->where('category', $categoryName)
+                ->where('id', '!=', $stock->id)
+                ->orderByRaw('CASE WHEN order_within_category IS NULL OR order_within_category <= 0 THEN 999999 ELSE order_within_category END ASC')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $orderedList = [];
+            $targetPos = min(count($otherStocks) + 1, $newOrder);
+            $currentPos = 1;
+            $inserted = false;
+
+            foreach ($otherStocks as $other) {
+                if ($currentPos === $targetPos && !$inserted) {
+                    $orderedList[] = $stock->id;
+                    $inserted = true;
+                }
+                $orderedList[] = $other->id;
+                $currentPos++;
+            }
+            if (!$inserted) {
+                $orderedList[] = $stock->id;
+            }
+
+            foreach ($orderedList as $index => $id) {
+                Stock::where('id', $id)->update(['order_within_category' => $index + 1]);
+            }
+        }
 
         $this->editingItem = null;
         $this->editingOrder = null;
