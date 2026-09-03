@@ -63,13 +63,19 @@
                             wire:confirm="Are you sure you want to DISABLE all 2025 categories?" 
                             type="button" 
                             class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition">
-                        <i class="fas fa-eye-slash mr-1"></i> Disable All 2025
+                        <i class="fas fa-eye-slash mr-1"></i> Disable 2025
                     </button>
                     <button wire:click="bulkActivateByYear(2025)" 
                             wire:confirm="Are you sure you want to ENABLE all 2025 categories?" 
                             type="button" 
                             class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition">
-                        <i class="fas fa-check mr-1"></i> Enable All 2025
+                        <i class="fas fa-check mr-1"></i> Enable 2025
+                    </button>
+                    <button wire:click="bulkDeleteByYear(2025)" 
+                            wire:confirm="⚠️ DANGER: Are you sure you want to PERMANENTLY DELETE all 2025 categories and their products? This cannot be undone!" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition">
+                        <i class="fas fa-trash-alt mr-1"></i> Delete 2025
                     </button>
                 @endif
 
@@ -78,13 +84,19 @@
                             wire:confirm="Are you sure you want to DISABLE all 2026 categories?" 
                             type="button" 
                             class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition">
-                        <i class="fas fa-eye-slash mr-1"></i> Disable All 2026
+                        <i class="fas fa-eye-slash mr-1"></i> Disable 2026
                     </button>
                     <button wire:click="bulkActivateByYear(2026)" 
                             wire:confirm="Are you sure you want to ENABLE all 2026 categories?" 
                             type="button" 
                             class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition">
-                        <i class="fas fa-check mr-1"></i> Enable All 2026
+                        <i class="fas fa-check mr-1"></i> Enable 2026
+                    </button>
+                    <button wire:click="bulkDeleteByYear(2026)" 
+                            wire:confirm="⚠️ DANGER: Are you sure you want to PERMANENTLY DELETE all 2026 categories and their products? This cannot be undone!" 
+                            type="button" 
+                            class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition">
+                        <i class="fas fa-trash-alt mr-1"></i> Delete 2026
                     </button>
                 @endif
 
@@ -100,8 +112,28 @@
                         class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 transition">
                     <i class="fas fa-toggle-on mr-1"></i> Enable All
                 </button>
+                <button wire:click="bulkDeleteAll" 
+                        wire:confirm="⚠️ DANGER: Are you sure you want to PERMANENTLY DELETE ALL categories and all associated products? This cannot be undone!" 
+                        type="button" 
+                        class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded bg-red-600 text-white border border-red-700 hover:bg-red-700 transition">
+                    <i class="fas fa-trash-alt mr-1"></i> Delete All Categories
+                </button>
             </div>
         </div>
+
+        @if(count($selectedCategories) > 0)
+            <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+                <div class="text-xs font-bold text-red-800">
+                    <i class="fas fa-check-square mr-1"></i> {{ count($selectedCategories) }} {{ Str::plural('category', count($selectedCategories)) }} selected
+                </div>
+                <button wire:click="deleteSelected" 
+                        wire:confirm="Are you sure you want to delete the {{ count($selectedCategories) }} selected categories and all their products?"
+                        type="button" 
+                        class="inline-flex items-center px-3 py-1 text-xs font-bold rounded bg-red-600 text-white hover:bg-red-700 transition">
+                    <i class="fas fa-trash mr-1.5"></i> Delete Selected ({{ count($selectedCategories) }})
+                </button>
+            </div>
+        @endif
     </div>
 
     <!-- Categories Table -->
@@ -110,6 +142,9 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-4 py-3 text-left w-10">
+                            <input type="checkbox" wire:model.live="selectAll" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        </th>
                         <th wire:click="sortBy('name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
                             <div class="flex items-center">
                                 Name
@@ -148,6 +183,9 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($categories as $category)
                         <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <input type="checkbox" wire:model.live="selectedCategories" value="{{ $category->id }}" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     @if($category->icon)
@@ -197,7 +235,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
                                 <div class="flex flex-col items-center">
                                     <i class="fas fa-folder-open text-4xl text-gray-300 mb-2"></i>
                                     <p>No categories found</p>

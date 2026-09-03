@@ -517,6 +517,106 @@ class Categories extends Component
         }
     }
 
+    public function bulkDeleteByYear($year)
+    {
+        try {
+            $cats = Category::where(function($q) use ($year) {
+                $q->whereExists(function($sub) use ($year) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('stocks')
+                        ->whereYear('stocks.created_at', $year)
+                        ->where(function($sq) {
+                            $sq->whereColumn('stocks.category', 'categories.name')
+                               ->orWhereColumn('stocks.category_id', 'categories.id')
+                               ->orWhereColumn('stocks.category', 'categories.id');
+                        });
+                })
+                ->orWhereYear('categories.created_at', $year);
+            })->get();
+
+            $deletedCount = 0;
+            foreach ($cats as $cat) {
+                // Delete products created in that year
+                \App\Models\Stock::where(function($q) use ($cat) {
+                    $q->where('category', $cat->name)
+                      ->orWhere('category_id', $cat->id)
+                      ->orWhere('category', (string)$cat->id);
+                })->whereYear('created_at', $year)->delete();
+
+                // Check if category has products in other years
+                $otherCount = \App\Models\Stock::where(function($q) use ($cat) {
+                    $q->where('category', $cat->name)
+                      ->orWhere('category_id', $cat->id)
+                      ->orWhere('category', (string)$cat->id);
+                })->count();
+
+                if ($otherCount === 0) {
+                    $cat->delete();
+                    $deletedCount++;
+                }
+            }
+
+            session()->flash('success', "Deleted categories and products for year {$year} ({$deletedCount} categories removed)!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to bulk delete categories: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkDeleteAll()
+    {
+        try {
+            $count = Category::count();
+            \App\Models\Stock::query()->delete();
+            Category::query()->delete();
+            $this->selectedCategories = [];
+            $this->selectAll = false;
+            session()->flash('success', "All {$count} categories and all stock items have been permanently deleted!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to delete all categories: ' . $e->getMessage());
+        }
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            $this->selectedCategories = Category::pluck('id')->map(fn($id) => (string)$id)->toArray();
+        } else {
+            $this->selectedCategories = [];
+        }
+    }
+
+    public function deleteSelected()
+    {
+        try {
+            if (empty($this->selectedCategories)) {
+                session()->flash('error', 'No categories selected.');
+                return;
+            }
+
+            $categories = Category::whereIn('id', $this->selectedCategories)->get();
+            $count = $categories->count();
+
+            foreach ($categories as $cat) {
+                \App\Models\Stock::where(function($q) use ($cat) {
+                    $q->where('category', $cat->name)
+                      ->orWhere('category_id', $cat->id)
+                      ->orWhere('category', (string)$cat->id);
+                })->delete();
+
+                $cat->delete();
+            }
+
+            $this->selectedCategories = [];
+            $this->selectAll = false;
+            session()->flash('success', "Deleted {$count} selected categories and their products successfully!");
+            $this->resetPage();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to delete selected categories: ' . $e->getMessage());
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
