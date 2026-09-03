@@ -18,71 +18,6 @@
             line-height: 1.3;
         }
 
-        .header-box {
-            border: 1.5px solid #1E093B;
-            border-bottom: none;
-            margin-bottom: 0;
-            background: #fff;
-            padding: 10px;
-            overflow: hidden;
-        }
-
-        .logo-container {
-            display: inline-block;
-            vertical-align: top;
-            width: 110px;
-        }
-
-        .logo-container img {
-            width: 100px;
-            height: auto;
-        }
-
-        .address-container {
-            display: inline-block;
-            vertical-align: top;
-            width: calc(100% - 130px);
-            text-align: center;
-        }
-
-        .title-logo {
-            text-align: center;
-            width: 100%;
-            margin-bottom: 5px;
-        }
-
-        .title-logo img {
-            width: 260px;
-            height: auto;
-            display: inline-block;
-        }
-
-        .company-address {
-            display: block;
-            font-size: 10px;
-            color: #374151;
-            line-height: 1.4;
-            text-align: center;
-        }
-
-        .company-info-box {
-            width: 100%;
-            font-size: 10px;
-            padding: 6px 10px;
-            border: 1.5px solid #1E093B;
-            border-top: 1px solid #e5e7eb;
-            box-sizing: border-box;
-            text-align: center;
-            background: #fdfaf6;
-        }
-
-        .info-block {
-            display: inline-block;
-            padding: 0px 10px;
-            box-sizing: border-box;
-            color: #1f2937;
-        }
-
         .page-title {
             font-size: 20px;
             font-weight: bold;
@@ -187,32 +122,32 @@
     </style>
 </head>
 <body>
-<div class="wrapper">
-    <div class="header-box">
-        <div class="logo-container">
-            <img src="{{ public_path('images/company_logo.png') }}" alt="Company Logo" />
-        </div>
-        <div class="address-container">
-            <div class="title-logo">
-                <img src="{{ public_path('images/logotitle.png') }}" alt="Company Address" />
-            </div>
-            <span class="company-address">
-                4/273-11/7, Virudhunagar Main Road, Amathur, Virudhunagar District, Tamilnadu - 626005
-            </span>
-        </div>
-    </div>
-
-    <div class="company-info-box">
-        <div class="info-block">
-            <span><strong>Contact:</strong> +91 88070 60809, +91 97510 48974</span>
-        </div>
-        <div class="info-block">
-            <span><strong>Email:</strong> radhecrackers@gmail.com</span>
-        </div>
-        <div class="info-block">
-            <span><strong>Website:</strong> www.radhecrackers.com</span>
-        </div>
-    </div>
+    <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #1E093B; background: #fff; margin-bottom: 0;">
+        <tr>
+            <td style="width: 110px; padding: 8px 10px; vertical-align: middle; text-align: center; border: none; border-bottom: 1px solid #e5e7eb;">
+                <img src="{{ public_path('images/company_logo.png') }}" alt="Company Logo" style="width: 95px; height: auto;" />
+            </td>
+            <td style="padding: 8px 15px 8px 0; vertical-align: middle; text-align: center; border: none; border-bottom: 1px solid #e5e7eb;">
+                <div style="text-align: center; margin-bottom: 4px;">
+                    <img src="{{ public_path('images/logotitle.png') }}" alt="Radhe Crackers" style="width: 250px; height: auto; display: inline-block;" />
+                </div>
+                <div style="font-size: 9.5px; color: #374151; line-height: 1.3; text-align: center;">
+                    4/273-11/7, Virudhunagar Main Road, Amathur, Virudhunagar District, Tamilnadu - 626005
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="background: #fdfaf6; padding: 5px 10px; text-align: center; border: none;">
+                <table style="width: 100%; border: none; border-collapse: collapse;">
+                    <tr>
+                        <td style="border: none; text-align: left; width: 38%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Contact:</strong> +91 88070 60809, +91 97510 48974</td>
+                        <td style="border: none; text-align: center; width: 34%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Email:</strong> radhecrackers@gmail.com</td>
+                        <td style="border: none; text-align: right; width: 28%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Website:</strong> www.radhecrackers.com</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     <div class="page-title">Price List {{ date('Y') }}</div>
 
