@@ -807,6 +807,10 @@ class StockController extends Controller
                 }
             }
 
+            $finalPrice = max(0, (float)($price ?? 0));
+            $finalOriginalPrice = max(0, (float)($originalPrice ?? $finalPrice));
+            $qty = max(0, (int)($this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0) ?? 0));
+
             // Enhanced data processing
             $data = [
                 'item_name' => trim((string)($rowData['item_name'] ?? '')),
@@ -816,13 +820,13 @@ class StockController extends Controller
                 'meta_title' => !empty($rowData['meta_title']) ? trim((string)$rowData['meta_title']) : null,
                 'meta_description' => !empty($rowData['meta_description']) ? trim((string)$rowData['meta_description']) : null,
                 'meta_keywords' => !empty($rowData['meta_keywords']) ? trim((string)$rowData['meta_keywords']) : null,
-                'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0),
-                'price' => $price ?? 0,
-                'original_price' => $originalPrice,
+                'quantity' => $qty,
+                'price' => $finalPrice,
+                'original_price' => $finalOriginalPrice,
                 'discount_percentage' => $discount,
                 'special_discount_percentage' => $specialDiscount,
                 'is_active' => $this->parseBoolean($rowData['is_active'] ?? 1),
-                'show_on_shop' => $this->parseBoolean($rowData['show_on_shop'] ?? 1),
+                'show_on_shop' => $finalPrice > 0 ? $this->parseBoolean($rowData['show_on_shop'] ?? 1) : false,
                 'is_popular' => $this->parseBoolean($rowData['is_popular'] ?? 0),
                 'is_latest' => $this->parseBoolean($rowData['is_latest'] ?? 0),
                 'expires_at' => $this->parseDateTime($rowData['expires_at'] ?? null),
@@ -832,15 +836,6 @@ class StockController extends Controller
                 'youtube_url' => trim((string)($rowData['youtube_url'] ?? '')),
                 'image' => trim((string)($rowData['image'] ?? ''))
             ];
-
-            // Additional validation
-            if ($data['price'] <= 0) {
-                return ['error' => "Row {$rowNumber}: Price must be greater than 0", 'data' => null];
-            }
-
-            if ($data['quantity'] < 0) {
-                return ['error' => "Row {$rowNumber}: Quantity cannot be negative", 'data' => null];
-            }
 
             return ['error' => null, 'data' => $data];
 
@@ -901,23 +896,23 @@ class StockController extends Controller
             $clean = strtolower(trim(str_replace([' ', '-', '/'], '_', $clean)));
 
             $aliases = [
-                'item_name' => ['item_name', 'name', 'product_name', 'product', 'item'],
-                'category' => ['category', 'cat', 'category_name'],
-                'description' => ['description', 'desc', 'packing', 'packaging', 'unit'],
+                'item_name' => ['item_name', 'name', 'product_name', 'product', 'item', 'product_title', 'title'],
+                'category' => ['category', 'cat', 'category_name', 'group', 'type'],
+                'description' => ['description', 'desc', 'packing', 'packaging', 'unit', 'size', 'specs'],
                 'meta_title' => ['meta_title', 'seo_title', 'title_tag', 'meta_title_tag'],
                 'meta_description' => ['meta_description', 'seo_description', 'meta_desc', 'meta_tag_description'],
                 'meta_keywords' => ['meta_keywords', 'keywords', 'seo_keywords', 'tags'],
-                'quantity' => ['quantity', 'qty', 'stock', 'available_qty'],
-                'price' => ['price', 'rate', 'unit_price', 'selling_price', 'our_price'],
-                'original_price' => ['original_price', 'mrp', 'orig_price', 'actual_price'],
-                'discount_percentage' => ['discount_percentage', 'discount', 'discount_%', 'disc_%', 'disc_percent'],
-                'special_discount_percentage' => ['special_discount_percentage', 'special_discount', 'special_discount_%', 'special_%'],
-                'is_active' => ['is_active', 'active', 'status'],
-                'show_on_shop' => ['show_on_shop', 'show_shop', 'available'],
-                'is_popular' => ['is_popular', 'popular'],
-                'is_latest' => ['is_latest', 'latest'],
+                'quantity' => ['quantity', 'qty', 'stock', 'available_qty', 'stock_quantity', 'count'],
+                'price' => ['price', 'rate', 'unit_price', 'selling_price', 'our_price', 'net_price', 'net_rate', 'sale_price', 'sales_price', 'final_price', 'amount', 'amt', 'cost', 'offer_price', 'rate_per_piece', 'rate_per_box', 'item_price'],
+                'original_price' => ['original_price', 'mrp', 'orig_price', 'actual_price', 'mrp_rate', 'market_price', 'list_price', 'base_price', 'full_price', 'regular_price'],
+                'discount_percentage' => ['discount_percentage', 'discount', 'discount_%', 'disc_%', 'disc_percent', 'disc_percentage', 'disc'],
+                'special_discount_percentage' => ['special_discount_percentage', 'special_discount', 'special_discount_%', 'special_%', 'spl_discount'],
+                'is_active' => ['is_active', 'active', 'status', 'enabled'],
+                'show_on_shop' => ['show_on_shop', 'show_shop', 'available', 'visible', 'show'],
+                'is_popular' => ['is_popular', 'popular', 'featured'],
+                'is_latest' => ['is_latest', 'latest', 'new'],
                 'youtube_url' => ['youtube_url', 'youtube', 'video_url', 'video'],
-                'image' => ['image', 'image_url', 'photo']
+                'image' => ['image', 'image_url', 'photo', 'picture']
             ];
 
             foreach ($aliases as $standard => $aliasList) {
