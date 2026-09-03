@@ -302,56 +302,65 @@ class BulkUpload extends Component
 
     private function processRowData($rowData)
     {
-        $rawCategory = trim($rowData['category'] ?? '');
+        $rawCategory = trim((string)($rowData['category'] ?? ''));
         $categoryId = null;
         $categoryName = $rawCategory;
 
         if (!empty($rawCategory)) {
-            if (is_numeric($rawCategory)) {
-                $catModel = \App\Models\Category::find($rawCategory);
-                if ($catModel) {
-                    $categoryId = $catModel->id;
-                    $categoryName = $catModel->name;
-                }
-            } else {
-                $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
-                if (!$catModel) {
-                    $maxSort = \App\Models\Category::max('sort_order') ?? 0;
-                    $catModel = \App\Models\Category::create([
-                        'name' => $rawCategory,
-                        'slug' => \Illuminate\Support\Str::slug($rawCategory),
-                        'is_active' => true,
-                        'sort_order' => $maxSort + 1,
-                    ]);
-                }
+            $catModel = \App\Models\Category::findOrCreateByName($rawCategory);
+            if ($catModel) {
                 $categoryId = $catModel->id;
                 $categoryName = $catModel->name;
             }
         }
 
+        $price = $this->parseNumeric($rowData['price'] ?? null, 'float');
+        $originalPrice = $this->parseNumeric($rowData['original_price'] ?? null, 'float');
+        $discount = $this->parseNumeric($rowData['discount_percentage'] ?? null, 'int');
+        $specialDiscount = $this->parseNumeric($rowData['special_discount_percentage'] ?? null, 'int');
+
+        if (($price === null || $price <= 0) && $originalPrice !== null && $originalPrice > 0) {
+            $calc = $originalPrice;
+            if ($discount && $discount > 0) {
+                $calc = $calc * (1 - ($discount / 100));
+            }
+            if ($specialDiscount && $specialDiscount > 0) {
+                $calc = $calc * (1 - ($specialDiscount / 100));
+            }
+            $price = round($calc, 2);
+        }
+
+        if (($originalPrice === null || $originalPrice <= 0) && $price !== null && $price > 0) {
+            if ($discount && $discount > 0) {
+                $originalPrice = round($price / (1 - ($discount / 100)), 2);
+            } else {
+                $originalPrice = $price;
+            }
+        }
+
         $data = [
-            'item_name' => trim($rowData['item_name'] ?? ''),
+            'item_name' => trim((string)($rowData['item_name'] ?? '')),
             'category' => $categoryName,
             'category_id' => $categoryId,
-            'description' => trim($rowData['description'] ?? ''),
-            'meta_title' => !empty($rowData['meta_title']) ? trim($rowData['meta_title']) : null,
-            'meta_description' => !empty($rowData['meta_description']) ? trim($rowData['meta_description']) : null,
-            'meta_keywords' => !empty($rowData['meta_keywords']) ? trim($rowData['meta_keywords']) : null,
-            'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int'),
-            'price' => $this->parseNumeric($rowData['price'] ?? 0, 'float'),
-            'original_price' => $this->parseNumeric($rowData['original_price'] ?? null, 'float'),
-            'discount_percentage' => $this->parseNumeric($rowData['discount_percentage'] ?? null, 'int'),
-            'special_discount_percentage' => $this->parseNumeric($rowData['special_discount_percentage'] ?? null, 'int'),
+            'description' => trim((string)($rowData['description'] ?? '')),
+            'meta_title' => !empty($rowData['meta_title']) ? trim((string)$rowData['meta_title']) : null,
+            'meta_description' => !empty($rowData['meta_description']) ? trim((string)$rowData['meta_description']) : null,
+            'meta_keywords' => !empty($rowData['meta_keywords']) ? trim((string)$rowData['meta_keywords']) : null,
+            'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int') ?? 0,
+            'price' => $price ?? 0,
+            'original_price' => $originalPrice,
+            'discount_percentage' => $discount,
+            'special_discount_percentage' => $specialDiscount,
             'is_active' => $this->parseBoolean($rowData['is_active'] ?? 1),
             'show_on_shop' => $this->parseBoolean($rowData['show_on_shop'] ?? 1),
             'is_popular' => $this->parseBoolean($rowData['is_popular'] ?? 0),
             'is_latest' => $this->parseBoolean($rowData['is_latest'] ?? 0),
             'expires_at' => $this->parseDateTime($rowData['expires_at'] ?? null),
-            'ordered_count' => $this->parseNumeric($rowData['ordered_count'] ?? 0, 'int'),
+            'ordered_count' => $this->parseNumeric($rowData['ordered_count'] ?? 0, 'int') ?? 0,
             'last_released_at' => $this->parseDateTime($rowData['last_released_at'] ?? null) ?: now(),
             'next_release_at' => $this->parseDateTime($rowData['next_release_at'] ?? null) ?: now()->addMinutes(10),
-            'youtube_url' => trim($rowData['youtube_url'] ?? ''),
-            'image' => trim($rowData['image'] ?? '')
+            'youtube_url' => trim((string)($rowData['youtube_url'] ?? '')),
+            'image' => trim((string)($rowData['image'] ?? ''))
         ];
 
         if (!\Illuminate\Support\Facades\Schema::hasColumn('stocks', 'meta_title')) {
@@ -369,17 +378,22 @@ class BulkUpload extends Component
 
     private function parseNumeric($value, $type = 'float')
     {
-        if (empty($value) || $value === '') {
+        if ($value === null || $value === '') {
             return null;
         }
         
-        $cleaned = preg_replace('/[^\d.-]/', '', strval($value));
+        $str = trim((string)$value);
+        if ($str === '') {
+            return null;
+        }
+
+        $cleaned = preg_replace('/[^\d.-]/', '', $str);
         
         if ($cleaned === '' || $cleaned === '-' || $cleaned === '.') {
             return null;
         }
         
-        return $type === 'int' ? (int) $cleaned : (float) $cleaned;
+        return $type === 'int' ? (int) round((float) $cleaned) : (float) $cleaned;
     }
 
     private function parseBoolean($value)

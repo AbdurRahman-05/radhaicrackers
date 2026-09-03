@@ -49,25 +49,34 @@ class StockImport implements
             $categoryName = $rawCategory;
 
             if (!empty($rawCategory)) {
-                if (is_numeric($rawCategory)) {
-                    $catModel = \App\Models\Category::find($rawCategory);
-                    if ($catModel) {
-                        $categoryId = $catModel->id;
-                        $categoryName = $catModel->name;
-                    }
-                } else {
-                    $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
-                    if (!$catModel) {
-                        $maxSort = \App\Models\Category::max('sort_order') ?? 0;
-                        $catModel = \App\Models\Category::create([
-                            'name' => $rawCategory,
-                            'slug' => \Illuminate\Support\Str::slug($rawCategory),
-                            'is_active' => true,
-                            'sort_order' => $maxSort + 1,
-                        ]);
-                    }
+                $catModel = \App\Models\Category::findOrCreateByName($rawCategory);
+                if ($catModel) {
                     $categoryId = $catModel->id;
                     $categoryName = $catModel->name;
+                }
+            }
+
+            $price = $this->parseNumeric($row['price'] ?? null, 'float');
+            $originalPrice = $this->parseNumeric($row['original_price'] ?? null, 'float');
+            $discount = $this->parseNumeric($row['discount_percentage'] ?? null, 'int');
+            $specialDiscount = $this->parseNumeric($row['special_discount_percentage'] ?? null, 'int');
+
+            if (($price === null || $price <= 0) && $originalPrice !== null && $originalPrice > 0) {
+                $calc = $originalPrice;
+                if ($discount && $discount > 0) {
+                    $calc = $calc * (1 - ($discount / 100));
+                }
+                if ($specialDiscount && $specialDiscount > 0) {
+                    $calc = $calc * (1 - ($specialDiscount / 100));
+                }
+                $price = round($calc, 2);
+            }
+
+            if (($originalPrice === null || $originalPrice <= 0) && $price !== null && $price > 0) {
+                if ($discount && $discount > 0) {
+                    $originalPrice = round($price / (1 - ($discount / 100)), 2);
+                } else {
+                    $originalPrice = $price;
                 }
             }
 
@@ -79,11 +88,11 @@ class StockImport implements
                 'meta_title' => !empty($row['meta_title']) ? $this->cleanString($row['meta_title']) : null,
                 'meta_description' => !empty($row['meta_description']) ? $this->cleanString($row['meta_description']) : null,
                 'meta_keywords' => !empty($row['meta_keywords']) ? $this->cleanString($row['meta_keywords']) : null,
-                'quantity' => $this->parseNumeric($row['quantity'] ?? 0, 'int'),
-                'price' => $this->parseNumeric($row['price'] ?? 0, 'float'),
-                'original_price' => $this->parseNumeric($row['original_price'] ?? null, 'float'),
-                'discount_percentage' => $this->parseNumeric($row['discount_percentage'] ?? null, 'int'),
-                'special_discount_percentage' => $this->parseNumeric($row['special_discount_percentage'] ?? null, 'int'),
+                'quantity' => $this->parseNumeric($row['quantity'] ?? 0, 'int') ?? 0,
+                'price' => $price ?? 0,
+                'original_price' => $originalPrice,
+                'discount_percentage' => $discount,
+                'special_discount_percentage' => $specialDiscount,
                 'is_active' => $this->parseBoolean($row['is_active'] ?? 1),
                 'show_on_shop' => $this->parseBoolean($row['show_on_shop'] ?? 1),
                 'is_popular' => $this->parseBoolean($row['is_popular'] ?? 0),

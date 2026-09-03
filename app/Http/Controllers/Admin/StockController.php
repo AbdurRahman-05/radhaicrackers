@@ -361,36 +361,20 @@ class StockController extends Controller
     public function syncMissingCategories()
     {
         try {
-            $existingCategories = \App\Models\Category::pluck('name', 'id')
-                ->mapWithKeys(fn($name, $id) => [strtolower(trim($name)) => $id])
-                ->toArray();
-
             $distinctCategories = \App\Models\Stock::whereNotNull('category')
                 ->where('category', '!=', '')
                 ->distinct()
                 ->pluck('category');
 
-            $maxSort = \App\Models\Category::max('sort_order') ?? 0;
-
             foreach ($distinctCategories as $catName) {
                 $trimmed = trim($catName);
                 if ($trimmed === '') continue;
-                $lower = strtolower($trimmed);
 
-                if (!isset($existingCategories[$lower])) {
-                    $maxSort++;
-                    $newCat = \App\Models\Category::create([
-                        'name' => $trimmed,
-                        'slug' => \Illuminate\Support\Str::slug($trimmed),
-                        'is_active' => true,
-                        'sort_order' => $maxSort,
-                    ]);
-                    $existingCategories[$lower] = $newCat->id;
-
-                    // Also link existing stocks with category_id
+                $cat = \App\Models\Category::findOrCreateByName($trimmed);
+                if ($cat) {
                     \App\Models\Stock::where('category', $trimmed)
                         ->whereNull('category_id')
-                        ->update(['category_id' => $newCat->id]);
+                        ->update(['category_id' => $cat->id]);
                 }
             }
         } catch (\Exception $e) {
@@ -424,23 +408,8 @@ class StockController extends Controller
                 Stock::syncUploadedFile($imagePath);
             }
 
-            // Get category name from ID or name
-            $category = null;
-            if (is_numeric($request->category)) {
-                $category = Category::find($request->category);
-            }
-            if (!$category) {
-                $category = Category::whereRaw('LOWER(name) = ?', [strtolower(trim($request->category))])->first();
-            }
-            if (!$category) {
-                $maxSort = Category::max('sort_order') ?? 0;
-                $category = Category::create([
-                    'name' => trim($request->category),
-                    'slug' => \Illuminate\Support\Str::slug(trim($request->category)),
-                    'is_active' => true,
-                    'sort_order' => $maxSort + 1
-                ]);
-            }
+            // Get category name from ID or name safely
+            $category = Category::findOrCreateByName($request->category);
 
             $stock = Stock::create([
                 'item_name' => $request->item_name,
@@ -453,8 +422,8 @@ class StockController extends Controller
                 'original_price' => $request->original_price > 0 ? $request->original_price : null,
                 'discount_percentage' => $request->discount_percentage > 0 ? $request->discount_percentage : null,
                 'special_discount_percentage' => $request->special_discount_percentage > 0 ? $request->special_discount_percentage : null,
-                'category' => $category->name,
-                'category_id' => $category->id,
+                'category' => $category ? $category->name : trim($request->category),
+                'category_id' => $category ? $category->id : null,
                 'is_active' => $request->has('is_active'),
                 'show_on_shop' => true, // Default to true for new stocks
                 'image' => $imagePath,
@@ -495,23 +464,8 @@ class StockController extends Controller
         ]);
 
         try {
-            // Get category name from ID or name
-            $category = null;
-            if (is_numeric($request->category)) {
-                $category = Category::find($request->category);
-            }
-            if (!$category) {
-                $category = Category::whereRaw('LOWER(name) = ?', [strtolower(trim($request->category))])->first();
-            }
-            if (!$category) {
-                $maxSort = Category::max('sort_order') ?? 0;
-                $category = Category::create([
-                    'name' => trim($request->category),
-                    'slug' => \Illuminate\Support\Str::slug(trim($request->category)),
-                    'is_active' => true,
-                    'sort_order' => $maxSort + 1
-                ]);
-            }
+            // Get category name from ID or name safely
+            $category = Category::findOrCreateByName($request->category);
 
             $data = [
                 'item_name' => $request->item_name,
@@ -524,8 +478,8 @@ class StockController extends Controller
                 'original_price' => $request->original_price > 0 ? $request->original_price : null,
                 'discount_percentage' => $request->discount_percentage > 0 ? $request->discount_percentage : null,
                 'special_discount_percentage' => $request->special_discount_percentage > 0 ? $request->special_discount_percentage : null,
-                'category' => $category->name,
-                'category_id' => $category->id,
+                'category' => $category ? $category->name : trim($request->category),
+                'category_id' => $category ? $category->id : null,
                 'is_active' => $request->has('is_active'),
                 'youtube_url' => $request->youtube_url
             ];
@@ -640,14 +594,27 @@ class StockController extends Controller
                     try {
                         $rowData = $this->normalizeRowKeys($rawRow);
 
-                        // Skip empty rows
-                        if (empty($rowData['item_name']) && empty($rowData['category'])) {
+                        // Skip if all values in the row are empty or whitespace
+                        $hasContent = false;
+                        foreach ($rowData as $val) {
+                            if ($val !== null && trim((string)$val) !== '') {
+                                $hasContent = true;
+                                break;
+                            }
+                        }
+                        if (!$hasContent) {
+                            $skipped++;
+                            continue;
+                        }
+
+                        // Skip empty rows where both item_name and category are blank
+                        if (empty(trim((string)($rowData['item_name'] ?? ''))) && empty(trim((string)($rowData['category'] ?? '')))) {
                             $skipped++;
                             continue;
                         }
 
                         // Validate required fields
-                        if (empty(trim($rowData['item_name'] ?? '')) || empty(trim($rowData['category'] ?? ''))) {
+                        if (empty(trim((string)($rowData['item_name'] ?? ''))) || empty(trim((string)($rowData['category'] ?? '')))) {
                             $errors[] = "Row " . ($index + 2) . ": Missing required fields (item_name, category)";
                             continue;
                         }
@@ -681,7 +648,7 @@ class StockController extends Controller
                 foreach ($rows as $index => $row) {
                     try {
                         // Skip empty rows
-                        if (empty(array_filter($row, fn($v) => trim($v) !== ''))) {
+                        if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) {
                             $skipped++;
                             continue;
                         }
@@ -698,13 +665,13 @@ class StockController extends Controller
                         $rowData = array_combine($normalizedHeaders, $row);
                         
                         // Skip if both item_name and category are empty
-                        if (empty(trim($rowData['item_name'] ?? '')) && empty(trim($rowData['category'] ?? ''))) {
+                        if (empty(trim((string)($rowData['item_name'] ?? ''))) && empty(trim((string)($rowData['category'] ?? '')))) {
                             $skipped++;
                             continue;
                         }
 
                         // Validate required fields
-                        if (empty(trim($rowData['item_name'] ?? '')) || empty(trim($rowData['category'] ?? ''))) {
+                        if (empty(trim((string)($rowData['item_name'] ?? ''))) || empty(trim((string)($rowData['category'] ?? '')))) {
                             $errors[] = "Row " . ($index + 2) . ": Missing required fields (item_name, category)";
                             continue;
                         }
@@ -765,48 +732,59 @@ class StockController extends Controller
     private function processRowData($rowData, $rowNumber)
     {
         try {
-            $rawCategory = trim($rowData['category'] ?? '');
+            $rawCategory = trim((string)($rowData['category'] ?? ''));
             $categoryId = null;
             $categoryName = $rawCategory;
 
-            // Automatically find or create Category in database so it appears in all dropdowns
+            // Automatically find or create Category safely using Category::findOrCreateByName
             if (!empty($rawCategory)) {
-                if (is_numeric($rawCategory)) {
-                    $catModel = \App\Models\Category::find($rawCategory);
-                    if ($catModel) {
-                        $categoryId = $catModel->id;
-                        $categoryName = $catModel->name;
-                    }
-                } else {
-                    $catModel = \App\Models\Category::whereRaw('LOWER(name) = ?', [strtolower($rawCategory)])->first();
-                    if (!$catModel) {
-                        $maxSort = \App\Models\Category::max('sort_order') ?? 0;
-                        $catModel = \App\Models\Category::create([
-                            'name' => $rawCategory,
-                            'slug' => \Illuminate\Support\Str::slug($rawCategory),
-                            'is_active' => true,
-                            'sort_order' => $maxSort + 1,
-                        ]);
-                    }
+                $catModel = \App\Models\Category::findOrCreateByName($rawCategory);
+                if ($catModel) {
                     $categoryId = $catModel->id;
                     $categoryName = $catModel->name;
                 }
             }
 
+            $price = $this->parseNumeric($rowData['price'] ?? null, 'float');
+            $originalPrice = $this->parseNumeric($rowData['original_price'] ?? null, 'float');
+            $discount = $this->parseNumeric($rowData['discount_percentage'] ?? null, 'int');
+            $specialDiscount = $this->parseNumeric($rowData['special_discount_percentage'] ?? null, 'int');
+
+            // If price is missing or 0, but original_price is present, calculate price
+            if (($price === null || $price <= 0) && $originalPrice !== null && $originalPrice > 0) {
+                $calc = $originalPrice;
+                if ($discount && $discount > 0) {
+                    $calc = $calc * (1 - ($discount / 100));
+                }
+                if ($specialDiscount && $specialDiscount > 0) {
+                    $calc = $calc * (1 - ($specialDiscount / 100));
+                }
+                $price = round($calc, 2);
+            }
+
+            // If original_price is missing or 0, but price is present, set original_price
+            if (($originalPrice === null || $originalPrice <= 0) && $price !== null && $price > 0) {
+                if ($discount && $discount > 0) {
+                    $originalPrice = round($price / (1 - ($discount / 100)), 2);
+                } else {
+                    $originalPrice = $price;
+                }
+            }
+
             // Enhanced data processing
             $data = [
-                'item_name' => trim($rowData['item_name'] ?? ''),
+                'item_name' => trim((string)($rowData['item_name'] ?? '')),
                 'category' => $categoryName,
                 'category_id' => $categoryId,
-                'description' => trim($rowData['description'] ?? ''),
-                'meta_title' => !empty($rowData['meta_title']) ? trim($rowData['meta_title']) : null,
-                'meta_description' => !empty($rowData['meta_description']) ? trim($rowData['meta_description']) : null,
-                'meta_keywords' => !empty($rowData['meta_keywords']) ? trim($rowData['meta_keywords']) : null,
+                'description' => trim((string)($rowData['description'] ?? '')),
+                'meta_title' => !empty($rowData['meta_title']) ? trim((string)$rowData['meta_title']) : null,
+                'meta_description' => !empty($rowData['meta_description']) ? trim((string)$rowData['meta_description']) : null,
+                'meta_keywords' => !empty($rowData['meta_keywords']) ? trim((string)$rowData['meta_keywords']) : null,
                 'quantity' => $this->parseNumeric($rowData['quantity'] ?? 0, 'int', 0),
-                'price' => $this->parseNumeric($rowData['price'] ?? 0, 'float'),
-                'original_price' => $this->parseNumeric($rowData['original_price'] ?? null, 'float'),
-                'discount_percentage' => $this->parseNumeric($rowData['discount_percentage'] ?? null, 'int'),
-                'special_discount_percentage' => $this->parseNumeric($rowData['special_discount_percentage'] ?? null, 'int'),
+                'price' => $price ?? 0,
+                'original_price' => $originalPrice,
+                'discount_percentage' => $discount,
+                'special_discount_percentage' => $specialDiscount,
                 'is_active' => $this->parseBoolean($rowData['is_active'] ?? 1),
                 'show_on_shop' => $this->parseBoolean($rowData['show_on_shop'] ?? 1),
                 'is_popular' => $this->parseBoolean($rowData['is_popular'] ?? 0),
@@ -815,8 +793,8 @@ class StockController extends Controller
                 'ordered_count' => $this->parseNumeric($rowData['ordered_count'] ?? 0, 'int', 0),
                 'last_released_at' => $this->parseDateTime($rowData['last_released_at'] ?? null) ?: now(),
                 'next_release_at' => $this->parseDateTime($rowData['next_release_at'] ?? null) ?: now()->addMinutes(10),
-                'youtube_url' => trim($rowData['youtube_url'] ?? ''),
-                'image' => trim($rowData['image'] ?? '')
+                'youtube_url' => trim((string)($rowData['youtube_url'] ?? '')),
+                'image' => trim((string)($rowData['image'] ?? ''))
             ];
 
             // Additional validation
@@ -937,15 +915,24 @@ class StockController extends Controller
      */
     private function parseNumeric($value, $type = 'float', $default = null)
     {
-        if (empty($value) || $value === '') {
+        if ($value === null || $value === '') {
             return $default;
         }
         
-        // Remove any non-numeric characters except decimal point and negative sign
-        $cleaned = preg_replace('/[^\d.-]/', '', $value);
+        $str = trim((string)$value);
+        if ($str === '') {
+            return $default;
+        }
+
+        // Remove currency symbols, commas, and other non-numeric chars except digits, minus, and dot
+        $cleaned = preg_replace('/[^\d.-]/', '', $str);
+        
+        if ($cleaned === '' || $cleaned === '-' || $cleaned === '.') {
+            return $default;
+        }
         
         if ($type === 'int') {
-            return (int) $cleaned;
+            return (int) round((float) $cleaned);
         }
         
         return (float) $cleaned;
