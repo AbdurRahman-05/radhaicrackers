@@ -78,7 +78,7 @@
                     <!-- Products Grid -->
                     @php
                         $groupedProducts = $products->groupBy('category');
-                        $sortedCategories = \App\Models\Category::orderBy('sort_order')->pluck('name');
+                        $sortedCategories = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->pluck('name');
                     @endphp
                     
                     @foreach($sortedCategories as $categoryName)

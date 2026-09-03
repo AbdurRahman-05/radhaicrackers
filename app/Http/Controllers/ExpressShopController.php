@@ -14,8 +14,10 @@ class ExpressShopController extends Controller
      */
     public function index()
     {
-        // Get ALL categories ordered by sort_order from database
-        $categories = Category::orderBy('sort_order')
+        // Get ALL active categories ordered by sort_order from database
+        $categories = Category::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
             ->get();
 
         // Create a mapping of category ID to name for fixing data inconsistencies

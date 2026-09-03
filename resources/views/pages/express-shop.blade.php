@@ -27,7 +27,10 @@
                     <ul class="space-y-2">
                         <li><a href="{{ route('express-shop') }}" class="text-gray-700 hover:text-yellow-600">All Products</a></li>
                         @php
-                            $dbCategories = \App\Models\Category::orderBy('sort_order')->orderBy('name')->get();
+                            $dbCategories = \App\Models\Category::where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
+                                ->get();
                             $categories = [];
                             $iconMap = [
                                 'BIJILI CRACKERS' => '⚡',
@@ -47,18 +50,24 @@
                                         $q->where(function($sub) {
                                             $sub->where('is_active', 1)
                                                 ->where('quantity', '>', 0);
-                                        })->orWhere('show_on_shop', 1);
+                                        })->orWhere(function($sub) {
+                                            $sub->where('is_active', 1)
+                                                ->where('show_on_shop', 1);
+                                        });
                                     })
                                     ->where(function($q) use ($category) {
                                         $q->where('category', $category->name)
-                                          ->orWhere('category', $category->id);
+                                          ->orWhere('category', (string)$category->id)
+                                          ->orWhere('category_id', $category->id);
                                     })
                                     ->count();
-                                $icon = $category->icon ?: ($iconMap[$category->name] ?? '🎆');
-                                $categories[$category->name] = [
-                                    'icon' => $icon,
-                                    'count' => $count
-                                ];
+                                if ($count > 0) {
+                                    $icon = $category->icon ?: ($iconMap[$category->name] ?? '🎆');
+                                    $categories[$category->name] = [
+                                        'icon' => $icon,
+                                        'count' => $count
+                                    ];
+                                }
                             }
                             // Store original stockData for JavaScript (unfiltered)
                             $originalStockData = $stockData;

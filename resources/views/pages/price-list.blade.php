@@ -71,7 +71,7 @@
                     <tbody>
                         @php
                             $groupedStocks = $stocks->groupBy('category');
-                            $categories = \App\Models\Category::orderBy('sort_order')->get();
+                            $categories = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
                         @endphp
 
                         @foreach($categories as $category)
