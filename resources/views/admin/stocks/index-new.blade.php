@@ -145,6 +145,14 @@
                         🚫 Deactivate All {{ $selectedYear }}
                     </button>
                 </form>
+
+                <form method="POST" action="{{ route('admin.stocks.bulk-delete-year') }}" onsubmit="return confirm('⚠️ DANGER: Are you sure you want to PERMANENTLY DELETE ALL stocks created in year {{ $selectedYear }}? This cannot be undone!')">
+                    @csrf
+                    <input type="hidden" name="year" value="{{ $selectedYear }}">
+                    <button type="submit" class="bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition">
+                        🗑️ Delete All {{ $selectedYear }} Stocks
+                    </button>
+                </form>
             </div>
             @else
             <div class="text-xs font-bold text-gray-600">
@@ -166,6 +174,14 @@
                         👁️ Hide All Stocks from Shop
                     </button>
                 </form>
+
+                <form method="POST" action="{{ route('admin.stocks.bulk-delete-year') }}" onsubmit="return confirm('⚠️ DANGER: Are you sure you want to PERMANENTLY DELETE ALL stocks across all years? This cannot be undone!')">
+                    @csrf
+                    <input type="hidden" name="year" value="all">
+                    <button type="submit" class="bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition">
+                        🗑️ Delete All Stocks
+                    </button>
+                </form>
             </div>
             @endif
         </div>
@@ -173,12 +189,18 @@
 
     <!-- Stocks Grouped by Category -->
     <div class="space-y-6">
-        @php $globalSno = 0; @endphp
+        @php 
+            $globalSno = 0; 
+            $renderedCategories = [];
+        @endphp
         @foreach($categories as $category)
-            @php $catStocks = $stocksByCategory[$category->name] ?? collect(); @endphp
+            @php 
+                $catStocks = $stocksByCategory[$category->name] ?? collect(); 
+                $renderedCategories[$category->name] = true;
+            @endphp
             @if($catStocks->isNotEmpty())
             <div id="cat-{{ Str::slug($category->name) }}" class="mb-4">
-                <h3 class="text-base font-bold text-blue-800 mb-2 border-b border-blue-100 pb-1">{{ $category->name }}</h3>
+                <h3 class="text-base font-bold text-blue-800 mb-2 border-b border-blue-100 pb-1">{{ $category->name }} ({{ $catStocks->count() }} items)</h3>
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
                         <thead class="bg-gray-50">
@@ -205,50 +227,39 @@
                                         @if($stock->image_url)
                                             <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
                                         @else
-                                            <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 text-sm">
-                                                🎆
-                                            </div>
+                                            <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">No Img</div>
                                         @endif
                                         <div class="min-w-0">
-                                            <div class="font-bold text-gray-900 truncate max-w-[200px]" title="{{ $stock->item_name }}">{{ $stock->item_name }}</div>
-                                            @if($stock->category)
-                                                <div class="text-[11px] text-blue-600 font-medium">{{ $stock->category }}</div>
-                                            @endif
+                                            <div class="text-xs font-bold text-gray-900 truncate" title="{{ $stock->item_name }}">{{ $stock->item_name }}</div>
                                             @if($stock->description)
-                                                <div class="text-[11px] text-gray-500 truncate max-w-[200px]" title="{{ $stock->description }}"><i class="fas fa-align-left text-[9px] mr-1 text-gray-400"></i>{{ $stock->description }}</div>
-                                            @endif
-                                            @if($stock->meta_description)
-                                                <div class="text-[10px] text-amber-800 bg-amber-50 rounded px-1 py-0.5 mt-0.5 truncate max-w-[200px]" title="SEO Description: {{ $stock->meta_description }}"><i class="fas fa-globe text-[9px] mr-1 text-amber-600"></i>{{ $stock->meta_description }}</div>
+                                                <div class="text-[11px] text-gray-500 truncate" title="{{ $stock->description }}">{{ $stock->description }}</div>
                                             @endif
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-2 py-2 whitespace-nowrap">
-                                    <div class="font-bold text-gray-900">₹{{ number_format($stock->price, 2) }}</div>
-                                    @if($stock->original_price && $stock->original_price > $stock->price)
-                                        <div class="text-[11px] text-gray-400 line-through">₹{{ number_format($stock->original_price, 2) }}</div>
-                                    @endif
-                                    <div class="text-xs text-gray-500">Qty: <span class="font-bold {{ $stock->quantity <= 0 ? 'text-red-600' : 'text-gray-800' }}">{{ $stock->quantity }}</span></div>
+                                    <div class="text-xs font-semibold text-gray-900">₹{{ number_format($stock->price, 2) }}</div>
+                                    <div class="text-[11px] text-gray-500">Qty: {{ $stock->quantity }}</div>
                                 </td>
-                                <td class="px-2 py-2 whitespace-nowrap font-semibold text-gray-900">
+                                <td class="px-2 py-2 whitespace-nowrap text-xs font-bold text-gray-900">
                                     ₹{{ number_format($stock->quantity * $stock->price, 2) }}
                                 </td>
                                 <td class="px-2 py-2 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-800">
-                                        {{ $stock->display_ordered_count ?? $stock->ordered_count }} Ordered {{ $selectedYear ? "({$selectedYear})" : "" }}
+                                    <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full {{ ($stock->display_ordered_count ?? $stock->ordered_count) > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600' }}">
+                                        {{ $stock->display_ordered_count ?? $stock->ordered_count }}
                                     </span>
                                 </td>
                                 <td class="px-2 py-2 whitespace-nowrap">
-                                    <div class="flex flex-wrap items-center gap-1">
-                                        <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full
-                                            @if($stock->is_active) bg-green-100 text-green-800 @else bg-red-100 text-red-800 @endif">
-                                            {{ $stock->is_active ? 'Active' : 'Inactive' }}
-                                        </span>
-                                        @if($stock->show_on_shop)
-                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800">Available</span>
-                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-purple-100 text-purple-800">Visible</span>
+                                    <div class="flex flex-col gap-1">
+                                        @if($stock->is_active)
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-800">Active</span>
                                         @else
-                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-800">Out of Stock</span>
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800">Inactive</span>
+                                        @endif
+                                        @if($stock->show_on_shop)
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800">Visible</span>
+                                        @else
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-800">Hidden</span>
                                         @endif
                                     </div>
                                 </td>
@@ -302,8 +313,134 @@
             </div>
             @endif
         @endforeach
-        @if($categories->isEmpty())
-            <div class="px-6 py-4 text-center text-gray-500">No categories found</div>
+
+        {{-- Render any unassigned or other category groups that were not in categories table --}}
+        @foreach($stocksByCategory as $catName => $catStocks)
+            @if(!isset($renderedCategories[$catName]) && $catStocks->isNotEmpty())
+            <div id="cat-other-{{ Str::slug($catName) }}" class="mb-4 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                <div class="flex justify-between items-center mb-2 border-b border-amber-200 pb-1">
+                    <h3 class="text-base font-bold text-amber-900">
+                        {{ $catName ?: 'Uncategorized / Other Products' }} ({{ $catStocks->count() }} items)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-2 py-2 text-center font-bold text-gray-600 uppercase tracking-wider" style="width: 45px;">S.No.</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Product Info</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Qty & Price</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Total Value</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Ordered</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Last Released</th>
+                                <th class="px-2 py-2 text-left font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach($catStocks as $stock)
+                            @php $globalSno++; @endphp
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-2 py-2 text-center font-bold text-gray-700 bg-gray-50/50">
+                                    {{ $globalSno }}
+                                </td>
+                                <td class="px-2 py-2">
+                                    <div class="flex items-center space-x-2">
+                                        @if($stock->image_url)
+                                            <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
+                                        @else
+                                            <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">No Img</div>
+                                        @endif
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-bold text-gray-900 truncate" title="{{ $stock->item_name }}">{{ $stock->item_name }}</div>
+                                            @if($stock->description)
+                                                <div class="text-[11px] text-gray-500 truncate" title="{{ $stock->description }}">{{ $stock->description }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap">
+                                    <div class="text-xs font-semibold text-gray-900">₹{{ number_format($stock->price, 2) }}</div>
+                                    <div class="text-[11px] text-gray-500">Qty: {{ $stock->quantity }}</div>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs font-bold text-gray-900">
+                                    ₹{{ number_format($stock->quantity * $stock->price, 2) }}
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap">
+                                    <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full {{ ($stock->display_ordered_count ?? $stock->ordered_count) > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600' }}">
+                                        {{ $stock->display_ordered_count ?? $stock->ordered_count }}
+                                    </span>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap">
+                                    <div class="flex flex-col gap-1">
+                                        @if($stock->is_active)
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-800">Active</span>
+                                        @else
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800">Inactive</span>
+                                        @endif
+                                        @if($stock->show_on_shop)
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800">Visible</span>
+                                        @else
+                                            <span class="inline-flex px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-800">Hidden</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-500">
+                                    {{ $stock->last_released_at ? $stock->last_released_at->format('d/m/Y H:i') : '-' }}
+                                </td>
+                                <td class="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                                    <div class="flex items-center gap-2">
+                                        @if($stock->youtube_url)
+                                            <button onclick="openVideoModal('{{ $stock->youtube_url }}', '{{ $stock->item_name }}')" 
+                                                    class="text-blue-600 hover:text-blue-800 p-1" title="Watch Video">
+                                                <i class="fab fa-youtube text-red-600 text-base"></i>
+                                            </button>
+                                        @endif
+                                        <form action="{{ route('admin.stocks.toggle-active', $stock->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="relative w-7 h-3.5 rounded-full transition-colors flex-shrink-0 inline-block align-middle
+                                                {{ $stock->is_active ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 hover:bg-gray-400' }}"
+                                                title="{{ $stock->is_active ? 'Deactivate' : 'Activate' }}">
+                                                <span class="absolute left-0 top-0 w-3.5 h-3.5 bg-white rounded-full shadow transform transition-transform
+                                                    {{ $stock->is_active ? 'translate-x-3.5' : 'translate-x-0' }}"></span>
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('admin.stocks.toggle-show-on-shop', $stock->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit" class="relative w-7 h-3.5 rounded-full focus:outline-none transition-colors flex-shrink-0 inline-block align-middle
+                                                @if($stock->show_on_shop) bg-yellow-500 hover:bg-yellow-600 @else bg-gray-300 hover:bg-gray-400 @endif"
+                                                title="{{ $stock->show_on_shop ? 'Hide from Shop' : 'Show on Shop' }}">
+                                                <span class="absolute left-0 top-0 h-3.5 w-3.5 bg-white rounded-full shadow transform transition-transform
+                                                    @if($stock->show_on_shop) translate-x-3.5 @else translate-x-0 @endif"></span>
+                                            </button>
+                                        </form>
+                                        <a href="{{ route('admin.stocks.edit', $stock->id) }}" class="text-blue-600 hover:text-blue-900 p-1" title="Edit">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        <form action="{{ route('admin.stocks.destroy', $stock->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this stock?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-900 p-1" title="Delete">
+                                                <i class="fas fa-trash text-sm"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+        @endforeach
+
+        @if($totalStocks === 0)
+            <div class="px-6 py-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <i class="fas fa-box-open text-3xl text-gray-400 mb-2"></i>
+                <div>No stocks found {{ $selectedYear ? "for year {$selectedYear}" : "" }}.</div>
+            </div>
         @endif
     </div>
 </div>

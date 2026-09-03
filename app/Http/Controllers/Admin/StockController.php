@@ -112,6 +112,28 @@ class StockController extends Controller
             return back()->with('error', 'Failed to bulk show stocks: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Bulk permanently delete all stocks for a specific year or all-time
+     */
+    public function bulkDeleteYear(Request $request)
+    {
+        try {
+            $year = $request->input('year');
+            $query = Stock::query();
+            if ($year && $year !== 'all') {
+                $query->whereYear('created_at', $year);
+                $msgYear = "created in year {$year}";
+            } else {
+                $msgYear = "all-time";
+            }
+            $count = $query->count();
+            $query->delete();
+            return redirect()->back()->with('success', "Permanently deleted {$count} stock items ({$msgYear})!");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to bulk delete stocks: ' . $e->getMessage());
+        }
+    }
     /**
      * Export ordered items (product name, category, and count) as CSV based on selected year
      */

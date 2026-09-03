@@ -239,6 +239,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/stocks/bulk-hide-year', [App\Http\Controllers\Admin\StockController::class, 'bulkHideYear'])->name('stocks.bulk-hide-year');
         Route::post('/stocks/bulk-activate-year', [App\Http\Controllers\Admin\StockController::class, 'bulkActivateYear'])->name('stocks.bulk-activate-year');
         Route::post('/stocks/bulk-show-year', [App\Http\Controllers\Admin\StockController::class, 'bulkShowYear'])->name('stocks.bulk-show-year');
+        Route::post('/stocks/bulk-delete-year', [App\Http\Controllers\Admin\StockController::class, 'bulkDeleteYear'])->name('stocks.bulk-delete-year');
         
     
         // Coupon Management

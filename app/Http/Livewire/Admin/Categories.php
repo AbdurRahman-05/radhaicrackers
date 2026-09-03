@@ -289,7 +289,7 @@ class Categories extends Component
                     $q->whereYear('created_at', $selectedYear);
                 })
                 ->count();
-            $this->deleteAction = 'uncategorize';
+            $this->deleteAction = 'delete_products';
             $this->reassignCategoryId = '';
             $this->showDeleteModal = true;
         } catch (\Exception $e) {
@@ -326,23 +326,24 @@ class Categories extends Component
             $stockCount = $stocksQuery->count();
 
             if ($stockCount > 0) {
-                if ($this->deleteAction === 'delete_products') {
-                    // Delete only the products in the selected scope
-                    $stocksQuery->delete();
-                } elseif ($this->deleteAction === 'reassign' && !empty($this->reassignCategoryId)) {
+                if ($this->deleteAction === 'reassign' && !empty($this->reassignCategoryId)) {
                     $targetCategory = Category::find($this->reassignCategoryId);
                     if ($targetCategory) {
                         $stocksQuery->update([
                             'category' => $targetCategory->name,
                             'category_id' => $targetCategory->id,
                         ]);
+                    } else {
+                        $stocksQuery->delete();
                     }
-                } else {
-                    // Uncategorize products
+                } elseif ($this->deleteAction === 'uncategorize') {
                     $stocksQuery->update([
                         'category' => 'Uncategorized',
                         'category_id' => null,
                     ]);
+                } else {
+                    // Default: Delete associated products
+                    $stocksQuery->delete();
                 }
             }
 
