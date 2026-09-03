@@ -221,6 +221,20 @@ class StockController extends Controller
         // Fetch all categories in order so stock management displays all items regardless of category active toggle
         $categories = Category::ordered()->get();
         
+        // Auto-sync any stocks belonging to currently inactive categories to is_active=false, show_on_shop=false
+        $inactiveCats = Category::where('is_active', false)->get(['id', 'name']);
+        if ($inactiveCats->isNotEmpty()) {
+            $inactiveNames = $inactiveCats->pluck('name')->toArray();
+            $inactiveIds = $inactiveCats->pluck('id')->toArray();
+            Stock::where(function($q) use ($inactiveNames, $inactiveIds) {
+                $q->whereIn('category', $inactiveNames)
+                  ->orWhereIn('category_id', $inactiveIds);
+            })->where('is_active', true)->update([
+                'is_active' => false,
+                'show_on_shop' => false
+            ]);
+        }
+
         // Available years from orders
         $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
             ->distinct()

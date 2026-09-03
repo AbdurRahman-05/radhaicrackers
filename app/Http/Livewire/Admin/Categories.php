@@ -90,6 +90,20 @@ class Categories extends Component
 
     public function render()
     {
+        // Auto-sync any stocks belonging to currently inactive categories to is_active=false, show_on_shop=false
+        $inactiveCats = Category::where('is_active', false)->get(['id', 'name']);
+        if ($inactiveCats->isNotEmpty()) {
+            $inactiveNames = $inactiveCats->pluck('name')->toArray();
+            $inactiveIds = $inactiveCats->pluck('id')->toArray();
+            \App\Models\Stock::where(function($q) use ($inactiveNames, $inactiveIds) {
+                $q->whereIn('category', $inactiveNames)
+                  ->orWhereIn('category_id', $inactiveIds);
+            })->where('is_active', true)->update([
+                'is_active' => false,
+                'show_on_shop' => false
+            ]);
+        }
+
         $selectedYear = $this->selected_year;
         $query = Category::query();
 
@@ -375,8 +389,18 @@ class Categories extends Component
             $newStatus = !$category->is_active;
             $category->update(['is_active' => $newStatus]);
             
+            // Sync all stocks belonging to this category
+            \App\Models\Stock::where(function($q) use ($category) {
+                $q->where('category', $category->name)
+                  ->orWhere('category_id', $category->id)
+                  ->orWhere('category', (string)$category->id);
+            })->update([
+                'is_active' => $newStatus,
+                'show_on_shop' => $newStatus
+            ]);
+            
             $status = $newStatus ? 'activated' : 'deactivated';
-            session()->flash('success', "Category '{$category->name}' {$status} successfully!");
+            session()->flash('success', "Category '{$category->name}' and its products {$status} successfully!");
         } catch (\Exception $e) {
             session()->flash('error', 'An error occurred while updating the category status: ' . $e->getMessage());
         }
@@ -405,7 +429,7 @@ class Categories extends Component
     public function bulkDeactivateByYear($year)
     {
         try {
-            $updated = Category::where(function($q) use ($year) {
+            $cats = Category::where(function($q) use ($year) {
                 $q->whereExists(function($sub) use ($year) {
                     $sub->select(\Illuminate\Support\Facades\DB::raw(1))
                         ->from('stocks')
@@ -417,9 +441,18 @@ class Categories extends Component
                         });
                 })
                 ->orWhereYear('categories.created_at', $year);
-            })->update(['is_active' => false]);
+            })->get();
 
-            session()->flash('success', "Deactivated categories associated with year {$year} ({$updated} updated)!");
+            foreach ($cats as $cat) {
+                $cat->update(['is_active' => false]);
+                \App\Models\Stock::where(function($q) use ($cat) {
+                    $q->where('category', $cat->name)
+                      ->orWhere('category_id', $cat->id)
+                      ->orWhere('category', (string)$cat->id);
+                })->update(['is_active' => false, 'show_on_shop' => false]);
+            }
+
+            session()->flash('success', "Deactivated categories and products for year {$year} (" . count($cats) . " categories updated)!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to deactivate categories: ' . $e->getMessage());
@@ -429,7 +462,7 @@ class Categories extends Component
     public function bulkActivateByYear($year)
     {
         try {
-            $updated = Category::where(function($q) use ($year) {
+            $cats = Category::where(function($q) use ($year) {
                 $q->whereExists(function($sub) use ($year) {
                     $sub->select(\Illuminate\Support\Facades\DB::raw(1))
                         ->from('stocks')
@@ -441,9 +474,18 @@ class Categories extends Component
                         });
                 })
                 ->orWhereYear('categories.created_at', $year);
-            })->update(['is_active' => true]);
+            })->get();
 
-            session()->flash('success', "Activated categories associated with year {$year} ({$updated} updated)!");
+            foreach ($cats as $cat) {
+                $cat->update(['is_active' => true]);
+                \App\Models\Stock::where(function($q) use ($cat) {
+                    $q->where('category', $cat->name)
+                      ->orWhere('category_id', $cat->id)
+                      ->orWhere('category', (string)$cat->id);
+                })->update(['is_active' => true, 'show_on_shop' => true]);
+            }
+
+            session()->flash('success', "Activated categories and products for year {$year} (" . count($cats) . " categories updated)!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to activate categories: ' . $e->getMessage());
@@ -453,8 +495,9 @@ class Categories extends Component
     public function bulkDeactivateAll()
     {
         try {
-            $updated = Category::query()->update(['is_active' => false]);
-            session()->flash('success', "All categories have been deactivated ({$updated} categories)!");
+            Category::query()->update(['is_active' => false]);
+            \App\Models\Stock::query()->update(['is_active' => false, 'show_on_shop' => false]);
+            session()->flash('success', "All categories and products have been deactivated!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to deactivate all categories: ' . $e->getMessage());
@@ -464,8 +507,9 @@ class Categories extends Component
     public function bulkActivateAll()
     {
         try {
-            $updated = Category::query()->update(['is_active' => true]);
-            session()->flash('success', "All categories have been activated ({$updated} categories)!");
+            Category::query()->update(['is_active' => true]);
+            \App\Models\Stock::query()->update(['is_active' => true, 'show_on_shop' => true]);
+            session()->flash('success', "All categories and products have been activated!");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to activate all categories: ' . $e->getMessage());
