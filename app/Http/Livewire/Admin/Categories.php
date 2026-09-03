@@ -92,20 +92,6 @@ class Categories extends Component
 
     public function render()
     {
-        // Auto-sync any stocks belonging to currently inactive categories to is_active=false, show_on_shop=false
-        $inactiveCats = Category::where('is_active', false)->get(['id', 'name']);
-        if ($inactiveCats->isNotEmpty()) {
-            $inactiveNames = $inactiveCats->pluck('name')->toArray();
-            $inactiveIds = $inactiveCats->pluck('id')->toArray();
-            \App\Models\Stock::where(function($q) use ($inactiveNames, $inactiveIds) {
-                $q->whereIn('category', $inactiveNames)
-                  ->orWhereIn('category_id', $inactiveIds);
-            })->where('is_active', true)->update([
-                'is_active' => false,
-                'show_on_shop' => false
-            ]);
-        }
-
         $selectedYear = $this->selected_year;
         $query = Category::query();
 
@@ -390,20 +376,42 @@ class Categories extends Component
         try {
             $category = Category::findOrFail($categoryId);
             $newStatus = !$category->is_active;
-            $category->update(['is_active' => $newStatus]);
             
-            // Sync all stocks belonging to this category
-            \App\Models\Stock::where(function($q) use ($category) {
+            $yearScope = $this->selected_year;
+            $stockQuery = \App\Models\Stock::where(function($q) use ($category) {
                 $q->where('category', $category->name)
                   ->orWhere('category_id', $category->id)
                   ->orWhere('category', (string)$category->id);
-            })->update([
-                'is_active' => $newStatus,
-                'show_on_shop' => $newStatus
-            ]);
+            });
+
+            if ($yearScope !== '' && $yearScope !== null && $yearScope !== 'all') {
+                // Only toggle stocks for the selected year
+                $stockQuery->whereYear('created_at', $yearScope)->update([
+                    'is_active' => $newStatus,
+                    'show_on_shop' => $newStatus
+                ]);
+
+                // Update category is_active if it has active products in any year
+                $hasActiveProducts = \App\Models\Stock::where(function($q) use ($category) {
+                    $q->where('category', $category->name)
+                      ->orWhere('category_id', $category->id)
+                      ->orWhere('category', (string)$category->id);
+                })->where('is_active', true)->exists();
+
+                $category->update(['is_active' => $newStatus ? true : $hasActiveProducts]);
+                $yearMsg = "for year {$yearScope}";
+            } else {
+                // Toggle all stocks if no year filter
+                $stockQuery->update([
+                    'is_active' => $newStatus,
+                    'show_on_shop' => $newStatus
+                ]);
+                $category->update(['is_active' => $newStatus]);
+                $yearMsg = "all-time";
+            }
             
             $status = $newStatus ? 'activated' : 'deactivated';
-            session()->flash('success', "Category '{$category->name}' and its products {$status} successfully!");
+            session()->flash('success', "Category '{$category->name}' {$status} ({$yearMsg})!");
         } catch (\Exception $e) {
             session()->flash('error', 'An error occurred while updating the category status: ' . $e->getMessage());
         }
@@ -432,30 +440,13 @@ class Categories extends Component
     public function bulkDeactivateByYear($year)
     {
         try {
-            $cats = Category::where(function($q) use ($year) {
-                $q->whereExists(function($sub) use ($year) {
-                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
-                        ->from('stocks')
-                        ->whereYear('stocks.created_at', $year)
-                        ->where(function($sq) {
-                            $sq->whereColumn('stocks.category', 'categories.name')
-                               ->orWhereColumn('stocks.category_id', 'categories.id')
-                               ->orWhereColumn('stocks.category', 'categories.id');
-                        });
-                })
-                ->orWhereYear('categories.created_at', $year);
-            })->get();
+            // Deactivate ONLY stocks of this specific year
+            $updated = \App\Models\Stock::whereYear('created_at', $year)->update([
+                'is_active' => false,
+                'show_on_shop' => false
+            ]);
 
-            foreach ($cats as $cat) {
-                $cat->update(['is_active' => false]);
-                \App\Models\Stock::where(function($q) use ($cat) {
-                    $q->where('category', $cat->name)
-                      ->orWhere('category_id', $cat->id)
-                      ->orWhere('category', (string)$cat->id);
-                })->update(['is_active' => false, 'show_on_shop' => false]);
-            }
-
-            session()->flash('success', "Deactivated categories and products for year {$year} (" . count($cats) . " categories updated)!");
+            session()->flash('success', "Deactivated all {$year} products ({$updated} products updated)! Other years remain unchanged.");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to deactivate categories: ' . $e->getMessage());
@@ -465,30 +456,19 @@ class Categories extends Component
     public function bulkActivateByYear($year)
     {
         try {
-            $cats = Category::where(function($q) use ($year) {
-                $q->whereExists(function($sub) use ($year) {
-                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
-                        ->from('stocks')
-                        ->whereYear('stocks.created_at', $year)
-                        ->where(function($sq) {
-                            $sq->whereColumn('stocks.category', 'categories.name')
-                               ->orWhereColumn('stocks.category_id', 'categories.id')
-                               ->orWhereColumn('stocks.category', 'categories.id');
-                        });
-                })
-                ->orWhereYear('categories.created_at', $year);
-            })->get();
+            // Activate ONLY stocks of this specific year
+            $updated = \App\Models\Stock::whereYear('created_at', $year)->update([
+                'is_active' => true,
+                'show_on_shop' => true
+            ]);
 
-            foreach ($cats as $cat) {
-                $cat->update(['is_active' => true]);
-                \App\Models\Stock::where(function($q) use ($cat) {
-                    $q->where('category', $cat->name)
-                      ->orWhere('category_id', $cat->id)
-                      ->orWhere('category', (string)$cat->id);
-                })->update(['is_active' => true, 'show_on_shop' => true]);
+            // Ensure categories associated with these stocks are enabled
+            $categoryNames = \App\Models\Stock::whereYear('created_at', $year)->pluck('category')->unique()->filter();
+            if ($categoryNames->isNotEmpty()) {
+                Category::whereIn('name', $categoryNames)->update(['is_active' => true]);
             }
 
-            session()->flash('success', "Activated categories and products for year {$year} (" . count($cats) . " categories updated)!");
+            session()->flash('success', "Activated all {$year} products ({$updated} products updated)! Other years remain unchanged.");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to activate categories: ' . $e->getMessage());
@@ -522,30 +502,13 @@ class Categories extends Component
     public function bulkDeleteByYear($year)
     {
         try {
-            $cats = Category::where(function($q) use ($year) {
-                $q->whereExists(function($sub) use ($year) {
-                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
-                        ->from('stocks')
-                        ->whereYear('stocks.created_at', $year)
-                        ->where(function($sq) {
-                            $sq->whereColumn('stocks.category', 'categories.name')
-                               ->orWhereColumn('stocks.category_id', 'categories.id')
-                               ->orWhereColumn('stocks.category', 'categories.id');
-                        });
-                })
-                ->orWhereYear('categories.created_at', $year);
-            })->get();
+            // Delete ONLY stocks of this specific year
+            $deletedStocks = \App\Models\Stock::whereYear('created_at', $year)->delete();
 
-            $deletedCount = 0;
-            foreach ($cats as $cat) {
-                // Delete products created in that year
-                \App\Models\Stock::where(function($q) use ($cat) {
-                    $q->where('category', $cat->name)
-                      ->orWhere('category_id', $cat->id)
-                      ->orWhere('category', (string)$cat->id);
-                })->whereYear('created_at', $year)->delete();
-
-                // Check if category has products in other years
+            // Only delete categories that have NO stocks in any other year
+            $categories = Category::all();
+            $deletedCats = 0;
+            foreach ($categories as $cat) {
                 $otherCount = \App\Models\Stock::where(function($q) use ($cat) {
                     $q->where('category', $cat->name)
                       ->orWhere('category_id', $cat->id)
@@ -554,11 +517,11 @@ class Categories extends Component
 
                 if ($otherCount === 0) {
                     $cat->delete();
-                    $deletedCount++;
+                    $deletedCats++;
                 }
             }
 
-            session()->flash('success', "Deleted categories and products for year {$year} ({$deletedCount} categories removed)!");
+            session()->flash('success', "Deleted {$deletedStocks} products for year {$year}! ({$deletedCats} unused categories removed)");
             $this->resetPage();
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to bulk delete categories: ' . $e->getMessage());

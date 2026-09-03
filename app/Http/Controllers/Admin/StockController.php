@@ -85,6 +85,13 @@ class StockController extends Controller
             } else {
                 $msgYear = "all-time";
             }
+
+            // Ensure categories associated with these stocks are active
+            $catNames = (clone $query)->pluck('category')->unique()->filter();
+            if ($catNames->isNotEmpty()) {
+                Category::whereIn('name', $catNames)->update(['is_active' => true]);
+            }
+
             $count = $query->update(['is_active' => true]);
             return redirect()->back()->with('success', "Activated {$count} stock items ({$msgYear})!");
         } catch (\Exception $e) {
@@ -106,6 +113,13 @@ class StockController extends Controller
             } else {
                 $msgYear = "all-time";
             }
+
+            // Ensure categories associated with these stocks are active
+            $catNames = (clone $query)->pluck('category')->unique()->filter();
+            if ($catNames->isNotEmpty()) {
+                Category::whereIn('name', $catNames)->update(['is_active' => true]);
+            }
+
             $count = $query->update(['show_on_shop' => true]);
             return redirect()->back()->with('success', "Set {$count} stock items visible on shop ({$msgYear})!");
         } catch (\Exception $e) {
@@ -242,20 +256,6 @@ class StockController extends Controller
     {
         // Fetch all categories in order so stock management displays all items regardless of category active toggle
         $categories = Category::ordered()->get();
-        
-        // Auto-sync any stocks belonging to currently inactive categories to is_active=false, show_on_shop=false
-        $inactiveCats = Category::where('is_active', false)->get(['id', 'name']);
-        if ($inactiveCats->isNotEmpty()) {
-            $inactiveNames = $inactiveCats->pluck('name')->toArray();
-            $inactiveIds = $inactiveCats->pluck('id')->toArray();
-            Stock::where(function($q) use ($inactiveNames, $inactiveIds) {
-                $q->whereIn('category', $inactiveNames)
-                  ->orWhereIn('category_id', $inactiveIds);
-            })->where('is_active', true)->update([
-                'is_active' => false,
-                'show_on_shop' => false
-            ]);
-        }
 
         // Available years from orders
         $orderYears = \App\Models\Order::selectRaw('YEAR(created_at) as year')
