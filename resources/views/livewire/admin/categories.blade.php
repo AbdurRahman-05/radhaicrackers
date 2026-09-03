@@ -217,8 +217,8 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <button wire:click="toggleStatus({{ $category->id }})" wire:loading.attr="disabled" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $category->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} disabled:opacity-50">
-                                    <span wire:loading.remove>{{ $category->is_active ? 'Active' : 'Inactive' }}</span>
+                                <button wire:click="toggleStatus({{ $category->id }})" wire:loading.attr="disabled" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ ($category->year_is_active ?? $category->is_active) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} disabled:opacity-50">
+                                    <span wire:loading.remove>{{ ($category->year_is_active ?? $category->is_active) ? 'Active' : 'Inactive' }}</span>
                                     <span wire:loading>Toggling...</span>
                                 </button>
                             </td>
