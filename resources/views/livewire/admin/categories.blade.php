@@ -121,7 +121,7 @@
             </div>
         </div>
 
-        @if(count($selectedCategories) > 0)
+        @if(!empty($selectedCategories))
             <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
                 <div class="text-xs font-bold text-red-800">
                     <i class="fas fa-check-square mr-1"></i> {{ count($selectedCategories) }} {{ Str::plural('category', count($selectedCategories)) }} selected

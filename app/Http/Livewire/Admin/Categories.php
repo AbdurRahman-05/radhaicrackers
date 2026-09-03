@@ -27,6 +27,8 @@ class Categories extends Component
 
     public $selected_year = '';
     public $available_years = [];
+    public $selectedCategories = [];
+    public $selectAll = false;
 
     public function mount()
     {
