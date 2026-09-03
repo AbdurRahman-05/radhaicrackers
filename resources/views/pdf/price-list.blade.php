@@ -27,10 +27,11 @@
             text-transform: uppercase;
         }
 
-        /* Category Section Container */
+        /* Category Section Container - prevent orphan headings */
         .category-section {
-            page-break-inside: auto;
-            margin-bottom: 15px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            margin-bottom: 12px;
         }
 
         /* Product Table Styling */
@@ -45,6 +46,17 @@
         /* Bind table headers together */
         .price-list-table thead {
             display: table-header-group;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            break-after: avoid !important;
+        }
+
+        .price-list-table thead tr {
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            break-after: avoid !important;
         }
 
         /* Prevent individual product row mid-row page splits */
@@ -78,6 +90,10 @@
             text-align: center !important;
             border-bottom: 1.5px solid #1E093B;
             text-transform: uppercase;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
 
         .price-list-table tr:nth-child(even) td {
@@ -163,23 +179,27 @@
     
     @foreach($categories as $category)
         @if(isset($groupedStocks[$category->name]) && $groupedStocks[$category->name]->count() > 0)
-            <div class="category-section">
+            @php
+                $itemCount = $groupedStocks[$category->name]->count();
+                $avoidBreak = $itemCount <= 12;
+            @endphp
+            <div class="category-section" style="{{ $avoidBreak ? 'page-break-inside: avoid; break-inside: avoid;' : 'page-break-inside: auto;' }}">
                 <table class="price-list-table">
                     <thead>
-                        <tr>
+                        <tr style="page-break-inside: avoid; page-break-after: avoid;">
                             <th colspan="{{ $colSpan }}" class="category-title-cell">
                                 {{ trim($category->name) }}
                             </th>
                         </tr>
-                        <tr>
+                        <tr style="page-break-inside: avoid; page-break-after: avoid;">
                             <th style="width: 36px;" class="text-center">S.No</th>
                             @if($showImages ?? true)
                             <th style="width: 65px;" class="text-center">Image</th>
                             @endif
                             <th class="text-left" style="padding-left: 8px;">Product Details</th>
                             @if($showPrices ?? true)
-                            <th style="width: 75px;" class="text-right" style="padding-right: 8px;">MRP (Rs.)</th>
-                            <th style="width: 90px;" class="text-right" style="padding-right: 8px;">Rate (Rs.)</th>
+                            <th style="width: 75px;" class="text-center">MRP (Rs.)</th>
+                            <th style="width: 90px;" class="text-center">Rate (Rs.)</th>
                             @endif
                             <th style="width: 42px;" class="text-center">Qty</th>
                         </tr>
@@ -205,10 +225,10 @@
                                     @endif
                                 </td>
                                 @if($showPrices ?? true)
-                                <td class="text-right" style="vertical-align: middle; padding-right: 8px;">
+                                <td class="text-center" style="vertical-align: middle;">
                                     {{ number_format($item->original_price, 2) }}
                                 </td>
-                                <td class="text-right" style="vertical-align: middle; padding-right: 8px; font-weight: bold; color: #1E093B;">
+                                <td class="text-center" style="vertical-align: middle; font-weight: bold; color: #1E093B;">
                                     {{ number_format($item->price, 2) }}
                                 </td>
                                 @endif
