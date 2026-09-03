@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Price List 2025 - Radhe Crackers')
+@section('title', 'Price List ' . date('Y') . ' - Radhe Crackers')
 
 @section('content')
 <div class="py-8 bg-gradient-to-br from-gray-50 to-yellow-50 min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header Section -->
         <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">Price List 2025</h1>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Price List {{ date('Y') }}</h1>
             <p class="text-lg text-gray-600 mb-6">Quality fireworks at amazing prices</p>
             
             <div class="mt-4 max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
