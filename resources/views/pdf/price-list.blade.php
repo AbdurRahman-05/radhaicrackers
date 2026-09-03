@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="ta">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <style>
-        @font-face {
-            font-family: 'Noto Sans Tamil';
-            font-style: normal;
-            font-weight: normal;
-            src: url('{{ public_path('fonts/NotoSansTamil-Regular.ttf') }}') format('truetype');
-        }
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 8mm;
         }
 
-        body, th, td {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+        body, th, td, div, span, h1, h2, h3, p {
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif !important;
+        }
+
+        body {
+            color: #111827;
+            font-size: 11px;
+            line-height: 1.3;
         }
 
         .header-box {
-            border: 1px solid #000;
+            border: 1.5px solid #1E093B;
             border-bottom: none;
             margin-bottom: 0;
             background: #fff;
@@ -30,7 +30,7 @@
         .logo-container {
             display: inline-block;
             vertical-align: top;
-            margin-right: 20px;
+            width: 110px;
         }
 
         .logo-container img {
@@ -41,66 +41,61 @@
         .address-container {
             display: inline-block;
             vertical-align: top;
-            max-width: calc(100% - 140px); 
-        }
-
-        .company-address {
-            display: inline-block;
-            font-size: 10px;
-            color: #333;
-            line-height: 1.4;
-            text-align: left;
+            width: calc(100% - 130px);
+            text-align: center;
         }
 
         .title-logo {
             text-align: center;
             width: 100%;
-            margin: 10px 0;
+            margin-bottom: 5px;
         }
 
         .title-logo img {
-            max-width: 100%;
-            width: 250px;
+            width: 260px;
             height: auto;
             display: inline-block;
         }
 
-        .company-title {
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
-            font-size: 32px;
-            font-weight: bold;
+        .company-address {
+            display: block;
+            font-size: 10px;
+            color: #374151;
+            line-height: 1.4;
             text-align: center;
-            letter-spacing: 1px;
         }
 
         .company-info-box {
             width: 100%;
             font-size: 10px;
-            padding: 8px 10px;
-            border: 1px solid #000;
-            border-top: none;
+            padding: 6px 10px;
+            border: 1.5px solid #1E093B;
+            border-top: 1px solid #e5e7eb;
             box-sizing: border-box;
             text-align: center;
+            background: #fdfaf6;
         }
 
         .info-block {
             display: inline-block;
             padding: 0px 10px;
             box-sizing: border-box;
+            color: #1f2937;
         }
 
         .page-title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             text-align: center;
-            margin: 15px 0 20px 0;
+            margin: 12px 0 14px 0;
             color: #1E093B;
+            text-transform: uppercase;
         }
 
         /* Category Section Container */
         .category-section {
             page-break-inside: auto;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         /* Product Table Styling */
@@ -108,11 +103,11 @@
             width: 100%;
             border-collapse: collapse;
             background: #fff;
-            border: 1px solid #000;
+            border: 1.5px solid #1E093B;
             page-break-inside: auto;
         }
 
-        /* Bind table headers together so Category Title + Column Headers + 1st row move together */
+        /* Bind table headers together */
         .price-list-table thead {
             display: table-header-group;
         }
@@ -124,11 +119,9 @@
         }
 
         .price-list-table th, .price-list-table td {
-            border: 1px solid #000;
-            padding: 6px 6px;
-            text-align: center;
-            font-size: 11px;
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
+            border: 1px solid #9ca3af;
+            padding: 5px 6px;
+            font-size: 10.5px;
             box-sizing: border-box;
         }
 
@@ -136,44 +129,65 @@
             background: #f3f4f6;
             color: #1E093B;
             font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
         }
 
-        /* Blue Heading Cell - centered heading, full 100% column width */
+        /* Category Title Cell */
         .category-title-cell {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             color: #1E093B;
             background: #eef2ff !important;
-            padding: 8px 12px;
+            padding: 7px 10px;
             text-align: center !important;
-            border-bottom: 1.5px solid #000;
-            letter-spacing: 0.5px;
+            border-bottom: 1.5px solid #1E093B;
             text-transform: uppercase;
         }
 
         .price-list-table tr:nth-child(even) td {
-            background: #f9fafb;
+            background: #fafafa;
         }
 
         .product-name {
-            text-align: center;
-            font-weight: 500;
-            font-size: 13px;
+            font-weight: bold;
+            font-size: 11px;
+            color: #111827;
         }
 
         .product-description {
-            text-align: center;
-            font-size: 10px;
-            color: #666;
+            font-size: 9.5px;
+            color: #6b7280;
+            margin-top: 2px;
         }
 
         .text-left {
             text-align: left !important;
         }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .text-right {
+            text-align: right !important;
+        }
+
+        .image-placeholder {
+            width: 50px;
+            height: 50px;
+            background: #f3f4f6;
+            border: 1px dashed #d1d5db;
+            color: #9ca3af;
+            font-size: 8px;
+            text-align: center;
+            line-height: 50px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
-<div class="wrapper" style="margin-top:10px;">
+<div class="wrapper">
     <div class="header-box">
         <div class="logo-container">
             <img src="{{ public_path('images/company_logo.png') }}" alt="Company Logo" />
@@ -183,14 +197,14 @@
                 <img src="{{ public_path('images/logotitle.png') }}" alt="Company Address" />
             </div>
             <span class="company-address">
-                  4/273-11/7, Virudhunagar Main Road, Amathur ,Virudhunagar District, Tamilnadu-626005
+                4/273-11/7, Virudhunagar Main Road, Amathur, Virudhunagar District, Tamilnadu - 626005
             </span>
         </div>
     </div>
 
     <div class="company-info-box">
         <div class="info-block">
-            <span><strong>Contact Numbers:</strong> +91 88070 60809, +91 97510 48974</span>
+            <span><strong>Contact:</strong> +91 88070 60809, +91 97510 48974</span>
         </div>
         <div class="info-block">
             <span><strong>Email:</strong> radhecrackers@gmail.com</span>
@@ -223,55 +237,47 @@
                             </th>
                         </tr>
                         <tr>
-                            <th style="width: 40px;">S.No</th>
+                            <th style="width: 36px;" class="text-center">S.No</th>
                             @if($showImages ?? true)
-                            <th style="width: 90px;">Image</th>
+                            <th style="width: 65px;" class="text-center">Image</th>
                             @endif
-                            <th class="text-left">Product Details</th>
+                            <th class="text-left" style="padding-left: 8px;">Product Details</th>
                             @if($showPrices ?? true)
-                            <th style="width: 60px;">MRP ₹</th>
-                            <th style="width: 80px;">Disc(70%) + Sp.Disc(15%)</th>
+                            <th style="width: 75px;" class="text-right" style="padding-right: 8px;">MRP (Rs.)</th>
+                            <th style="width: 90px;" class="text-right" style="padding-right: 8px;">Rate (Rs.)</th>
                             @endif
-                            <th style="width: 45px;">Qty</th>
+                            <th style="width: 42px;" class="text-center">Qty</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($groupedStocks[$category->name]->sortBy('order_within_category') as $item)
                             @php $Sno++; @endphp
                             <tr class="product-row">
-                                <td>{{ $Sno }}</td>
+                                <td class="text-center" style="vertical-align: middle;">{{ $Sno }}</td>
                                 @if($showImages ?? true)
-                                <td>
-                                    @if($item->image)
-                                        <img src="{{ public_path('storage/' . $item->image) }}" alt="{{ $item->item_name }}" style="width: 65px; height: 65px; object-fit: contain;">
+                                <td class="text-center" style="vertical-align: middle; padding: 4px;">
+                                    @if($item->image && file_exists(public_path('storage/' . $item->image)))
+                                        <img src="{{ public_path('storage/' . $item->image) }}" alt="{{ $item->item_name }}" style="width: 50px; height: 50px; object-fit: contain;">
                                     @else
-                                        <div style="width: 65px; height: 65px; background: #f5f5f5; text-align: center; font-size: 20px; line-height: 65px; margin: 0 auto;">
-                                            @switch($item->category)
-                                                @case('BOMBS') 💣 @break
-                                                @case('SINGLE FLASH') ⚡ @break
-                                                @case('ROCKETS') 🚀 @break
-                                                @case('SPARKLERS') ✨ @break
-                                                @case('CHIT PUT') 🎆 @break
-                                                @case('TWINKLING STAR') ⭐ @break
-                                                @case('GIFT BOX') 🎁 @break
-                                                @case('BIJILI CRACKERS') ⚡ @break
-                                                @default 🎆
-                                            @endswitch
-                                        </div>
+                                        <div class="image-placeholder">No Image</div>
                                     @endif
                                 </td>
                                 @endif
-                                <td>
+                                <td class="text-left" style="vertical-align: middle; padding: 4px 8px;">
                                     <div class="product-name">{!! nl2br(e($item->item_name)) !!}</div>
                                     @if($item->description)
                                         <div class="product-description">{!! nl2br(e($item->description)) !!}</div>
                                     @endif
                                 </td>
                                 @if($showPrices ?? true)
-                                <td>{{ number_format($item->original_price, 2) }}</td>
-                                <td>{{ number_format($item->price, 2) }}</td>
+                                <td class="text-right" style="vertical-align: middle; padding-right: 8px;">
+                                    {{ number_format($item->original_price, 2) }}
+                                </td>
+                                <td class="text-right" style="vertical-align: middle; padding-right: 8px; font-weight: bold; color: #1E093B;">
+                                    {{ number_format($item->price, 2) }}
+                                </td>
                                 @endif
-                                <td></td>
+                                <td class="text-center" style="vertical-align: middle;"></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -281,9 +287,9 @@
     @endforeach
 
     <!-- Footer -->
-    <table style="width:100%; border-collapse:collapse; margin-top:20px; border:1px solid #000; page-break-inside:avoid;">
+    <table style="width:100%; border-collapse:collapse; margin-top:15px; border:1.5px solid #1E093B; page-break-inside:avoid;">
         <tr>
-            <td style="width:100%; border:1px solid #000; text-align:center; height:48px; vertical-align:bottom; font-size:13px; font-weight:bold;">
+            <td style="width:100%; border:none; text-align:center; height:45px; vertical-align:middle; font-size:12px; font-weight:bold; color:#1E093B;">
                 <span style="text-decoration:underline;">For Radhe Crackers</span>
             </td>
         </tr>
