@@ -108,7 +108,8 @@
 
         .product-description {
             font-size: 9.5px;
-            color: #6b7280;
+            color: #111827;
+            font-weight: bold;
             margin-top: 2px;
         }
 

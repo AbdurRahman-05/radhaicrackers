@@ -221,7 +221,7 @@
                     <td>
                         <div style="font-weight: bold;">{{ is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-') }}</div>
                         @if($productDesc)
-                            <div style="font-size: 9px; color: #555; margin-top: 1px;">{{ $productDesc }}</div>
+                            <div style="font-size: 9px; color: #111827; font-weight: bold; margin-top: 1px;">{{ $productDesc }}</div>
                         @endif
                     </td>
                     <td>{{ is_array($item) ? ($item['quantity'] ?? '-') : ($item->quantity ?? '-') }}</td>

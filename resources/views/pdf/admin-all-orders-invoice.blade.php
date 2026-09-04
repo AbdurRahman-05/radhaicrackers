@@ -490,7 +490,7 @@
                         <td class="product">
                             <div>{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</div>
                             @if($productDesc)
-                                <div style="font-size: 8px; color: #555; margin-top: 1px; line-height: 1.1;">{{ $productDesc }}</div>
+                                <div style="font-size: 8px; color: #111827; font-weight: bold; margin-top: 1px; line-height: 1.1;">{{ $productDesc }}</div>
                             @endif
                         </td>
                         <td class="mrp">{{ number_format($originalPrice, 2) }}</td>
