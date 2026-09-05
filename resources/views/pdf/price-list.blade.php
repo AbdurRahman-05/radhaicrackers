@@ -200,7 +200,7 @@
                             <th class="text-left" style="padding-left: 8px;">Product Details</th>
                             @if($showPrices ?? true)
                             <th style="width: 75px;" class="text-center">MRP (Rs.)</th>
-                            <th style="width: 90px;" class="text-center">Rate (Rs.)</th>
+                            <th style="width: 105px;" class="text-center">Disc(70%) + Sp.Disc(15%)</th>
                             @endif
                             <th style="width: 42px;" class="text-center">Qty</th>
                         </tr>
