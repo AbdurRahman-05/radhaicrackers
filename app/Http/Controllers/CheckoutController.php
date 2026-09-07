@@ -58,6 +58,8 @@ class CheckoutController extends Controller
             'verify_code' => 'required|string',
             'coupon_code' => 'nullable|string',
             'coupon_discount' => 'nullable|numeric|min:0',
+            'lucky_spin_prize' => 'nullable|string',
+            'lucky_spin_discount' => 'nullable|numeric|min:0',
             'total' => 'required|numeric|min:0',
         ]);
 

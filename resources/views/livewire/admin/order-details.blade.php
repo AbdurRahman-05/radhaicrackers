@@ -141,6 +141,20 @@
                             {{ ucfirst($order->payment_status) }}
                         </span>
                     </div>
+                    @if($order->lucky_spin_prize)
+                    <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span class="text-sm font-medium text-amber-700">🎡 Lucky Spin Prize:</span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold {{ str_contains(strtolower($order->lucky_spin_prize), 'better luck') ? 'bg-gray-100 text-gray-700' : 'bg-amber-100 text-amber-900 border border-amber-300' }}">
+                            {{ $order->lucky_spin_prize }}
+                        </span>
+                    </div>
+                    @endif
+                    @if($order->lucky_spin_discount > 0)
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-emerald-700">🎡 Spin Discount (5%):</span>
+                        <span class="text-sm font-bold text-emerald-600">-₹{{ number_format($order->lucky_spin_discount, 2) }}</span>
+                    </div>
+                    @endif
                     <div>
                         <span class="text-sm font-medium text-gray-500">Total Amount:</span>
                         <span class="ml-2 text-sm font-bold text-gray-900">₹{{ number_format($order->total, 2) }}</span>
@@ -185,15 +199,37 @@
                             @php
                                 $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
                                 $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                                $isGift = !empty($item['is_lucky_spin_gift']);
+                                $itemPrice = $isGift ? 0 : (float)($item['price'] ?? $item['rate'] ?? 0);
+                                $itemQty = (int)($item['quantity'] ?? 0);
                             @endphp
-                            <tr>
+                            <tr class="{{ $isGift ? 'bg-amber-50/50' : '' }}">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{!! html_entity_decode($item['product_name'] ?? '-') !!}</div>
+                                    <div class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                                        {!! html_entity_decode($item['product_name'] ?? '-') !!}
+                                        @if($isGift)
+                                            <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                                🎁 Lucky Spin Gift
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item['quantity'] ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($item['price'] ?? $item['rate'] ?? 0, 2) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{{ number_format(($item['price'] ?? $item['rate'] ?? 0) * ($item['quantity'] ?? 0), 2) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $itemQty ?: '-' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @if($isGift)
+                                        <span class="text-amber-800 font-bold">FREE (₹0.00)</span>
+                                    @else
+                                        ₹{{ number_format($itemPrice, 2) }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    @if($isGift)
+                                        <span class="text-amber-800 font-bold">₹0.00</span>
+                                    @else
+                                        ₹{{ number_format($itemPrice * $itemQty, 2) }}
+                                    @endif
+                                </td>
                             </tr>
                             @endforeach
                         @else
@@ -201,15 +237,37 @@
                         @php
                             $productId = $item->product_id ?? $item->stock_id ?? null;
                             $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                            $isGift = !empty($item->is_lucky_spin_gift);
+                            $itemPrice = $isGift ? 0 : (float)($item->price ?? $item->rate ?? 0);
+                            $itemQty = (int)($item->quantity ?? 0);
                         @endphp
-                        <tr>
+                        <tr class="{{ $isGift ? 'bg-amber-50/50' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{!! html_entity_decode($item->product_name ?? '-') !!}</div>
+                                <div class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                                    {!! html_entity_decode($item->product_name ?? '-') !!}
+                                    @if($isGift)
+                                        <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                            🎁 Lucky Spin Gift
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->quantity ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($item->price ?? $item->rate ?? 0, 2) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{{ number_format(($item->price ?? $item->rate ?? 0) * ($item->quantity ?? 0), 2) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $itemQty ?: '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                @if($isGift)
+                                    <span class="text-amber-800 font-bold">FREE (₹0.00)</span>
+                                @else
+                                    ₹{{ number_format($itemPrice, 2) }}
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                @if($isGift)
+                                    <span class="text-amber-800 font-bold">₹0.00</span>
+                                @else
+                                    ₹{{ number_format($itemPrice * $itemQty, 2) }}
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                         @endif

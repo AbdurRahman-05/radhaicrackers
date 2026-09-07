@@ -433,6 +433,23 @@
                 <span>Total Amount:</span>
                 <span id="summary-total">₹0.00</span>
             </div>
+
+            <!-- Lucky Wheel Teaser inside Estimate Cart -->
+            <div onclick="openLuckyWheelPopup()" class="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-600/15 border border-amber-400/40 flex items-center justify-between cursor-pointer hover:bg-amber-500/25 transition-all text-xs shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl animate-spin" style="animation-duration: 10s;">🎡</span>
+                    <div class="text-left leading-tight">
+                        <div class="font-extrabold text-amber-900 text-[11px] flex items-center gap-1">
+                            <span>Diwali Lucky Wheel</span>
+                            <span class="bg-amber-400 text-purple-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">Offer</span>
+                        </div>
+                        <div class="text-[10px] text-gray-600 font-medium">Orders &gt; ₹5,000 get Free Spin at checkout!</div>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold text-purple-950 bg-amber-300 hover:bg-amber-400 px-2 py-0.5 rounded-full shadow-sm flex-shrink-0">
+                    View Wheel &rarr;
+                </span>
+            </div>
             
             <div class="grid grid-cols-2 gap-2 mt-2">
                 <button onclick="generateEstimate()" id="summary-estimate-btn" class="text-white py-3 rounded-xl text-xs sm:text-sm font-bold shadow transition-colors flex items-center justify-center bg-[#B67121] hover:bg-orange-600">
@@ -446,6 +463,9 @@
         </div>
     </div>
 </div>
+
+<!-- Lucky Spinning Wheel Pop-up Modal & Floating Widget -->
+@include('components.lucky-wheel-popup')
 
 <script>
 // Store product data (using original unfiltered data for cart management)
@@ -587,6 +607,10 @@ function updateCartTotal() {
     document.getElementById('cart-total').textContent = totalStr;
     
     renderCartSummary();
+
+    if (typeof window.syncPopupCartStatus === 'function') {
+        window.syncPopupCartStatus();
+    }
 }
 
 // Proceed to checkout

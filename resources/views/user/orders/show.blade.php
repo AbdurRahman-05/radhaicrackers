@@ -89,6 +89,9 @@
                         $originalOrderValue = 0;
                         if (isset($order->items) && is_iterable($order->items)) {
                             foreach ($order->items as $item) {
+                                if (!empty($item['is_lucky_spin_gift'])) {
+                                    continue; // Skip free gifts from calculating subtotal
+                                }
                                 // Use original price if available, otherwise use current price
                                 $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
                                 $quantity = $item['quantity'] ?? 0;
@@ -104,7 +107,8 @@
                         $packing = round($afterSpecial * 0.05, 2);
                         $netAmount = $afterSpecial + $packing;
                         $couponDiscount = $order->coupon_discount ?? 0;
-                        $finalAmount = $netAmount - $couponDiscount;
+                        $spinDiscount = $order->lucky_spin_discount ?? 0;
+                        $finalAmount = max(0, $netAmount - $couponDiscount - $spinDiscount);
                     @endphp
                     
                     <div><strong>Order Value:</strong> ₹{{ number_format($originalOrderValue, 2) }}</div>
@@ -127,6 +131,15 @@
                     @endif
                     @if($couponDiscount > 0)
                         <div><strong>Coupon Discount:</strong> -₹{{ number_format($couponDiscount, 2) }}</div>
+                    @endif
+                    @if($order->lucky_spin_prize)
+                        <div class="mt-1 p-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between">
+                            <span class="font-bold text-amber-900">🎡 Lucky Spin Prize:</span>
+                            <span class="font-extrabold text-amber-950">{{ $order->lucky_spin_prize }}</span>
+                        </div>
+                    @endif
+                    @if($spinDiscount > 0)
+                        <div class="text-emerald-700 font-bold"><strong>🎡 Lucky Spin Disc (5%):</strong> -₹{{ number_format($spinDiscount, 2) }}</div>
                     @endif
                     <div><strong>Final Amount:</strong> ₹{{ number_format($finalAmount, 2) }}</div>
                     <div><strong>Receive Amount:</strong>
@@ -167,34 +180,51 @@
             @if($order->items && count($order->items) > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead class="bg-gray-50">
-            <tr>
+                        <thead class="bg-gray-50">
+                            <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-            </tr>
-        </thead>
+                            </tr>
+                        </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-            @foreach($order->items as $item)
-            <tr>
+                            @foreach($order->items as $item)
+                            @php
+                                $isGift = !empty($item['is_lucky_spin_gift']);
+                                $itemPrice = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
+                                $itemQty = (int)($item['quantity'] ?? 0);
+                            @endphp
+                            <tr class="{{ $isGift ? 'bg-amber-50/50' : '' }}">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                   {!! html_entity_decode($item['product_name'] ?? 'N/A') !!}
-
+                                    {!! html_entity_decode($item['product_name'] ?? 'N/A') !!}
+                                    @if($isGift)
+                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                                            🎁 Free Gift (Lucky Spin)
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ₹{{ number_format($item['rate'] ?? $item['price'] ?? 0, 2) }}
+                                    @if($isGift)
+                                        <span class="text-amber-800 font-bold">FREE (₹0.00)</span>
+                                    @else
+                                        ₹{{ number_format($itemPrice, 2) }}
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $item['quantity'] ?? 0 }}
+                                    {{ $itemQty }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ₹{{ number_format($item['total'] ?? $item['subtotal'] ?? 0, 2) }}
+                                    @if($isGift)
+                                        <span class="text-amber-800 font-bold">₹0.00</span>
+                                    @else
+                                        ₹{{ number_format($itemPrice * $itemQty, 2) }}
+                                    @endif
                                 </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             @else
                 <div class="text-center py-8 text-gray-500">

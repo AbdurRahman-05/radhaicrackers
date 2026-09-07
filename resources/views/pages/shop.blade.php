@@ -403,6 +403,23 @@
                 <span>Total Amount:</span>
                 <span id="summary-total">₹0.00</span>
             </div>
+
+            <!-- Lucky Wheel Teaser inside Estimate Cart -->
+            <div onclick="openLuckyWheelPopup()" class="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-600/15 border border-amber-400/40 flex items-center justify-between cursor-pointer hover:bg-amber-500/25 transition-all text-xs shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl animate-spin" style="animation-duration: 10s;">🎡</span>
+                    <div class="text-left leading-tight">
+                        <div class="font-extrabold text-amber-900 text-[11px] flex items-center gap-1">
+                            <span>Diwali Lucky Wheel</span>
+                            <span class="bg-amber-400 text-purple-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">Offer</span>
+                        </div>
+                        <div class="text-[10px] text-gray-600 font-medium">Orders &gt; ₹5,000 get Free Spin at checkout!</div>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold text-purple-950 bg-amber-300 hover:bg-amber-400 px-2 py-0.5 rounded-full shadow-sm flex-shrink-0">
+                    View Wheel &rarr;
+                </span>
+            </div>
             
             <button onclick="proceedToCheckout()" class="w-full mt-2 text-white py-3 rounded-xl text-sm sm:text-base font-bold shadow-lg transition-colors flex items-center justify-center gap-2 bg-[#B67121] hover:bg-orange-600">
                 <span>Proceed to Checkout</span>
@@ -411,6 +428,9 @@
         </div>
     </div>
 </div>
+
+<!-- Lucky Spinning Wheel Pop-up Modal & Floating Widget -->
+@include('components.lucky-wheel-popup')
 
 
 <!-- Video Modal -->
@@ -528,8 +548,9 @@ function updateCartSummary() {
     // Total count of items
     const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     
-    // Calculate subtotal
+    // Calculate subtotal (excluding free gifts)
     const subtotal = cart.reduce((sum, item) => {
+        if (item.is_lucky_spin_gift || item.is_free_gift) return sum;
         const product = products[item.product_id];
         if (product) {
             let finalPrice = product.price;
@@ -546,6 +567,13 @@ function updateCartSummary() {
     
     const packingCharge = subtotal * 0.05;
     const finalTotal = subtotal + packingCharge;
+
+    // If final total drops below 5,000, remove any lingering lucky spin free gifts
+    if (finalTotal < 5000 && cart.some(item => item.is_lucky_spin_gift)) {
+        cart = cart.filter(item => !item.is_lucky_spin_gift);
+        saveCart(cart);
+        try { sessionStorage.removeItem('lucky_spin_result'); } catch(e) {}
+    }
 
     const wrapper = document.getElementById('cart-summary-wrapper');
     const badgeCount = document.getElementById('cart-badge-count');
@@ -597,6 +625,11 @@ function updateCartSummary() {
             }
         });
         listContainer.innerHTML = html;
+    }
+
+    // Sync Lucky Wheel pop-up status
+    if (typeof window.syncPopupCartStatus === 'function') {
+        window.syncPopupCartStatus();
     }
 }
 

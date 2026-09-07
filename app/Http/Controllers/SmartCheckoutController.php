@@ -113,6 +113,8 @@ class SmartCheckoutController extends Controller
             'pin_code' => 'required|digits:6',
             'coupon_code' => 'nullable|string',
             'coupon_discount' => 'nullable|numeric|min:0',
+            'lucky_spin_prize' => 'nullable|string',
+            'lucky_spin_discount' => 'nullable|numeric|min:0',
             'total' => 'required|numeric|min:0',
             'items' => 'required|string'
         ]);
@@ -129,9 +131,12 @@ class SmartCheckoutController extends Controller
                 ]);
             }
 
-            // Calculate total from items to ensure accuracy
+            // Calculate total from items to ensure accuracy (exclude free gifts)
             $calculatedTotal = 0;
             foreach ($items as $item) {
+                if (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift'])) {
+                    continue;
+                }
                 $itemTotal = ($item['original_price'] ?? 0) * ($item['quantity'] ?? 0);
                 $calculatedTotal += $itemTotal;
             }
@@ -164,6 +169,95 @@ class SmartCheckoutController extends Controller
             }
             
             $finalTotal = max(0, $finalTotal - $couponDiscount);
+
+            // Process Lucky Spinning Wheel Prize (strictly for orders >= ₹5,000)
+            $luckySpinPrize = $request->input('lucky_spin_prize');
+            $luckySpinDiscount = 0;
+
+            // Check if eligible for lucky spin (qualifying threshold: finalTotal >= 5000)
+            $isLuckySpinEligible = ($finalTotal >= 5000);
+
+            if (!$isLuckySpinEligible) {
+                // If total amount is less than 5000, remove lucky spin gifts and reset discount
+                $items = array_values(array_filter($items, function($it) {
+                    return empty($it['is_lucky_spin_gift']);
+                }));
+                $luckySpinPrize = null;
+                $luckySpinDiscount = 0;
+            } elseif (!empty($luckySpinPrize)) {
+                if ($luckySpinPrize === '5% Discount' || str_contains(strtolower($luckySpinPrize), '5%')) {
+                    $luckySpinDiscount = round($finalTotal * 0.05, 2);
+                    $finalTotal = max(0, $finalTotal - $luckySpinDiscount);
+                } elseif (str_contains(strtolower($luckySpinPrize), '25 raider')) {
+                    // Check if already injected
+                    $hasGift = false;
+                    foreach ($items as $it) {
+                        if (!empty($it['is_lucky_spin_gift'])) {
+                            $hasGift = true;
+                            break;
+                        }
+                    }
+                    if (!$hasGift) {
+                        $items[] = [
+                            'product_id' => 1903,
+                            'product_name' => '🎁 25 Raider (Free Gift)',
+                            'content' => '1 Box',
+                            'rate' => 0,
+                            'original_price' => 220,
+                            'price' => 0,
+                            'quantity' => 1,
+                            'total' => 0,
+                            'is_lucky_spin_gift' => true,
+                            'is_free_gift' => true
+                        ];
+                    }
+                } elseif (str_contains(strtolower($luckySpinPrize), '30 shot')) {
+                    $hasGift = false;
+                    foreach ($items as $it) {
+                        if (!empty($it['is_lucky_spin_gift'])) {
+                            $hasGift = true;
+                            break;
+                        }
+                    }
+                    if (!$hasGift) {
+                        $items[] = [
+                            'product_id' => 1905,
+                            'product_name' => '🎁 30 Shot Regular (Free Gift)',
+                            'content' => '1 Box',
+                            'rate' => 0,
+                            'original_price' => 390,
+                            'price' => 0,
+                            'quantity' => 1,
+                            'total' => 0,
+                            'is_lucky_spin_gift' => true,
+                            'is_free_gift' => true
+                        ];
+                    }
+                } elseif (str_contains(strtolower($luckySpinPrize), 'tin shower') || str_contains(strtolower($luckySpinPrize), 'shower')) {
+                    $hasGift = false;
+                    foreach ($items as $it) {
+                        if (!empty($it['is_lucky_spin_gift'])) {
+                            $hasGift = true;
+                            break;
+                        }
+                    }
+                    if (!$hasGift) {
+                        $items[] = [
+                            'product_id' => 1862,
+                            'product_name' => '🎁 6 Inch Tin Shower (Free Gift)',
+                            'content' => '1 Pcs',
+                            'rate' => 0,
+                            'original_price' => 200,
+                            'price' => 0,
+                            'quantity' => 1,
+                            'total' => 0,
+                            'is_lucky_spin_gift' => true,
+                            'is_free_gift' => true
+                        ];
+                    }
+                }
+            }
+
             $mailTotal = $finalTotal;
 
             // Prepare order data
@@ -176,8 +270,18 @@ class SmartCheckoutController extends Controller
             $orderData['items_json'] = $items;
             $orderData['total_amount'] = $mailTotal;
             $orderData['total'] = $mailTotal;
+            $orderData['subtotal'] = $calculatedTotal;
+            $orderData['discount_70_percent'] = $discount70;
+            $orderData['amount_after_70_discount'] = $afterDiscount70;
+            $orderData['special_discount_15_percent'] = $discount15;
+            $orderData['amount_after_15_discount'] = $afterDiscount15;
+            $orderData['packing_charge_5_percent'] = $packingCharge;
             $orderData['coupon_code'] = $request->input('coupon_code');
             $orderData['coupon_discount'] = $couponDiscount;
+            $orderData['lucky_spin_prize'] = $luckySpinPrize;
+            $orderData['lucky_spin_discount'] = $luckySpinDiscount;
+            $orderData['final_amount'] = $mailTotal;
+            $orderData['final_amount_after_coupon'] = $mailTotal;
             $orderData['user_id'] = auth()->id() ?? 1;
             $orderData['status'] = 'pending';
             $orderData['payment_status'] = 'pending';

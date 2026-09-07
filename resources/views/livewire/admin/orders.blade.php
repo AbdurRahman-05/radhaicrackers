@@ -281,6 +281,7 @@
                     <th class="px-2 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment</th>
                     <th class="px-2 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                     <th class="px-2 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coupon</th>
+                    <th class="px-2 py-1.5 text-left text-xs font-semibold text-amber-700 uppercase tracking-wider">🎡 Spin Prize</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -387,10 +388,22 @@
                         {{ $order->created_at->format('d/m/Y H:i') }}
                     </td>
                     <td class="px-2 py-1.5 whitespace-nowrap text-xs text-gray-900">{{ $order->coupon_code ?: '-' }}</td>
+                    <td class="px-2 py-1.5 whitespace-nowrap text-xs">
+                        @if($order->lucky_spin_prize)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ str_contains(strtolower($order->lucky_spin_prize), 'better luck') ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-amber-100 text-amber-900 border border-amber-300' }}">
+                                🎡 {{ $order->lucky_spin_prize }}
+                            </span>
+                            @if($order->lucky_spin_discount > 0)
+                                <div class="text-[10px] text-emerald-600 font-bold mt-0.5">-₹{{ number_format($order->lucky_spin_discount, 2) }}</div>
+                            @endif
+                        @else
+                            <span class="text-gray-400">-</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" class="px-2 py-1.5 text-center text-gray-500">No orders found</td>
+                    <td colspan="11" class="px-2 py-1.5 text-center text-gray-500">No orders found</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -514,6 +527,32 @@
                         </div>
                     </div>
 
+                    <!-- Lucky Spin Reward Banner (if applicable) -->
+                    @if($editingOrder->lucky_spin_prize)
+                    <div class="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">🎡</span>
+                            <div>
+                                <div class="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Lucky Wheel Reward (Order &gt; ₹5,000)</div>
+                                <div class="text-xs font-extrabold text-gray-900">{{ $editingOrder->lucky_spin_prize }}</div>
+                            </div>
+                        </div>
+                        @if($editingOrder->lucky_spin_discount > 0)
+                            <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2.5 py-1 rounded-lg text-xs">
+                                5% Spin Discount (-₹{{ number_format($editingOrder->lucky_spin_discount, 2) }})
+                            </span>
+                        @elseif(!str_contains(strtolower($editingOrder->lucky_spin_prize), 'better luck'))
+                            <span class="bg-amber-200 text-amber-900 border border-amber-400 font-bold px-2.5 py-1 rounded-lg text-xs">
+                                🎁 Free Gift Included
+                            </span>
+                        @else
+                            <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg text-xs">
+                                Better Luck Next Time
+                            </span>
+                        @endif
+                    </div>
+                    @endif
+
                     <!-- Ordered Items List (Editable Quantities) -->
                     <div class="border border-gray-100 rounded-xl overflow-visible">
                         @php 
@@ -558,17 +597,37 @@
                                     @php
                                         $productId = $item['product_id'] ?? null;
                                         $catalogSno = $currentSnoMap[$productId] ?? ($productId ?? '-');
-                                        $itemPrice = (float)($item['rate'] ?? $item['price'] ?? 0);
+                                        $isGift = !empty($item['is_lucky_spin_gift']);
+                                        $itemPrice = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
                                         $itemQty = (int)($item['quantity'] ?? 0);
                                     @endphp
-                                    <tr>
+                                    <tr class="{{ $isGift ? 'bg-amber-50/40' : '' }}">
                                         <td class="px-4 py-2 text-left text-gray-500 font-medium">{{ $catalogSno }}</td>
-                                        <td class="px-4 py-2 font-medium text-gray-900">{!! html_entity_decode($item['product_name'] ?? '-') !!}</td>
+                                        <td class="px-4 py-2 font-medium text-gray-900">
+                                            {!! html_entity_decode($item['product_name'] ?? '-') !!}
+                                            @if($isGift)
+                                                <span class="ml-1.5 px-1.5 py-0.5 bg-amber-200 text-amber-900 text-[10px] font-bold rounded-full border border-amber-300">
+                                                    🎁 Lucky Spin Gift
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-2 text-center">
                                             <input type="number" min="1" wire:model.live="editItems.{{ $index }}.quantity" wire:change="updateItemQty({{ $index }}, $event.target.value)" class="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-center font-bold text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none" />
                                         </td>
-                                        <td class="px-4 py-2 text-right">₹{{ number_format($itemPrice, 2) }}</td>
-                                        <td class="px-4 py-2 text-right font-semibold text-gray-900">₹{{ number_format($itemPrice * $itemQty, 2) }}</td>
+                                        <td class="px-4 py-2 text-right">
+                                            @if($isGift)
+                                                <span class="text-amber-700 font-bold text-[11px]">FREE (₹0.00)</span>
+                                            @else
+                                                ₹{{ number_format($itemPrice, 2) }}
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-2 text-right font-semibold text-gray-900">
+                                            @if($isGift)
+                                                <span class="text-amber-700 font-bold text-[11px]">₹0.00</span>
+                                            @else
+                                                ₹{{ number_format($itemPrice * $itemQty, 2) }}
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-2 text-center">
                                             <button type="button" wire:click="removeItem({{ $index }})" class="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
                                                 <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -647,6 +706,12 @@
                             <div class="flex justify-between text-green-600 font-medium">
                                 <span>Coupon Discount ({{ $editingOrder->coupon_code }}):</span>
                                 <span>-₹{{ number_format($calculatedTotals['coupon_discount'], 2) }}</span>
+                            </div>
+                            @endif
+                            @if(isset($calculatedTotals['lucky_spin_discount']) && $calculatedTotals['lucky_spin_discount'] > 0)
+                            <div class="flex justify-between text-emerald-600 font-medium">
+                                <span>🎡 Lucky Spin Discount (5%):</span>
+                                <span>-₹{{ number_format($calculatedTotals['lucky_spin_discount'], 2) }}</span>
                             </div>
                             @endif
                             @if($calculatedTotals['gst_amount'] > 0)

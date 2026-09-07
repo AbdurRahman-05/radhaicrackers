@@ -414,6 +414,7 @@ class Orders extends Component
 
                 $stock = $productId ? Stock::find($productId) : null;
                 $origPrice = (float)($stock->original_price ?? ($price > 0 ? $price / 0.255 : 0));
+                $isLuckySpinGift = is_array($item) ? (!empty($item['is_lucky_spin_gift'])) : (!empty($item->is_lucky_spin_gift));
 
                 $this->editItems[] = [
                     'id' => $id,
@@ -426,6 +427,7 @@ class Orders extends Component
                     'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
                     'quantity' => $qty,
                     'total' => $price * $qty,
+                    'is_lucky_spin_gift' => $isLuckySpinGift,
                 ];
             }
         }
@@ -523,6 +525,11 @@ class Orders extends Component
         $discount15 = 0;
 
         foreach ($this->editItems as $item) {
+            // Lucky spin free gifts don't contribute to subtotal or line discounts
+            if (!empty($item['is_lucky_spin_gift'])) {
+                continue;
+            }
+
             $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
             $qty = (int)$item['quantity'];
             $lineSubtotal = $origPrice * $qty;
@@ -544,7 +551,12 @@ class Orders extends Component
             $couponDiscount = (float)$this->editingOrder->coupon_discount;
         }
 
-        $taxableAmount = max(0, $after15 + $packingCharge - $couponDiscount);
+        $luckySpinDiscount = 0;
+        if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {
+            $luckySpinDiscount = (float)$this->editingOrder->lucky_spin_discount;
+        }
+
+        $taxableAmount = max(0, $after15 + $packingCharge - $couponDiscount - $luckySpinDiscount);
         $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
         $finalTotal = round($taxableAmount + $gstAmount);
 
@@ -556,6 +568,7 @@ class Orders extends Component
             'amount_after_15_discount' => $after15,
             'packing_charge_5_percent' => $packingCharge,
             'coupon_discount' => $couponDiscount,
+            'lucky_spin_discount' => $luckySpinDiscount,
             'gst_amount' => $gstAmount,
             'total' => $finalTotal,
         ];
@@ -588,9 +601,10 @@ class Orders extends Component
 
             $newItemsJson = [];
             foreach ($this->editItems as $item) {
+                $isGift = !empty($item['is_lucky_spin_gift']);
                 $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
                 $qty = (int)$item['quantity'];
-                $rate = (float)$item['rate'];
+                $rate = $isGift ? 0 : (float)$item['rate'];
 
                 $newItemsJson[] = [
                     'product_id' => $item['product_id'],
@@ -598,10 +612,11 @@ class Orders extends Component
                     'content' => '',
                     'rate' => $rate,
                     'original_price' => $origPrice,
-                    'discount_percentage' => $item['discount_percentage'],
-                    'special_discount_percentage' => $item['special_discount_percentage'],
+                    'discount_percentage' => $item['discount_percentage'] ?? 0,
+                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 0,
                     'quantity' => $qty,
-                    'total' => $rate * $qty
+                    'total' => $rate * $qty,
+                    'is_lucky_spin_gift' => $isGift
                 ];
             }
 
@@ -640,6 +655,7 @@ class Orders extends Component
                 'amount_after_15_discount' => $totals['amount_after_15_discount'],
                 'packing_charge_5_percent' => $totals['packing_charge_5_percent'],
                 'coupon_discount' => $totals['coupon_discount'],
+                'lucky_spin_discount' => $totals['lucky_spin_discount'],
                 'has_gst' => $this->editHasGst,
                 'gst_amount' => $totals['gst_amount'],
                 'delivery_type' => $this->editDeliveryType,

@@ -85,6 +85,199 @@
                 </div>
             </div>
 
+            <!-- Lucky Spinning Wheel (Unlocked for orders above 5k) -->
+            <div id="lucky-wheel-card" class="bg-gradient-to-br from-[#1E093B] via-[#2D0B5A] to-[#170529] rounded-2xl shadow-xl overflow-hidden text-white border-2 border-amber-400/40 relative">
+                <!-- Festive Header -->
+                <div class="px-5 py-4 bg-black/30 backdrop-blur-sm border-b border-amber-400/20 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-3xl animate-bounce">🎡</span>
+                        <div>
+                            <h3 class="text-lg font-black tracking-wide text-amber-300 flex items-center gap-2">
+                                LUCKY SPINNING WHEEL
+                                <span class="text-[10px] uppercase font-extrabold bg-gradient-to-r from-amber-400 to-yellow-300 text-purple-950 px-2.5 py-0.5 rounded-full shadow">
+                                    Diwali Bonanza
+                                </span>
+                            </h3>
+                            <p class="text-xs text-purple-200">Unlock for orders above ₹5,000 & Win Free Crackers or 5% Discount!</p>
+                        </div>
+                    </div>
+                    <div id="wheel-status-pill" class="text-xs font-bold px-3 py-1 rounded-full bg-purple-900/80 border border-purple-400/40 text-purple-200 flex items-center gap-1.5">
+                        <span id="wheel-status-dot" class="w-2 h-2 rounded-full bg-yellow-400"></span>
+                        <span id="wheel-status-text">Checking Eligibility...</span>
+                    </div>
+                </div>
+
+                <!-- Revoked Lucky Spin Banner (when total drops below 5k) -->
+                <div id="wheel-revoked-banner" class="hidden p-4 bg-gradient-to-r from-red-950/95 via-purple-950/90 to-red-950/95 border-b border-red-500/40 text-red-200 transition-all duration-300">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl animate-pulse flex-shrink-0">⚠️</span>
+                            <div>
+                                <h4 class="font-extrabold text-sm text-red-300">Lucky Spin Reward Removed</h4>
+                                <p class="text-xs text-red-200 mt-0.5">
+                                    Your order total dropped below ₹5,000. Free spin cracker/discount was automatically removed. Add <strong class="text-yellow-300">₹<span id="revoked-rem-amt">0.00</span></strong> more to spin again!
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="document.getElementById('wheel-revoked-banner').classList.add('hidden')" class="text-red-400 hover:text-white text-lg font-bold px-2 py-1 flex-shrink-0" title="Dismiss">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Locked Teaser Banner (when < 5k) -->
+                <div id="wheel-locked-banner" class="p-5 bg-purple-950/60 border-b border-amber-500/20">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-2xl flex-shrink-0">
+                                🔒
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-sm text-amber-300">Unlock the Wheel for Orders Above ₹5,000!</h4>
+                                <p class="text-xs text-purple-200 mt-0.5">
+                                    Current order value: <strong class="text-white" id="wheel-current-amount">₹0.00</strong>. 
+                                    Add <strong class="text-yellow-300" id="wheel-remaining-amount">₹5,000.00</strong> more to unlock your free spin!
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ route('shop') }}" class="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-purple-950 font-black text-xs rounded-xl shadow-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5">
+                            <span>➕ Add More Crackers</span>
+                        </a>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="mt-3.5">
+                        <div class="flex justify-between text-[11px] text-purple-300 font-semibold mb-1">
+                            <span>Progress to Unlock:</span>
+                            <span id="wheel-progress-pct" class="text-amber-300">0%</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-purple-900/90 rounded-full overflow-hidden border border-purple-700/50">
+                            <div id="wheel-progress-bar" class="h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unlocked Celebration Banner (when >= 5k) -->
+                <div id="wheel-unlocked-banner" class="hidden p-4 bg-gradient-to-r from-emerald-900/70 to-purple-900/70 border-b border-emerald-400/30 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">🎉</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-emerald-300">Congratulations! Lucky Wheel is Unlocked!</h4>
+                            <p class="text-xs text-emerald-100">You qualify for 1 Free Spin. Spin the wheel to claim your prize!</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 bg-emerald-400 text-emerald-950 text-[11px] font-black rounded-lg uppercase tracking-wider animate-pulse">
+                        Ready to Spin
+                    </span>
+                </div>
+
+                <!-- Already Spun Banner -->
+                <div id="wheel-won-banner" class="hidden p-4 bg-gradient-to-r from-amber-900/80 to-purple-950 border-b border-amber-400/40 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl" id="won-banner-emoji">🎁</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-amber-300">Prize Claimed: <span id="won-prize-name-text">25 Raider</span></h4>
+                            <p class="text-xs text-amber-100" id="won-prize-desc-text">This prize has been automatically applied to your order!</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-amber-400 text-purple-950 text-xs font-black rounded-full shadow">
+                        Applied ✓
+                    </span>
+                </div>
+
+                <!-- Wheel Arena -->
+                <div class="p-6 flex flex-col lg:flex-row items-center justify-around gap-6 relative">
+                    <!-- Canvas Wheel Area -->
+                    <div class="relative flex flex-col items-center">
+                        <!-- Sleek Top Pointer Needle -->
+                        <div class="absolute -top-3 z-30 flex flex-col items-center pointer-events-none drop-shadow-xl" style="left: 50%; transform: translateX(-50%);">
+                            <div class="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[26px] border-t-amber-400 filter drop-shadow"></div>
+                            <div class="w-3.5 h-3.5 bg-yellow-300 rounded-full -mt-2 border-2 border-purple-950"></div>
+                        </div>
+
+                        <!-- Canvas Wheel Container -->
+                        <div class="relative p-2 rounded-full bg-gradient-to-tr from-amber-500 via-purple-700 to-yellow-400 shadow-2xl">
+                            <canvas id="lucky-wheel-canvas" width="330" height="330" class="rounded-full shadow-inner block"></canvas>
+                            
+                            <!-- Center Spin Hub Button -->
+                            <button type="button" id="wheel-center-btn" class="absolute inset-0 m-auto w-20 h-20 rounded-full bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-purple-950 font-black text-xs uppercase tracking-wider flex flex-col items-center justify-center shadow-2xl border-4 border-purple-950 hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer z-20">
+                                <span class="text-base">🎯</span>
+                                <span id="center-btn-label" class="text-[11px] font-black leading-tight">SPIN</span>
+                            </button>
+
+                            <!-- Glassmorphism Overlay when locked -->
+                            <div id="wheel-locked-overlay" class="absolute inset-0 rounded-full bg-purple-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4 z-20">
+                                <span class="text-4xl mb-1">🔒</span>
+                                <span class="font-extrabold text-xs text-amber-300 uppercase tracking-wider">Locked</span>
+                                <span class="text-[10px] text-purple-200 mt-0.5">Orders Above ₹5,000</span>
+                            </div>
+                        </div>
+
+                        <!-- Spin CTA Button under wheel -->
+                        <div class="mt-4 text-center">
+                            <button type="button" id="wheel-action-btn" class="px-8 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-purple-950 font-extrabold text-sm rounded-xl shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 mx-auto">
+                                <span class="text-lg">🎡</span>
+                                <span id="wheel-action-btn-text">SPIN TO WIN</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 5 Prizes Showcase List -->
+                    <div class="w-full lg:w-64 space-y-2">
+                        <h5 class="text-xs font-black uppercase tracking-wider text-amber-300 pb-1 border-b border-amber-500/30 flex items-center justify-between">
+                            <span>🎁 5 EXCITING PRIZES</span>
+                            <span class="text-[10px] text-purple-300 font-normal">Your Luck</span>
+                        </h5>
+
+                        <!-- Prize 1: 25 Raider -->
+                        <div id="prize-card-1" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5">
+                            <img src="/storage/stocks/716pk6nQfo6s9RIh72gZ114WSakDaBRACNY87Pw2.jpg" alt="25 Raider" class="w-10 h-10 object-cover rounded-lg border border-amber-400/40 bg-black/40 flex-shrink-0" onerror="this.src='/images/firework-default.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-white truncate">25 Radhe Raider</div>
+                                <div class="text-[11px] font-extrabold text-amber-300">Worth ₹220 (FREE Gift)</div>
+                            </div>
+                        </div>
+
+                        <!-- Prize 2: 5% Discount -->
+                        <div id="prize-card-2" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-lg text-emerald-300 flex-shrink-0 font-black">
+                                5%
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-white truncate">5% Extra Discount</div>
+                                <div class="text-[11px] font-extrabold text-emerald-300">Instant off total order</div>
+                            </div>
+                        </div>
+
+                        <!-- Prize 3: 30 Shot Regular -->
+                        <div id="prize-card-3" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5">
+                            <img src="/storage/stocks/ZMW1truK7lG7qqJ6xcMjArWB6bo8Fm1douNjHrud.jpg" alt="30 Shot Regular" class="w-10 h-10 object-cover rounded-lg border border-amber-400/40 bg-black/40 flex-shrink-0" onerror="this.src='/images/firework-default.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-white truncate">30 Shot Regular</div>
+                                <div class="text-[11px] font-extrabold text-purple-300">Worth ₹390 (FREE Gift)</div>
+                            </div>
+                        </div>
+
+                        <!-- Prize 4: 6 Inch Tin Shower -->
+                        <div id="prize-card-4" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5">
+                            <img src="/storage/stocks/yxg0ReFPwjqJXFGS4wpScuToCMhOKoTyZbu4tQSL.jpg" alt="6 Inch Tin Shower" class="w-10 h-10 object-cover rounded-lg border border-amber-400/40 bg-black/40 flex-shrink-0" onerror="this.src='/images/firework-default.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-white truncate">6 Inch Tin Shower</div>
+                                <div class="text-[11px] font-extrabold text-rose-300">Worth ₹200 (FREE Gift)</div>
+                            </div>
+                        </div>
+
+                        <!-- Prize 0: Better Luck Next Time -->
+                        <div id="prize-card-0" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5 opacity-85">
+                            <div class="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-lg text-purple-300 flex-shrink-0">
+                                🍀
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-white truncate">Better Luck Next Time</div>
+                                <div class="text-[11px] text-gray-300">Diwali Warm Wishes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Customer Information Form -->
             <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -169,6 +362,14 @@
                         <span>Coupon Discount:</span>
                         <span id="coupon-discount">-₹0.00</span>
                     </div>
+                    <div id="lucky-spin-discount-row" class="hidden flex justify-between text-sm text-amber-600 font-bold">
+                        <span>🎁 Lucky Spin (5% Disc):</span>
+                        <span id="lucky-spin-discount">-₹0.00</span>
+                    </div>
+                    <div id="lucky-spin-gift-row" class="hidden flex justify-between text-sm text-emerald-600 font-bold">
+                        <span>🎁 Lucky Free Gift:</span>
+                        <span id="lucky-spin-gift-name" class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold"></span>
+                    </div>
                     <div class="flex justify-between text-sm text-orange-600">
                         <span>Packing Charge (5%):</span>
                         <span id="packing-charge">₹0.00</span>
@@ -186,10 +387,6 @@
                         <span id="btn-text">Place Order</span>
                         <span id="btn-loading" class="hidden">Processing...</span>
                     </button>
-                    
-                    <!--<button type="button" id="save-draft-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">-->
-                    <!--    Save as Draft-->
-                    <!--</button>-->
                     
                     <a href="{{ route('shop') }}" class="block w-full text-center bg-white border border-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg hover:bg-gray-50 transition duration-200">
                         Continue Shopping
@@ -210,12 +407,43 @@
     </div>
 </div>
 
+<!-- Winner Modal Dialog -->
+<div id="lucky-winner-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-[#1E093B] via-[#2A084E] to-[#120224] border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 text-center text-white relative shadow-2xl overflow-hidden animate-scale-up">
+        <div class="relative z-10">
+            <div class="w-20 h-20 mx-auto rounded-full bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center text-4xl mb-3 shadow-lg" id="modal-prize-icon-wrap">
+                <span id="modal-prize-emoji">🎉</span>
+            </div>
+            <span class="inline-block px-3 py-1 bg-amber-400 text-purple-950 font-black text-xs uppercase tracking-widest rounded-full shadow mb-2">
+                Lucky Spin Result
+            </span>
+            <h3 class="text-2xl font-black text-amber-300" id="modal-prize-title">You Won!</h3>
+            <p class="text-xs text-purple-200 mt-1" id="modal-prize-subtitle">Congratulations on your reward</p>
+
+            <div class="my-5 p-4 rounded-2xl bg-black/40 border border-amber-400/30 flex items-center justify-center gap-4 text-left" id="modal-prize-preview-box">
+                <img id="modal-prize-img" src="" alt="Prize" class="w-16 h-16 object-cover rounded-xl border border-amber-400/50 shadow hidden">
+                <div>
+                    <h4 class="font-extrabold text-base text-white" id="modal-prize-name">Prize Name</h4>
+                    <p class="text-xs font-bold text-amber-300 mt-0.5" id="modal-prize-val">Worth ₹XXX</p>
+                    <p class="text-[11px] text-emerald-400 font-semibold mt-1" id="modal-prize-status">✓ Automatically added to your bill</p>
+                </div>
+            </div>
+
+            <button type="button" id="modal-claim-btn" class="w-full py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-purple-950 font-black text-sm rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95">
+                Awesome! Continue to Order
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden form for submission -->
 <form id="order-submission-form" method="POST" action="{{ route('smart-checkout.submit') }}" class="hidden">
     @csrf
     <input type="hidden" name="items" id="order-items-json">
     <input type="hidden" name="coupon_code" id="order-coupon-code">
     <input type="hidden" name="coupon_discount" id="order-coupon-discount">
+    <input type="hidden" name="lucky_spin_prize" id="order-lucky-spin-prize">
+    <input type="hidden" name="lucky_spin_discount" id="order-lucky-spin-discount">
     <input type="hidden" name="total" id="order-total">
     <input type="hidden" name="clear_cart" value="true">
 </form>
@@ -228,13 +456,98 @@ class SmartCheckout {
         this.couponData = null;
         this.orderValue = 0;
         this.finalTotal = 0;
+        this.qualifyingAmount = 0;
         this.isProcessing = false;
+
+        // Lucky Wheel Properties
+        this.luckySpinPrize = null;
+        this.luckySpinDiscount = 0;
+        this.hasSpunWheel = false;
+        this.isSpinning = false;
+        this.currentWheelRotation = 0;
+        this.wheelCanvas = null;
+        this.wheelCtx = null;
+        this.loadedWheelImages = {};
+
+        // 5 Wheel Prizes:
+        // 1. Better Luck Next Time
+        // 2. 25 Raider worth 220
+        // 3. 5% Discount
+        // 4. 30 Shot Regular worth 390
+        // 5. 6 Inch Tin Shower worth 200
+        this.wheelPrizes = [
+            {
+                id: 0,
+                name: "Better Luck Next Time",
+                worthText: "Diwali Wishes",
+                type: "none",
+                color: "#4A154B",
+                textColor: "#FFFFFF",
+                accent: "#702459",
+                icon: "🍀",
+                image: null
+            },
+            {
+                id: 1,
+                name: "25 Raider",
+                fullName: "25 Radhe Raider",
+                worthText: "₹220 FREE",
+                type: "product",
+                productId: 1903,
+                originalPrice: 220,
+                color: "#D97706",
+                textColor: "#FFFFFF",
+                accent: "#F59E0B",
+                icon: "🎆",
+                image: "/storage/stocks/716pk6nQfo6s9RIh72gZ114WSakDaBRACNY87Pw2.jpg"
+            },
+            {
+                id: 2,
+                name: "5% Discount",
+                worthText: "5% OFF Total",
+                type: "discount",
+                color: "#059669",
+                textColor: "#FFFFFF",
+                accent: "#10B981",
+                icon: "🏷️",
+                image: null
+            },
+            {
+                id: 3,
+                name: "30 Shot Regular",
+                fullName: "30 Shot Regular",
+                worthText: "₹390 FREE",
+                type: "product",
+                productId: 1905,
+                originalPrice: 390,
+                color: "#7C3AED",
+                textColor: "#FFFFFF",
+                accent: "#8B5CF6",
+                icon: "💥",
+                image: "/storage/stocks/ZMW1truK7lG7qqJ6xcMjArWB6bo8Fm1douNjHrud.jpg"
+            },
+            {
+                id: 4,
+                name: "6 Inch Tin Shower",
+                fullName: "6 Inch Tin Shower",
+                worthText: "₹200 FREE",
+                type: "product",
+                productId: 1862,
+                originalPrice: 200,
+                color: "#DC2626",
+                textColor: "#FFFFFF",
+                accent: "#EF4444",
+                icon: "✨",
+                image: "/storage/stocks/yxg0ReFPwjqJXFGS4wpScuToCMhOKoTyZbu4tQSL.jpg"
+            }
+        ];
         
         // Clear any previously stored data on page load
         this.clearPreviousSessionData();
         
         this.initializeEventListeners();
         this.loadCart();
+        this.initLuckyWheel();
         this.updateDisplay();
     }
     
@@ -293,15 +606,9 @@ class SmartCheckout {
         
         // Form submission
         document.getElementById('place-order-btn').addEventListener('click', () => this.submitOrder());
-        // document.getElementById('save-draft-btn').addEventListener('click', () => this.saveDraft());
         
         // Real-time form validation
         document.getElementById('customer-form').addEventListener('input', () => this.validateForm());
-        
-        // Handle page refresh/back button
-        window.addEventListener('beforeunload', () => {
-            this.clearPreviousSessionData();
-        });
         
         // Handle page visibility change (tab switching)
         document.addEventListener('visibilitychange', () => {
@@ -384,10 +691,12 @@ class SmartCheckout {
                     product_id: pId,
                     product_name: item.product_name || item.name || stock.name || `Product #${pId}`,
                     content: item.content || '',
-                    rate: currentRate,
+                    rate: item.is_lucky_spin_gift ? 0 : currentRate,
                     original_price: finalOrigPrice,
                     quantity: qty,
-                    total: finalOrigPrice * qty
+                    total: item.is_lucky_spin_gift ? 0 : (finalOrigPrice * qty),
+                    is_lucky_spin_gift: !!item.is_lucky_spin_gift,
+                    is_free_gift: !!item.is_free_gift
                 };
             }).filter(item => item.product_id > 0 && item.quantity > 0);
 
@@ -404,13 +713,15 @@ class SmartCheckout {
     
     calculateTotals() {
         this.orderValue = this.cartItems.reduce((total, item) => {
+            // Free gifts do not add to payable subtotal
+            if (item.is_lucky_spin_gift || item.is_free_gift) return total;
             const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
                 ? Number(item.original_price)
                 : Number(item.rate || item.price || 0);
             return total + (originalPrice * Number(item.quantity || item.qty || 0));
         }, 0);
         
-        // Apply discounts
+        // Apply wholesale discounts
         const discount70 = Math.round(this.orderValue * 0.7 * 100) / 100;
         const afterDiscount70 = this.orderValue - discount70;
         const discount15 = Math.round(afterDiscount70 * 0.15 * 100) / 100;
@@ -422,6 +733,57 @@ class SmartCheckout {
         // Apply coupon discount if available
         if (this.couponData) {
             finalTotal -= (this.couponData.discount_amount || 0);
+        }
+
+        // Qualifying amount for Lucky Wheel threshold (final order value before lucky spin discount)
+        this.qualifyingAmount = Math.max(0, Math.round(finalTotal * 100) / 100);
+
+        // Strict 5k threshold check
+        const isEligible = this.qualifyingAmount >= 5000;
+
+        if (!isEligible) {
+            // If total amount is less than 5000, automatically remove lucky spin gift & discount!
+            const hadLuckyGift = this.cartItems.some(item => item.is_lucky_spin_gift);
+            const hadLuckyReward = hadLuckyGift || this.hasSpunWheel || !!this.luckySpinPrize || this.luckySpinDiscount > 0;
+
+            if (hadLuckyReward) {
+                // 1. Remove lucky spin gift items from cartItems
+                this.cartItems = this.cartItems.filter(item => !item.is_lucky_spin_gift);
+                localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+
+                // 2. Reset spin states
+                this.hasSpunWheel = false;
+                this.luckySpinPrize = null;
+                this.luckySpinDiscount = 0;
+
+                // 3. Clear session storage
+                try {
+                    sessionStorage.removeItem('lucky_spin_result');
+                } catch(e) {}
+
+                // 4. Clear hidden inputs
+                const hiddenPrize = document.getElementById('order-lucky-spin-prize');
+                const hiddenDisc = document.getElementById('order-lucky-spin-discount');
+                if (hiddenPrize) hiddenPrize.value = '';
+                if (hiddenDisc) hiddenDisc.value = '0';
+
+                // 5. Hide summary rows
+                const spinDiscRow = document.getElementById('lucky-spin-discount-row');
+                if (spinDiscRow) spinDiscRow.classList.add('hidden');
+                const giftRow = document.getElementById('lucky-spin-gift-row');
+                if (giftRow) giftRow.classList.add('hidden');
+
+                // 6. Notify user
+                this.showSpinRevokedAlert();
+            }
+        }
+
+        // Apply 5% Lucky Spin discount ONLY if eligible and won
+        if (isEligible && (this.luckySpinPrize === '5% Discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%')))) {
+            this.luckySpinDiscount = Math.round(this.qualifyingAmount * 0.05 * 100) / 100;
+            finalTotal -= this.luckySpinDiscount;
+        } else {
+            this.luckySpinDiscount = 0;
         }
         
         this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
@@ -443,6 +805,7 @@ class SmartCheckout {
             document.getElementById('packing-charge').textContent = '₹0.00';
             document.getElementById('final-total').textContent = '₹0.00';
             document.getElementById('cart-subtotal').textContent = '₹0.00';
+            this.updateLuckyWheelState();
             this.validateForm();
             return;
         }
@@ -454,17 +817,25 @@ class SmartCheckout {
             const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
                 ? Number(item.original_price)
                 : Number(item.rate || item.price || 0);
-            const total = originalPrice * qty;
+            const isGift = item.is_lucky_spin_gift || item.is_free_gift;
+            const total = isGift ? 0 : (originalPrice * qty);
             
             html += `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between p-3 ${isGift ? 'bg-amber-50/70 border-2 border-amber-400' : 'bg-gray-50 border border-gray-200'} rounded-lg">
                     <div class="flex-1">
-                        <h4 class="font-bold text-gray-900 text-sm sm:text-base">${name}</h4>
-                        <p class="text-xs sm:text-sm text-gray-600">Qty: ${qty} × ₹${originalPrice.toFixed(2)}</p>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h4 class="font-bold text-gray-900 text-sm sm:text-base">${name}</h4>
+                            ${isGift ? '<span class="px-2 py-0.5 bg-amber-400 text-purple-950 font-black text-[10px] uppercase rounded-full">FREE GIFT</span>' : ''}
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-600">
+                            ${isGift ? `Qty: ${qty} (Value: ₹${originalPrice.toFixed(2)})` : `Qty: ${qty} × ₹${originalPrice.toFixed(2)}`}
+                        </p>
                     </div>
                     <div class="text-right">
-                        <p class="font-extrabold text-purple-950 text-sm sm:text-base">₹${total.toFixed(2)}</p>
-                        <button type="button" onclick="smartCheckout.removeItem(${index})" class="text-red-600 text-xs font-bold hover:text-red-800 transition-colors">Remove</button>
+                        <p class="font-extrabold ${isGift ? 'text-emerald-600' : 'text-purple-950'} text-sm sm:text-base">
+                            ${isGift ? 'FREE' : `₹${total.toFixed(2)}`}
+                        </p>
+                        ${!isGift ? `<button type="button" onclick="smartCheckout.removeItem(${index})" class="text-red-600 text-xs font-bold hover:text-red-800 transition-colors">Remove</button>` : `<span class="text-xs text-amber-700 font-bold">Spin Prize</span>`}
                     </div>
                 </div>
             `;
@@ -482,11 +853,513 @@ class SmartCheckout {
         document.getElementById('discount-70').textContent = `-₹${discount70.toFixed(2)}`;
         document.getElementById('discount-15').textContent = `-₹${discount15.toFixed(2)}`;
         document.getElementById('coupon-discount').textContent = `-₹${this.couponData ? Number(this.couponData.discount_amount || 0).toFixed(2) : '0.00'}`;
+
+        // Lucky Spin rows in summary
+        const spinDiscRow = document.getElementById('lucky-spin-discount-row');
+        const spinDiscVal = document.getElementById('lucky-spin-discount');
+        if (this.luckySpinDiscount > 0 && spinDiscRow && spinDiscVal) {
+            spinDiscRow.classList.remove('hidden');
+            spinDiscVal.textContent = `-₹${this.luckySpinDiscount.toFixed(2)}`;
+        } else if (spinDiscRow) {
+            spinDiscRow.classList.add('hidden');
+        }
+
+        const giftRow = document.getElementById('lucky-spin-gift-row');
+        const giftNameEl = document.getElementById('lucky-spin-gift-name');
+        if (this.luckySpinPrize && this.luckySpinPrize !== '5% Discount' && !this.luckySpinPrize.includes('Better Luck') && giftRow && giftNameEl) {
+            giftRow.classList.remove('hidden');
+            giftNameEl.textContent = this.luckySpinPrize;
+        } else if (giftRow) {
+            giftRow.classList.add('hidden');
+        }
+
+        // Sync hidden form inputs
+        const hiddenPrize = document.getElementById('order-lucky-spin-prize');
+        const hiddenDisc = document.getElementById('order-lucky-spin-discount');
+        if (hiddenPrize) hiddenPrize.value = this.luckySpinPrize || '';
+        if (hiddenDisc) hiddenDisc.value = this.luckySpinDiscount || 0;
+
         document.getElementById('packing-charge').textContent = `₹${packingCharge.toFixed(2)}`;
         document.getElementById('final-total').textContent = `₹${this.finalTotal.toFixed(2)}`;
         document.getElementById('cart-subtotal').textContent = `₹${this.orderValue.toFixed(2)}`;
 
+        this.updateLuckyWheelState();
         this.validateForm();
+    }
+
+    // Initialize Lucky Wheel
+    initLuckyWheel() {
+        this.wheelCanvas = document.getElementById('lucky-wheel-canvas');
+        if (!this.wheelCanvas) return;
+        this.wheelCtx = this.wheelCanvas.getContext('2d');
+
+        // Only restore saved spin result if qualifying amount is >= 5000
+        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        if (qualAmount >= 5000) {
+            const saved = sessionStorage.getItem('lucky_spin_result');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && parsed.prize) {
+                        this.hasSpunWheel = true;
+                        this.luckySpinPrize = parsed.prize;
+                        this.luckySpinDiscount = parsed.discount || 0;
+                    }
+                } catch(e) {}
+            }
+        } else {
+            // Drop below 5k on load: ensure clean state
+            try { sessionStorage.removeItem('lucky_spin_result'); } catch(e) {}
+            this.hasSpunWheel = false;
+            this.luckySpinPrize = null;
+            this.luckySpinDiscount = 0;
+            if (this.cartItems.some(it => it.is_lucky_spin_gift)) {
+                this.cartItems = this.cartItems.filter(it => !it.is_lucky_spin_gift);
+                localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+            }
+        }
+
+        // Preload prize images
+        this.wheelPrizes.forEach(prize => {
+            if (prize.image) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    this.loadedWheelImages[prize.id] = img;
+                    this.drawLuckyWheel();
+                };
+                img.src = prize.image;
+            }
+        });
+
+        // Event listeners for spin buttons
+        const centerBtn = document.getElementById('wheel-center-btn');
+        const actionBtn = document.getElementById('wheel-action-btn');
+        const modalClaimBtn = document.getElementById('modal-claim-btn');
+
+        if (centerBtn) {
+            centerBtn.addEventListener('click', () => this.spinWheel());
+        }
+        if (actionBtn) {
+            actionBtn.addEventListener('click', () => this.spinWheel());
+        }
+        if (modalClaimBtn) {
+            modalClaimBtn.addEventListener('click', () => {
+                const modal = document.getElementById('lucky-winner-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        this.drawLuckyWheel();
+    }
+
+    drawLuckyWheel() {
+        if (!this.wheelCanvas || !this.wheelCtx) return;
+        const ctx = this.wheelCtx;
+        const width = this.wheelCanvas.width;
+        const height = this.wheelCanvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = width / 2 - 14;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const numSlices = this.wheelPrizes.length;
+        const sliceAngle = (2 * Math.PI) / numSlices;
+
+        // Draw 5 Segments
+        for (let i = 0; i < numSlices; i++) {
+            const prize = this.wheelPrizes[i];
+            const startAngle = this.currentWheelRotation + (i * sliceAngle);
+            const endAngle = startAngle + sliceAngle;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.closePath();
+
+            // Gradient fill
+            const grad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, radius);
+            grad.addColorStop(0, prize.accent || prize.color);
+            grad.addColorStop(1, prize.color);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Golden segment border
+            ctx.strokeStyle = '#FBBF24';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Draw content inside slice
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(startAngle + sliceAngle / 2);
+
+            // Thumbnail / Icon badge
+            const badgeDist = radius * 0.65;
+            const badgeRadius = 20;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(badgeDist, 0, badgeRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#1E093B';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FDE047';
+            ctx.stroke();
+
+            if (prize.image && this.loadedWheelImages[prize.id]) {
+                ctx.clip();
+                const img = this.loadedWheelImages[prize.id];
+                ctx.drawImage(img, badgeDist - badgeRadius, -badgeRadius, badgeRadius * 2, badgeRadius * 2);
+            } else {
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(prize.icon || '🎁', badgeDist, 0);
+            }
+            ctx.restore();
+
+            // Text: Name & Worth
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.shadowColor = 'rgba(0,0,0,0.85)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(prize.name, radius * 0.33, -6);
+
+            ctx.fillStyle = '#FDE047';
+            ctx.font = '800 9.5px sans-serif';
+            ctx.fillText(prize.worthText, radius * 0.33, 7);
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // Draw Outer Rim with light bulbs
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 2, 0, Math.PI * 2);
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 7, 0, Math.PI * 2);
+        ctx.strokeStyle = '#B45309';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 20 Rim Bulbs
+        const numBulbs = 20;
+        for (let b = 0; b < numBulbs; b++) {
+            const bulbAngle = (b * 2 * Math.PI) / numBulbs;
+            const bulbX = centerX + (radius + 2) * Math.cos(bulbAngle);
+            const bulbY = centerY + (radius + 2) * Math.sin(bulbAngle);
+
+            ctx.beginPath();
+            ctx.arc(bulbX, bulbY, 3.5, 0, Math.PI * 2);
+            const bulbColors = ['#FEF08A', '#FFFFFF', '#F87171', '#34D399'];
+            ctx.fillStyle = bulbColors[b % bulbColors.length];
+            ctx.fill();
+        }
+
+        // Center hub circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 42, 0, Math.PI * 2);
+        ctx.fillStyle = '#1E093B';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#FBBF24';
+        ctx.stroke();
+    }
+
+    updateLuckyWheelState() {
+        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        const isEligible = qualAmount >= 5000;
+
+        const lockedBanner = document.getElementById('wheel-locked-banner');
+        const unlockedBanner = document.getElementById('wheel-unlocked-banner');
+        const wonBanner = document.getElementById('wheel-won-banner');
+        const overlay = document.getElementById('wheel-locked-overlay');
+        const actionBtn = document.getElementById('wheel-action-btn');
+        const actionBtnText = document.getElementById('wheel-action-btn-text');
+        const centerBtnLabel = document.getElementById('center-btn-label');
+        const statusDot = document.getElementById('wheel-status-dot');
+        const statusText = document.getElementById('wheel-status-text');
+        const curAmt = document.getElementById('wheel-current-amount');
+        const remAmt = document.getElementById('wheel-remaining-amount');
+        const pctEl = document.getElementById('wheel-progress-pct');
+        const barEl = document.getElementById('wheel-progress-bar');
+
+        if (curAmt) curAmt.textContent = `₹${qualAmount.toFixed(2)}`;
+        const remaining = Math.max(0, 5000 - qualAmount);
+        if (remAmt) remAmt.textContent = `₹${remaining.toFixed(2)}`;
+        const pct = Math.min(100, Math.round((qualAmount / 5000) * 100));
+        if (pctEl) pctEl.textContent = `${pct}%`;
+        if (barEl) barEl.style.width = `${pct}%`;
+
+        if (!isEligible) {
+            // Locked (Under ₹5,000)
+            if (lockedBanner) lockedBanner.classList.remove('hidden');
+            if (unlockedBanner) unlockedBanner.classList.add('hidden');
+            if (wonBanner) wonBanner.classList.add('hidden');
+            if (overlay) overlay.classList.remove('hidden');
+            if (statusDot) {
+                statusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+            }
+            if (statusText) statusText.textContent = 'Locked (Under ₹5,000)';
+            if (actionBtn) actionBtn.disabled = true;
+            if (actionBtnText) actionBtnText.textContent = `LOCKED (Add ₹${remaining.toFixed(2)})`;
+            if (centerBtnLabel) centerBtnLabel.textContent = 'LOCKED';
+
+            if (!this.isSpinning) {
+                this.currentWheelAngle = 0;
+                this.drawLuckyWheel();
+            }
+        } else if (this.hasSpunWheel) {
+            // Already Spun & Eligible (>= ₹5,000)
+            if (lockedBanner) lockedBanner.classList.add('hidden');
+            if (unlockedBanner) unlockedBanner.classList.add('hidden');
+            if (wonBanner) wonBanner.classList.remove('hidden');
+            if (overlay) overlay.classList.add('hidden');
+            if (statusDot) {
+                statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+            }
+            if (statusText) statusText.textContent = 'Prize Claimed ✓';
+            if (actionBtn) actionBtn.disabled = true;
+            if (actionBtnText) actionBtnText.textContent = `WON: ${this.luckySpinPrize}`;
+            if (centerBtnLabel) centerBtnLabel.textContent = 'CLAIMED';
+
+            const prizeNameText = document.getElementById('won-prize-name-text');
+            const prizeDescText = document.getElementById('won-prize-desc-text');
+            if (prizeNameText) prizeNameText.textContent = this.luckySpinPrize;
+            if (prizeDescText) {
+                if (this.luckySpinPrize === '5% Discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%'))) {
+                    prizeDescText.textContent = `Extra 5% discount (₹${this.luckySpinDiscount.toFixed(2)}) applied to your final bill!`;
+                } else if (this.luckySpinPrize.includes('Better Luck')) {
+                    prizeDescText.textContent = `Better luck next time! Happy Diwali wishes from Radhe Crackers!`;
+                } else {
+                    prizeDescText.textContent = `FREE cracker gift item added to your package!`;
+                }
+            }
+        } else {
+            // Unlocked and Ready (>= ₹5,000)
+            if (lockedBanner) lockedBanner.classList.add('hidden');
+            if (unlockedBanner) unlockedBanner.classList.remove('hidden');
+            if (wonBanner) wonBanner.classList.add('hidden');
+            if (overlay) overlay.classList.add('hidden');
+            if (statusDot) {
+                statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+            }
+            if (statusText) statusText.textContent = 'Unlocked (Orders > 5k)';
+            if (actionBtn) actionBtn.disabled = this.isSpinning;
+            if (actionBtnText) actionBtnText.textContent = 'SPIN TO WIN 🎯';
+            if (centerBtnLabel) centerBtnLabel.textContent = 'SPIN';
+        }
+    }
+
+    spinWheel() {
+        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        if (qualAmount < 5000) {
+            alert('The Lucky Wheel unlocks exclusively for orders above ₹5,000! Please add more crackers to your cart.');
+            return;
+        }
+        if (this.hasSpunWheel) {
+            alert(`You have already spun the wheel and won: ${this.luckySpinPrize}!`);
+            return;
+        }
+        if (this.isSpinning) return;
+
+        this.isSpinning = true;
+        const actionBtn = document.getElementById('wheel-action-btn');
+        if (actionBtn) actionBtn.disabled = true;
+
+        // Choose winning prize (random among 5 items)
+        const prizeIndex = Math.floor(Math.random() * this.wheelPrizes.length);
+        const prize = this.wheelPrizes[prizeIndex];
+
+        // Top pointer needle is at 270 degrees (-PI/2) in standard canvas coordinates
+        const sliceAngle = (2 * Math.PI) / this.wheelPrizes.length;
+        const sliceCenterAngle = (prizeIndex * sliceAngle) + (sliceAngle / 2);
+        
+        const targetNeedleAngle = -Math.PI / 2;
+        let targetRotation = targetNeedleAngle - sliceCenterAngle;
+
+        // Normalize
+        const twoPI = 2 * Math.PI;
+        while (targetRotation < 0) targetRotation += twoPI;
+
+        // Add 6 full revolutions (6 * 2*PI)
+        const totalRotations = 6 * twoPI;
+        const finalTargetAngle = this.currentWheelRotation + totalRotations + (targetRotation - (this.currentWheelRotation % twoPI));
+
+        const startAngle = this.currentWheelRotation;
+        const totalDelta = finalTargetAngle - startAngle;
+        const duration = 5200; // 5.2 seconds
+        const startTime = performance.now();
+
+        let lastTickAngle = startAngle;
+        const tickThreshold = sliceAngle / 2;
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Easing: easeOutQuart
+            const ease = 1 - Math.pow(1 - progress, 4);
+            this.currentWheelRotation = startAngle + (totalDelta * ease);
+
+            // Play tick sound when passing segment boundaries
+            if (Math.abs(this.currentWheelRotation - lastTickAngle) >= tickThreshold) {
+                this.playTickSound();
+                lastTickAngle = this.currentWheelRotation;
+            }
+
+            this.drawLuckyWheel();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.isSpinning = false;
+                this.hasSpunWheel = true;
+                this.luckySpinPrize = prize.name;
+
+                // Play win sound
+                this.playWinSound();
+
+                // Save to session
+                sessionStorage.setItem('lucky_spin_result', JSON.stringify({
+                    prize: prize.name,
+                    prize_id: prize.id,
+                    type: prize.type
+                }));
+
+                // Handle reward
+                if (prize.type === 'discount') {
+                    this.calculateTotals();
+                } else if (prize.type === 'product') {
+                    // Inject free gift item into cartItems if not already present
+                    const exists = this.cartItems.some(it => it.is_lucky_spin_gift);
+                    if (!exists) {
+                        this.cartItems.push({
+                            product_id: prize.productId,
+                            product_name: `🎁 ${prize.fullName || prize.name} (Free Gift)`,
+                            content: '1 Gift Pcs',
+                            rate: 0,
+                            original_price: prize.originalPrice,
+                            quantity: 1,
+                            total: 0,
+                            is_lucky_spin_gift: true,
+                            is_free_gift: true
+                        });
+                        localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+                    }
+                    this.calculateTotals();
+                } else {
+                    this.calculateTotals();
+                }
+
+                this.showWinnerModal(prize);
+                this.updateLuckyWheelState();
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
+    showWinnerModal(prize) {
+        const modal = document.getElementById('lucky-winner-modal');
+        if (!modal) return;
+
+        const titleEl = document.getElementById('modal-prize-title');
+        const subEl = document.getElementById('modal-prize-subtitle');
+        const nameEl = document.getElementById('modal-prize-name');
+        const valEl = document.getElementById('modal-prize-val');
+        const statusEl = document.getElementById('modal-prize-status');
+        const imgEl = document.getElementById('modal-prize-img');
+        const emojiEl = document.getElementById('modal-prize-emoji');
+
+        if (prize.type === 'none') {
+            if (titleEl) titleEl.textContent = 'Better Luck Next Time!';
+            if (subEl) subEl.textContent = 'Thank you for shopping with Radhe Crackers!';
+            if (nameEl) nameEl.textContent = 'Diwali Festive Greetings';
+            if (valEl) valEl.textContent = 'Wishing you a joyful celebration!';
+            if (statusEl) statusEl.textContent = '✨ Best prices & quality guaranteed';
+            if (emojiEl) emojiEl.textContent = '🍀';
+            if (imgEl) imgEl.classList.add('hidden');
+        } else if (prize.type === 'discount') {
+            if (titleEl) titleEl.textContent = 'Congratulations! 5% Discount!';
+            if (subEl) subEl.textContent = 'Extra 5% discount unlocked on your entire order!';
+            if (nameEl) nameEl.textContent = '5% Extra Diwali Discount';
+            if (valEl) valEl.textContent = `-₹${this.luckySpinDiscount.toFixed(2)} deducted from bill`;
+            if (statusEl) statusEl.textContent = '✓ Automatically applied to total';
+            if (emojiEl) emojiEl.textContent = '🏷️';
+            if (imgEl) imgEl.classList.add('hidden');
+        } else {
+            if (titleEl) titleEl.textContent = '🎉 Congratulations! You Won!';
+            if (subEl) subEl.textContent = 'You have won a free fireworks gift!';
+            if (nameEl) nameEl.textContent = prize.fullName || prize.name;
+            if (valEl) valEl.textContent = `${prize.worthText} (FREE GIFT)`;
+            if (statusEl) statusEl.textContent = '✓ Added to your cart & bill (Rate: ₹0.00)';
+            if (emojiEl) emojiEl.textContent = '🎁';
+            if (imgEl) {
+                if (prize.image) {
+                    imgEl.src = prize.image;
+                    imgEl.classList.remove('hidden');
+                } else {
+                    imgEl.classList.add('hidden');
+                }
+            }
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    playTickSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(700, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.04);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.05);
+        } catch(e) {}
+    }
+
+    playWinSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + (idx * 0.1));
+                gain.gain.setValueAtTime(0.18, ctx.currentTime + (idx * 0.1));
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (idx * 0.1) + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + (idx * 0.1));
+                osc.stop(ctx.currentTime + (idx * 0.1) + 0.4);
+            });
+        } catch(e) {}
     }
     
     async applyCoupon() {
@@ -619,9 +1492,64 @@ class SmartCheckout {
     }
     
     removeItem(index) {
+        // Prevent manual removal of free gift items via this button
+        if (this.cartItems[index] && (this.cartItems[index].is_lucky_spin_gift || this.cartItems[index].is_free_gift)) {
+            return;
+        }
+
         this.cartItems.splice(index, 1);
         localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
         this.calculateTotals();
+    }
+
+    showSpinRevokedAlert() {
+        const revokedBanner = document.getElementById('wheel-revoked-banner');
+        const remAmtEl = document.getElementById('revoked-rem-amt');
+        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        const diff = Math.max(0, 5000 - qualAmount).toFixed(2);
+        
+        if (remAmtEl) remAmtEl.textContent = diff;
+        if (revokedBanner) {
+            revokedBanner.classList.remove('hidden');
+            if (this.revokedBannerTimeout) clearTimeout(this.revokedBannerTimeout);
+            this.revokedBannerTimeout = setTimeout(() => {
+                revokedBanner.classList.add('hidden');
+            }, 8000);
+        }
+
+        this.showFloatingToast(`⚠️ Cart dropped below ₹5,000. Free spin item removed. Add ₹${diff} more to unlock again!`, 'warning');
+    }
+
+    showFloatingToast(message, type = 'info') {
+        let container = document.getElementById('floating-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'floating-toast-container';
+            container.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        const bgClass = type === 'warning' ? 'bg-amber-950/95 border-amber-500 text-amber-100 shadow-amber-500/20' :
+                        type === 'success' ? 'bg-emerald-950/95 border-emerald-500 text-emerald-100 shadow-emerald-500/20' :
+                        'bg-purple-950/95 border-purple-500 text-purple-100 shadow-purple-500/20';
+        
+        toast.className = `pointer-events-auto p-3.5 rounded-xl border shadow-xl flex items-start gap-2.5 text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+        toast.innerHTML = `
+            <span class="text-base flex-shrink-0">⚠️</span>
+            <div class="flex-1 leading-snug">${message}</div>
+            <button type="button" class="text-white/60 hover:text-white font-bold ml-1" onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-2', 'opacity-0');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('translate-y-2', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 6000);
     }
     
     validateForm() {
@@ -657,6 +1585,8 @@ class SmartCheckout {
         formData.append('items', JSON.stringify(this.cartItems));
         formData.append('coupon_code', this.couponData ? this.couponData.code : '');
         formData.append('coupon_discount', this.couponData ? this.couponData.discount_amount : 0);
+        formData.append('lucky_spin_prize', this.luckySpinPrize || '');
+        formData.append('lucky_spin_discount', this.luckySpinDiscount || 0);
         formData.append('total', this.finalTotal);
         formData.append('clear_cart', 'true');
         
@@ -695,6 +1625,7 @@ class SmartCheckout {
                 // Clear all session data
                 this.clearPreviousSessionData();
                 localStorage.removeItem('cartItems');
+                sessionStorage.removeItem('lucky_spin_result');
                 
                 // Show success message
                 this.showSuccessMessage('Order placed successfully! PDF Bill has been sent to your WhatsApp.');
