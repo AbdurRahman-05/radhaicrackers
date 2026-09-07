@@ -224,6 +224,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/stocks/{id}/edit', [App\Http\Controllers\Admin\StockController::class, 'edit'])->name('stocks.edit');
         Route::delete('/stocks/{id}', [App\Http\Controllers\Admin\StockController::class, 'destroy'])->name('stocks.destroy');
         Route::put('/stocks/{id}', [App\Http\Controllers\Admin\StockController::class, 'update'])->name('stocks.update');
+        Route::post('/stocks/{id}/remove-image', [App\Http\Controllers\Admin\StockController::class, 'removeImage'])->name('stocks.remove-image');
         Route::get('/stocks/ordering', function () {
             return view('admin.stocks.ordering');
         })->name('stocks.ordering');

@@ -226,27 +226,30 @@
                     <div class="space-y-4">
                         <!-- Current Image -->
                         @if($stock->image)
-                        <div>
+                        <div id="current-image-section">
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Current Image
                             </label>
-                            <div class="flex items-center space-x-4">
-                                <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" 
+                            <div id="current-image-container" class="flex items-center space-x-4">
+                                <img id="current-image-preview" src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" 
                                      class="w-24 h-24 object-cover rounded-lg border">
                                 <div>
-                                    <button type="button" onclick="removeCurrentImage()" 
-                                            class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
-                                        Remove Current Image
+                                    <button type="button" id="remove-image-btn" onclick="removeCurrentImage()" 
+                                            class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors inline-flex items-center">
+                                        <i class="fas fa-trash-alt mr-1"></i> Remove Current Image
                                     </button>
                                     <input type="hidden" name="remove_image" id="remove_image" value="0">
                                 </div>
+                            </div>
+                            <div id="image-removed-alert" class="hidden mt-2 text-sm text-green-600 font-medium">
+                                <i class="fas fa-check-circle mr-1"></i> Current image removed successfully.
                             </div>
                         </div>
                         @endif
 
                         <!-- New Image Upload -->
                         <div>
-                            <label for="image" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label for="image" id="image-upload-label" class="block text-sm font-medium text-gray-700 mb-2">
                                 {{ $stock->image ? 'Replace Image' : 'Upload Image' }} (Optional)
                             </label>
                             <input type="file" id="image" name="image" accept="image/*"
@@ -414,14 +417,68 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function removeCurrentImage() {
-    if (confirm('Are you sure you want to remove the current image?')) {
-        document.getElementById('remove_image').value = '1';
-        // Hide the current image display
-        const currentImageContainer = document.querySelector('.flex.items-center.space-x-4');
-        if (currentImageContainer) {
-            currentImageContainer.style.display = 'none';
-        }
+    if (!confirm('Are you sure you want to remove the current image?')) {
+        return;
     }
+
+    const removeBtn = document.getElementById('remove-image-btn');
+    const removeInput = document.getElementById('remove_image');
+    const imageContainer = document.getElementById('current-image-container');
+    const removedAlert = document.getElementById('image-removed-alert');
+    const uploadLabel = document.getElementById('image-upload-label');
+
+    if (removeInput) {
+        removeInput.value = '1';
+    }
+
+    if (removeBtn) {
+        removeBtn.disabled = true;
+        removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Removing...';
+    }
+
+    // Immediately remove from server via AJAX
+    fetch("{{ route('admin.stocks.remove-image', $stock->id) }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (imageContainer) {
+                imageContainer.style.display = 'none';
+            }
+            if (removedAlert) {
+                removedAlert.classList.remove('hidden');
+            }
+            if (uploadLabel) {
+                uploadLabel.textContent = 'Upload Image (Optional)';
+            }
+        } else {
+            alert(data.message || 'Failed to remove image from server.');
+            if (removeBtn) {
+                removeBtn.disabled = false;
+                removeBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Remove Current Image';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error removing image:', error);
+        // Fallback: hide the container and allow form update to complete deletion
+        if (imageContainer) {
+            imageContainer.style.display = 'none';
+        }
+        if (removedAlert) {
+            removedAlert.textContent = 'Image marked for removal. Click "Update Stock" to save changes.';
+            removedAlert.classList.remove('hidden');
+        }
+        if (uploadLabel) {
+            uploadLabel.textContent = 'Upload Image (Optional)';
+        }
+    });
 }
 
 

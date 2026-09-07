@@ -524,17 +524,15 @@ class StockController extends Controller
             if ($request->hasFile('image')) {
                 // Delete old image if exists
                 if ($stock->image) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($stock->image);
+                    Stock::deleteImageFiles($stock->image);
                 }
                 
                 $data['image'] = $request->file('image')->store('stocks', 'public');
                 Stock::syncUploadedFile($data['image']);
-            }
-
-            // Handle image removal
-            if ($request->has('remove_image') && $request->remove_image) {
+            } elseif ($request->has('remove_image') && $request->remove_image) {
+                // Handle image removal if no new file is uploaded
                 if ($stock->image) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($stock->image);
+                    Stock::deleteImageFiles($stock->image);
                 }
                 $data['image'] = null;
             }
@@ -554,6 +552,39 @@ class StockController extends Controller
         }
     }
 
+    /**
+     * Remove the current image of a stock item
+     */
+    public function removeImage($id)
+    {
+        try {
+            $stock = Stock::findOrFail($id);
+            if ($stock->image) {
+                Stock::deleteImageFiles($stock->image);
+                $stock->image = null;
+                $stock->save();
+            }
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Image removed successfully!'
+                ]);
+            }
+
+            return back()->with('success', 'Image removed successfully!');
+        } catch (\Exception $e) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to remove image: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Failed to remove image: ' . $e->getMessage());
+        }
+    }
+
     public function destroy($id)
     {
         try {
@@ -564,7 +595,7 @@ class StockController extends Controller
             
             // Delete image if exists
             if ($stock->image) {
-                \Storage::disk('public')->delete($stock->image);
+                Stock::deleteImageFiles($stock->image);
             }
             
             $stock->delete();

@@ -141,6 +141,44 @@ public function images()
         }
     }
 
+    public static function deleteImageFiles($filePath)
+    {
+        if (empty($filePath) || filter_var($filePath, FILTER_VALIDATE_URL)) {
+            return;
+        }
+
+        $cleanPath = ltrim($filePath, '/');
+        if (str_starts_with($cleanPath, 'public/storage/')) {
+            $cleanPath = substr($cleanPath, 15);
+        } elseif (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        } elseif (str_starts_with($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+
+        $filename = basename($cleanPath);
+
+        $targets = [
+            storage_path('app/public/' . $cleanPath),
+            storage_path('app/public/stocks/' . $filename),
+            public_path('storage/' . $cleanPath),
+            public_path('storage/stocks/' . $filename),
+            public_path('uploads/' . $filename),
+            public_path($cleanPath),
+            public_path($filename),
+        ];
+
+        foreach ($targets as $target) {
+            if (file_exists($target) && !is_dir($target)) {
+                @unlink($target);
+            }
+        }
+
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($filePath);
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($cleanPath);
+        \Illuminate\Support\Facades\Storage::disk('public')->delete('stocks/' . $filename);
+    }
+
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {
