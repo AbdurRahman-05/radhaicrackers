@@ -73,7 +73,7 @@ return [
             ],
         ],
 
-        'default_font' => 'NotoSansTamil',
+        'default_font' => 'DejaVu Sans',
 
 
         /**

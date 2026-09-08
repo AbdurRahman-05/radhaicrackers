@@ -694,8 +694,10 @@ class Orders extends Component
                 ]);
             }
 
-            // Keep updated order visible in list by resetting filters to 'all'
-            $this->clearFilters();
+            // Automatically send WhatsApp notification if order status CHANGED to confirmed
+            if ($this->editStatus === 'confirmed' && $oldStatus !== $this->editStatus) {
+                $this->sendWhatsAppConfirmed($order->id);
+            }
 
             // Automatically send WhatsApp notification if payment status CHANGED to paid or confirmed
             if (in_array($this->editPaymentStatus, ['paid', 'confirmed']) && $oldPaymentStatus !== $this->editPaymentStatus) {
@@ -736,6 +738,87 @@ class Orders extends Component
         return implode("\n", $itemsList);
     }
 
+    public function updateOrderStatus($orderId, $newStatus)
+    {
+        $validStatuses = ['pending', 'confirmed', 'dispatched', 'completed', 'cancelled'];
+        if (!in_array($newStatus, $validStatuses)) {
+            session()->flash('error', 'Invalid order status.');
+            return;
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+
+        $oldStatus = strtolower($order->status);
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        $order->update(['status' => $newStatus]);
+
+        Stock::recalculateOrderedCounts();
+
+        OrderLog::create([
+            'order_id' => $order->id,
+            'status' => $newStatus,
+            'previous_status' => $oldStatus,
+            'changed_by' => auth()->id(),
+            'notes' => "Status updated directly from {$oldStatus} to {$newStatus}",
+            'payment_status' => null,
+        ]);
+
+        if ($newStatus === 'confirmed') {
+            $this->sendWhatsAppConfirmed($order->id);
+        } elseif ($newStatus === 'dispatched') {
+            $this->sendWhatsAppDispatched($order->id);
+        }
+
+        session()->flash('success', "Order #{$order->id} status updated to " . ucfirst($newStatus) . " successfully!");
+    }
+
+    public function sendWhatsAppConfirmed($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+
+        $phone = $this->editCustomerMobile ?: ($order->customer_mobile ?: ($order->user->phone ?? ''));
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
+            $phone = substr($phone, 2);
+        } elseif (strlen($phone) === 11 && str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
+        }
+
+        if (!$phone) {
+            session()->flash('error', 'Customer mobile number not available.');
+            return;
+        }
+
+        $customerName = $this->editCustomerName ?: ($order->customer_name ?: 'Customer');
+        $orderValue = '₹' . number_format($order->total_amount ?: ($order->total ?: 0), 2);
+
+        try {
+            $smsService = new \App\Services\SMSService();
+            $res = $smsService->sendWhatsApp($phone, '', 'order_confirmation', [
+                'customer_name' => $customerName,
+                'order_id' => (string)$order->id,
+                'order_value' => $orderValue,
+            ]);
+
+            \Log::info("WhatsApp Order Confirmation triggered for Order #{$order->id} to {$phone}");
+            session()->flash('success', "WhatsApp Order Confirmation sent to {$customerName} (+91{$phone})!");
+        } catch (\Exception $e) {
+            \Log::error("WhatsApp Order Confirmation error for Order #{$order->id}: " . $e->getMessage());
+            session()->flash('error', "Error sending WhatsApp notification: " . $e->getMessage());
+        }
+    }
+
     public function sendWhatsAppPaidBill($orderId)
     {
         $order = Order::find($orderId);
@@ -748,6 +831,8 @@ class Orders extends Component
         $phone = preg_replace('/[^0-9]/', '', $phone);
         if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
             $phone = substr($phone, 2);
+        } elseif (strlen($phone) === 11 && str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
         }
 
         if (!$phone) {
@@ -755,8 +840,8 @@ class Orders extends Component
             return;
         }
 
-        $customerName = $this->editCustomerName ?: $order->customer_name;
-        $orderValue = '₹' . number_format($order->total_amount ?: $order->total, 2);
+        $customerName = $this->editCustomerName ?: ($order->customer_name ?: 'Customer');
+        $orderValue = '₹' . number_format($order->total_amount ?: ($order->total ?: 0), 2);
         $invoiceUrl = route('user.orders.invoice_pdf', $order->id);
 
         try {
@@ -785,8 +870,11 @@ class Orders extends Component
         }
 
         $phone = $this->editCustomerMobile ?: ($order->customer_mobile ?: ($order->user->phone ?? ''));
+        $phone = preg_replace('/[^0-9]/', '', $phone);
         if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
             $phone = substr($phone, 2);
+        } elseif (strlen($phone) === 11 && str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
         }
 
         if (!$phone) {
@@ -794,7 +882,7 @@ class Orders extends Component
             return;
         }
 
-        $customerName = $this->editCustomerName ?: $order->customer_name;
+        $customerName = $this->editCustomerName ?: ($order->customer_name ?: 'Customer');
         $provider = $this->editTransportProvider ?: ($order->transport_provider ?: 'Lorry Transport');
         $details = $this->editTransportDetails ?: ($order->transport_details ?: 'Assigned');
         $deliveryPoint = $this->editDeliveryPoint ?: ($order->delivery_point ?: ($this->editCustomerCity ?: $order->customer_city));
@@ -817,6 +905,21 @@ class Orders extends Component
             \Log::error("WhatsApp Dispatched error for Order #{$order->id}: " . $e->getMessage());
             session()->flash('error', "Error sending WhatsApp notification: " . $e->getMessage());
         }
+    }
+
+    public function getWhatsAppChatUrl($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) return '#';
+        $phone = preg_replace('/[^0-9]/', '', $order->customer_mobile ?: ($order->user->phone ?? ''));
+        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
+            $phone = substr($phone, 2);
+        } elseif (strlen($phone) === 11 && str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
+        }
+        $name = $order->customer_name ?: 'Customer';
+        $msg = urlencode("Hello {$name}, regarding your Radhe Crackers Order #{$order->id}: ");
+        return "https://wa.me/91{$phone}?text={$msg}";
     }
 
     public $confirmingOrderDeletion = false;

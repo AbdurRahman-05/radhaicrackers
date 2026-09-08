@@ -65,7 +65,12 @@ class SMSService
 
     public function sendWhatsApp($phone, $otp, $context=null, $data=[])
     {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+        $phone = preg_replace('/[^0-9]/', '', (string)$phone);
+        if (strlen($phone) === 12 && str_starts_with($phone, '91')) {
+            $phone = substr($phone, 2);
+        } elseif (strlen($phone) === 11 && str_starts_with($phone, '0')) {
+            $phone = substr($phone, 1);
+        }
         if (strlen($phone) === 10) {
             $phone = '91' . $phone;
         }

@@ -3,30 +3,17 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @font-face {
-            font-family: 'Noto Serif Tamil';
-            font-style: normal;
-            font-weight: normal;
-            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
-        }
-        @font-face {
-            font-family: 'Noto Serif Tamil';
-            font-style: normal;
-            font-weight: bold;
-            src: url('data:font/truetype;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/NotoSansTamil-Regular.ttf"))) }}') format('truetype');
-        }
         @page {
             size: auto;
             margin: 10mm;
         }
-
 
         body, th, td {
             font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
         }
 
         .tamil-text {
-            font-family: 'Noto Serif Tamil', 'DejaVu Sans', sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
         }
 .header-box {
     /* border: 1px solid #000; */
@@ -89,28 +76,24 @@
 
 
         .company-title {
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
-            font-size: 30px;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 26px;
             font-weight: bold;
             text-align: center;
             letter-spacing: 1px;
         }
         .company-address {
-            font-size: 12px;
+            font-size: 11px;
             text-align: center;
             margin-top: 2px;
-            
         }
-        
         
         .customer-box .label { font-weight: bold; color: #444; }
         .customer-box .value { margin-bottom: 4px; }
         .order-summary-flex {
-         
             margin-top: 15px;
         }
         .order-table {
-
             width: 100%;
             border-collapse: collapse;
             background: #fff;
@@ -118,21 +101,22 @@
             overflow: hidden;
             margin-bottom: 0;
             border: 1px solid #000;
-            
         }
         .order-table th, .order-table td {
             border: 1px solid #000;
-            padding: 7px 7px;
+            padding: 5px 6px;
             text-align: center;
             font-size: 10px;
-            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            vertical-align: middle;
+            line-height: 1.3;
         }
-        .order-table th.sno, .order-table td.sno { width: 40px; }
-        .order-table th.code, .order-table td.code { width: 60px; }
-        .order-table th.product, .order-table td.product { width: 220px; }
-        .order-table th.mrp, .order-table td.mrp { width: 70px; }
-        .order-table th.qty, .order-table td.qty { width: 50px; }
-        .order-table th.total, .order-table td.total { width: 80px; }
+        .order-table th.sno, .order-table td.sno { width: 35px; }
+        .order-table th.code, .order-table td.code { width: 65px; font-size: 9px; }
+        .order-table th.product, .order-table td.product { width: 230px; text-align: left; padding-left: 8px; }
+        .order-table th.mrp, .order-table td.mrp { width: 70px; text-align: right; padding-right: 8px; }
+        .order-table th.qty, .order-table td.qty { width: 45px; }
+        .order-table th.total, .order-table td.total { width: 85px; text-align: right; padding-right: 8px; }
         .order-table th {
             background: #f3f4f6;
             color: #1E093B;
@@ -462,9 +446,9 @@
                 <th class="sno">S.No</th>
                 <th class="code">Product ID</th>
                 <th class="product">Product</th>
-                <th class="mrp">MRP ₹</th>
+                <th class="mrp">MRP (₹)</th>
                 <th class="qty">Qty</th>
-                <th class="total">Total ₹</th>
+                <th class="total">Total (₹)</th>
             </tr>
         </thead>
         <tbody>
@@ -492,11 +476,13 @@
                         <td class="sno">{{ $itemSno++ }}</td>
                         <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : '' }}">{{ $isLuckyGift ? '🎁 GIFT' : $catalogSno }}</td>
                         <td class="product">
-                            <div style="{{ $isLuckyGift ? 'font-weight: bold; color: #5B21B6;' : '' }}">{!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}</div>
+                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : 'color: #111827;' }}">
+                                {!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}
+                            </div>
                             @if($isLuckyGift)
-                                <div style="font-size: 8px; color: #D97706; font-weight: bold; margin-top: 1px;">🎉 Lucky Spinning Wheel Free Gift</div>
+                                <div style="font-size: 8.5px; color: #D97706; font-weight: bold; padding-top: 3px; line-height: 1.2;">🎉 Lucky Spinning Wheel Free Gift</div>
                             @elseif($productDesc)
-                                <div style="font-size: 8px; color: #111827; font-weight: bold; margin-top: 1px; line-height: 1.1;">{{ $productDesc }}</div>
+                                <div style="font-size: 8px; color: #4B5563; font-weight: normal; padding-top: 2px; line-height: 1.2;">{{ $productDesc }}</div>
                             @endif
                         </td>
                         <td class="mrp">{{ number_format($originalPrice, 2) }}</td>
