@@ -528,6 +528,11 @@
                         $finalAmount += $gstAmount;
                     }
                     $finalAmount = max(0, $finalAmount);
+                    if (!empty($order->total_amount) && (float)$order->total_amount > 0) {
+                        $finalAmount = (float)$order->total_amount;
+                    } elseif (!empty($order->total) && (float)$order->total > 0) {
+                        $finalAmount = (float)$order->total;
+                    }
                 @endphp
                 <table class="summary-table">
                     <tr><td class="label">Sub Total</td><td class="value">₹{{ number_format($subtotal, 2) }}</td></tr>

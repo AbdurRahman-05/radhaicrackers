@@ -547,6 +547,11 @@
                         $finalAmount += $gstAmount;
                     }
                     $finalAmount = max(0, $finalAmount); // prevent negative total
+                    if (!empty($order->total_amount) && (float)$order->total_amount > 0) {
+                        $finalAmount = (float)$order->total_amount;
+                    } elseif (!empty($order->total) && (float)$order->total > 0) {
+                        $finalAmount = (float)$order->total;
+                    }
 
                 @endphp
                 <table class="summary-table">

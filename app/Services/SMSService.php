@@ -83,6 +83,11 @@ class SMSService
             try {
                 $order = \App\Models\Order::with(['user', 'payment', 'logs'])->find($order_id);
                 if ($order) {
+                    $actualVal = (float)($order->total_amount ?: ($order->total ?: ($order->final_amount ?: 0)));
+                    if ($actualVal > 0) {
+                        $order_value = '₹' . number_format($actualVal, 2);
+                    }
+
                     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
                     $pdfContent = $pdf->output();
                     
@@ -92,7 +97,7 @@ class SMSService
                     $pdfUrl = route('public.pdf_invoice', $order_id);
                     $appUrl = rtrim(config('app.url'), '/');
                     if (str_contains($pdfUrl, 'localhost') || str_contains($pdfUrl, '127.0.0.1')) {
-                        $pdfUrl = "https://mediumspringgreen-dragonfly-181890.hostingersite.com/public-pdf/{$order_id}";
+                        $pdfUrl = "https://radhecrackers.com/public-pdf/{$order_id}";
                     }
 
                     // Send Meta Approved Document Template (order_bill_pdf) - ONLY for 1st message
