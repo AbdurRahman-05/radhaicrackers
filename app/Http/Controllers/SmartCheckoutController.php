@@ -282,20 +282,53 @@ class SmartCheckoutController extends Controller
             $orderData['lucky_spin_discount'] = $luckySpinDiscount;
             $orderData['final_amount'] = $mailTotal;
             $orderData['final_amount_after_coupon'] = $mailTotal;
-            $orderData['user_id'] = auth()->id() ?? 1;
             $orderData['status'] = 'pending';
             $orderData['payment_status'] = 'pending';
 
-            // Create order
-            $order = Order::create($orderData);
-
-            // Update user name if it is currently numeric or default
-            if (auth()->check()) {
+            // Assign order to user: prioritize authenticated user, or find/create user by mobile number
+            $userId = auth()->id();
+            if (!$userId) {
+                try {
+                    $user = \App\Models\User::firstOrCreate(
+                        ['phone' => $orderData['customer_mobile']],
+                        [
+                            'name' => $orderData['customer_name'],
+                            'email' => $orderData['customer_email'] ?: null,
+                            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(12)),
+                            'is_active' => true,
+                        ]
+                    );
+                    if ($user->name === 'User-' . $user->phone || empty($user->name) || preg_match('/^User-\d+$/', $user->name)) {
+                        $user->update([
+                            'name' => $orderData['customer_name'],
+                            'email' => $orderData['customer_email'] ?: $user->email,
+                        ]);
+                    }
+                    \Illuminate\Support\Facades\Auth::login($user);
+                    $userId = $user->id;
+                } catch (\Throwable $userEx) {
+                    \Log::warning('Smart checkout user auto-login failed: ' . $userEx->getMessage());
+                    $userId = \App\Models\User::orderBy('id')->value('id') ?? 1;
+                }
+            } else {
                 $user = auth()->user();
-                if ($user->name === 'User-' . $user->phone || empty($user->name) || preg_match('/^User-\d+$/', $user->name)) {
+                if ($user && ($user->name === 'User-' . $user->phone || empty($user->name) || preg_match('/^User-\d+$/', $user->name))) {
                     $user->update(['name' => $orderData['customer_name']]);
                 }
             }
+
+            $orderData['user_id'] = $userId ?? (\App\Models\User::orderBy('id')->value('id') ?? 1);
+
+            // Safety check: if columns don't exist in orders table, omit them
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_prize')) {
+                unset($orderData['lucky_spin_prize']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_discount')) {
+                unset($orderData['lucky_spin_discount']);
+            }
+
+            // Create order
+            $order = Order::create($orderData);
 
             // Ordered count will be dynamically calculated when order is confirmed by Admin
 
@@ -319,20 +352,27 @@ class SmartCheckoutController extends Controller
             // WhatsApp Integration & PDF Bill URL generation
             $whatsappUrl = '';
             try {
-                $smsService = new \App\Services\SMSService();
+                $activeSmsService = $smsService ?? app(\App\Services\SMSService::class);
                 $waData = [
                     'customer_name' => $order->customer_name ?: (auth()->user()->name ?? 'Customer'),
                     'order_value' => '₹' . number_format($order->total_amount ?: $order->total, 2),
                     'order_id' => (string)$order->id
                 ];
                 $customerPhone = $order->customer_mobile ?: (auth()->user()->phone ?? '');
-                $smsService->sendWhatsApp($customerPhone, '', 'order_confirmation', $waData);
-                $smsService->sendWhatsAppAdmin($customerPhone, '', 'order_confirmation', $waData);
+                $activeSmsService->sendWhatsApp($customerPhone, '', 'order_confirmation', $waData);
+                $activeSmsService->sendWhatsAppAdmin($customerPhone, '', 'order_confirmation', $waData);
 
-                $whatsappService = app(\App\Services\WhatsAppService::class);
-                $whatsappUrl = $whatsappService->generateOrderWhatsAppUrl($order);
-            } catch (\Exception $waEx) {
+                if (class_exists(\App\Services\WhatsAppService::class)) {
+                    $whatsappService = app(\App\Services\WhatsAppService::class);
+                    $whatsappUrl = $whatsappService->generateOrderWhatsAppUrl($order);
+                }
+            } catch (\Throwable $waEx) {
                 Log::error('Smart checkout WhatsApp Exception: ' . $waEx->getMessage());
+            }
+
+            $redirectUrl = route('user.orders.show', $order->id);
+            if (!auth()->check()) {
+                $redirectUrl = route('shop') . '?order_success=' . $order->id;
             }
 
             return response()->json([
@@ -341,14 +381,21 @@ class SmartCheckoutController extends Controller
                 'order_id' => $order->id,
                 'whatsapp_url' => $whatsappUrl,
                 'pdf_url' => route('user.orders.invoice_pdf', $order->id),
-                'redirect_url' => route('user.orders.show', $order->id)
+                'redirect_url' => $redirectUrl
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Smart checkout error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Smart checkout error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Error placing order. Please try again.'
+                'message' => config('app.debug') 
+                    ? 'Error placing order: ' . $e->getMessage() 
+                    : (str_contains($e->getMessage(), 'SQLSTATE') ? 'Database error while placing order. Please try again.' : $e->getMessage()),
+                'error_detail' => $e->getMessage()
             ]);
         }
     }

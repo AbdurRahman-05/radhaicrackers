@@ -1592,7 +1592,13 @@ class SmartCheckout {
         
         try {
             // Get fresh CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!csrfToken) {
+                const tokenInput = document.querySelector('input[name="_token"]');
+                if (tokenInput) {
+                    csrfToken = tokenInput.value;
+                }
+            }
             if (!csrfToken) {
                 throw new Error('CSRF token not found. Please refresh the page and try again.');
             }
@@ -1600,7 +1606,7 @@ class SmartCheckout {
             const response = await fetch('{{ route("smart-checkout.submit") }}', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+                    'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
@@ -1613,9 +1619,21 @@ class SmartCheckout {
                     throw new Error('Session expired. Please refresh the page and try again.');
                 } else if (response.status === 422) {
                     const errorData = await response.json();
-                    throw new Error(errorData.message || 'Validation error. Please check your information.');
+                    let msg = errorData.message || 'Validation error. Please check your information.';
+                    if (errorData.errors) {
+                        const firstKey = Object.keys(errorData.errors)[0];
+                        if (firstKey && errorData.errors[firstKey].length > 0) {
+                            msg = errorData.errors[firstKey][0];
+                        }
+                    }
+                    throw new Error(msg);
                 } else {
-                    throw new Error(`Server error (${response.status}). Please try again.`);
+                    let errMsg = `Server error (${response.status}). Please try again.`;
+                    try {
+                        const errData = await response.json();
+                        if (errData.message) errMsg = errData.message;
+                    } catch(e) {}
+                    throw new Error(errMsg);
                 }
             }
             
@@ -1732,6 +1750,10 @@ class SmartCheckout {
                 const csrfMeta = document.querySelector('meta[name="csrf-token"]');
                 if (csrfMeta && data.csrf_token) {
                     csrfMeta.setAttribute('content', data.csrf_token);
+                }
+                const tokenInput = document.querySelector('input[name="_token"]');
+                if (tokenInput && data.csrf_token) {
+                    tokenInput.value = data.csrf_token;
                 }
             }
         } catch (error) {

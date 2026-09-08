@@ -145,10 +145,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/order', [OrderController::class, 'store'])->name('order.store');
     Route::get('/order/{id}', [OrderController::class, 'showOrder'])->name('order.show');
     Route::get('/order/{id}/pdf', [OrderController::class, 'downloadPDF'])->name('order.pdf');
+});
 
-    // Checkout routes
-    Route::get('/checkout', [App\Http\Controllers\CheckoutController::class, 'showForm'])->name('checkout.form');
-    Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'submitForm'])->name('checkout.submit');
+// Checkout routes (accessible by guests and users)
+Route::get('/checkout', [App\Http\Controllers\CheckoutController::class, 'showForm'])->name('checkout.form');
+Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'submitForm'])->name('checkout.submit');
 
 // Smart Checkout routes
 Route::get('/smart-checkout', [App\Http\Controllers\SmartCheckoutController::class, 'show'])->name('smart-checkout.show');
@@ -157,10 +158,14 @@ Route::post('/api/coupons/validate', [App\Http\Controllers\SmartCheckoutControll
 Route::get('/api/coupons/available', [App\Http\Controllers\SmartCheckoutController::class, 'getAvailableCoupons'])->name('smart-checkout.available-coupons');
 Route::post('/smart-checkout/draft', [App\Http\Controllers\SmartCheckoutController::class, 'saveDraft'])->name('smart-checkout.save-draft');
 Route::get('/smart-checkout/draft', [App\Http\Controllers\SmartCheckoutController::class, 'loadDraft'])->name('smart-checkout.load-draft');
+Route::get('/api/csrf-token', function () {
+    return response()->json([
+        'csrf_token' => csrf_token()
+    ]);
+})->name('api.csrf-token');
 
-    Route::get('/price-list', [PriceListController::class, 'show'])->name('price-list');
-    Route::get('/price-list/download', [\App\Http\Controllers\PriceListController::class, 'download'])->middleware('auth')->name('price-list.download');
-});
+Route::get('/price-list', [PriceListController::class, 'show'])->name('price-list');
+Route::get('/price-list/download', [\App\Http\Controllers\PriceListController::class, 'download'])->middleware('auth')->name('price-list.download');
 
 Route::middleware('auth')->prefix('user')->name('user.')->group(function () {
     Route::get('orders', [UserOrderController::class, 'index'])->name('orders');
