@@ -394,9 +394,9 @@
                 <span>Items Subtotal:</span>
                 <span id="summary-subtotal">₹0.00</span>
             </div>
-            <div class="flex justify-between text-xs sm:text-sm text-orange-600 font-medium">
-                <span>Delivery/Packing Fee (+5%):</span>
-                <span id="summary-packing">₹0.00</span>
+            <div class="flex justify-between items-center text-xs sm:text-sm font-medium">
+                <span id="packing-label" class="text-gray-600">Delivery & Packing:</span>
+                <span id="summary-packing" class="text-orange-600 font-semibold">₹0.00</span>
             </div>
             <hr class="border-gray-200">
             <div class="flex justify-between text-base sm:text-lg font-extrabold text-gray-900">
@@ -549,23 +549,33 @@ function updateCartSummary() {
     const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     
     // Calculate subtotal (excluding free gifts)
-    const subtotal = cart.reduce((sum, item) => {
-        if (item.is_lucky_spin_gift || item.is_free_gift) return sum;
-        const product = products[item.product_id];
-        if (product) {
-            let finalPrice = product.price;
-            if (product.discount_percentage > 0) {
-                finalPrice = product.original_price * (1 - product.discount_percentage / 100);
+    let regularSubtotal = 0;
+    let comboSubtotal = 0;
+    cart.forEach(item => {
+        if (item.is_lucky_spin_gift || item.is_free_gift) return;
+        const qty = Number(item.quantity || 1);
+        if (item.is_combo) {
+            comboSubtotal += qty * Number(item.price || item.rate || 0);
+        } else {
+            const product = products[item.product_id];
+            if (product) {
+                let finalPrice = product.price;
+                if (product.discount_percentage > 0) {
+                    finalPrice = product.original_price * (1 - product.discount_percentage / 100);
+                }
+                if (product.special_discount_percentage > 0) {
+                    finalPrice = finalPrice * (1 - product.special_discount_percentage / 100);
+                }
+                regularSubtotal += (qty * finalPrice);
+            } else {
+                regularSubtotal += (qty * Number(item.rate || item.price || 0));
             }
-            if (product.special_discount_percentage > 0) {
-                finalPrice = finalPrice * (1 - product.special_discount_percentage / 100);
-            }
-            return sum + (item.quantity * finalPrice);
         }
-        return sum + (item.quantity * (item.rate || item.price));
-    }, 0);
+    });
     
-    const packingCharge = subtotal * 0.05;
+    const subtotal = regularSubtotal + comboSubtotal;
+    // No delivery/packing fee for combos; 5% packing applies ONLY to regular items
+    const packingCharge = regularSubtotal * 0.05;
     const finalTotal = subtotal + packingCharge;
 
     // If final total drops below 5,000, remove any lingering lucky spin free gifts
@@ -594,7 +604,19 @@ function updateCartSummary() {
     if (badgeTotal) badgeTotal.textContent = `₹${finalTotal.toFixed(2)}`;
     if (itemsCountEl) itemsCountEl.textContent = itemsCount;
     if (subtotalEl) subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
-    if (packingEl) packingEl.textContent = `₹${packingCharge.toFixed(2)}`;
+    if (packingEl) {
+        const packingLabel = document.getElementById('packing-label');
+        if (packingCharge === 0 && comboSubtotal > 0) {
+            if (packingLabel) packingLabel.textContent = 'Delivery & Packing:';
+            packingEl.innerHTML = '<span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full text-xs">All-Inclusive</span>';
+        } else if (packingCharge > 0 && comboSubtotal > 0) {
+            if (packingLabel) packingLabel.textContent = 'Packing (+5% regular items):';
+            packingEl.textContent = `₹${packingCharge.toFixed(2)}`;
+        } else {
+            if (packingLabel) packingLabel.textContent = 'Delivery/Packing Fee (+5%):';
+            packingEl.textContent = `₹${packingCharge.toFixed(2)}`;
+        }
+    }
     if (totalEl) totalEl.textContent = `₹${finalTotal.toFixed(2)}`;
 
     // Populate scrollable items list

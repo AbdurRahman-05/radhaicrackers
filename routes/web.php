@@ -113,6 +113,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/estimate', [ShopController::class, 'index'])->name('shop');
     Route::get('/quotation', [App\Http\Controllers\ExpressShopController::class, 'index'])->name('express-shop');
     Route::post('/quotation/estimate-pdf', [App\Http\Controllers\ExpressShopController::class, 'estimatePdf'])->name('express-shop.estimate-pdf');
+    Route::get('/combos', [App\Http\Controllers\ComboOfferController::class, 'index'])->name('combos');
     Route::get('/price-list', [PriceListController::class, 'show'])->name('price-list');
     Route::get('/track-order', [TrackOrderController::class, 'show'])->name('track-order.show');
     Route::post('/track-order', [TrackOrderController::class, 'track'])->name('track-order.track');

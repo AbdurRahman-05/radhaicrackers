@@ -370,9 +370,9 @@
                         <span>🎁 Lucky Free Gift:</span>
                         <span id="lucky-spin-gift-name" class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold"></span>
                     </div>
-                    <div class="flex justify-between text-sm text-orange-600">
-                        <span>Packing Charge (5%):</span>
-                        <span id="packing-charge">₹0.00</span>
+                    <div class="flex justify-between items-center text-sm" id="packing-charge-row">
+                        <span id="packing-charge-label" class="text-orange-600">Packing Charge (5%):</span>
+                        <span id="packing-charge" class="text-orange-600 font-semibold">₹0.00</span>
                     </div>
                     <hr class="border-gray-300">
                     <div class="flex justify-between text-lg font-bold text-gray-900">
@@ -662,6 +662,7 @@ class SmartCheckout {
         if (Array.isArray(items) && items.length > 0) {
             this.cartItems = items.map(item => {
                 const pId = parseInt(item.product_id || item.id || 0);
+                const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
                 const stock = stockMap[pId] || {};
                 
                 let origPrice = 0;
@@ -685,20 +686,22 @@ class SmartCheckout {
                 }
 
                 const qty = Math.max(1, parseInt(item.quantity || item.qty || 1));
-                const finalOrigPrice = origPrice > 0 ? origPrice : currentRate;
+                const finalOrigPrice = isCombo ? (currentRate > 0 ? currentRate : origPrice) : (origPrice > 0 ? origPrice : currentRate);
 
                 return {
                     product_id: pId,
-                    product_name: item.product_name || item.name || stock.name || `Product #${pId}`,
-                    content: item.content || '',
-                    rate: item.is_lucky_spin_gift ? 0 : currentRate,
+                    product_name: item.product_name || item.name || stock.name || (isCombo ? 'Diwali Combo Pack' : `Product #${pId}`),
+                    content: item.content || (isCombo ? 'Diwali Combo Pack' : ''),
+                    rate: item.is_lucky_spin_gift ? 0 : (isCombo ? finalOrigPrice : currentRate),
+                    price: isCombo ? finalOrigPrice : (item.price || currentRate),
                     original_price: finalOrigPrice,
                     quantity: qty,
-                    total: item.is_lucky_spin_gift ? 0 : (finalOrigPrice * qty),
+                    total: item.is_lucky_spin_gift ? 0 : ((isCombo ? finalOrigPrice : finalOrigPrice) * qty),
+                    is_combo: isCombo,
                     is_lucky_spin_gift: !!item.is_lucky_spin_gift,
                     is_free_gift: !!item.is_free_gift
                 };
-            }).filter(item => item.product_id > 0 && item.quantity > 0);
+            }).filter(item => (item.product_id > 0 || item.is_combo) && item.quantity > 0);
 
             // Persist back to localStorage
             if (this.cartItems.length > 0) {
@@ -712,31 +715,58 @@ class SmartCheckout {
     }
     
     calculateTotals() {
-        this.orderValue = this.cartItems.reduce((total, item) => {
-            // Free gifts do not add to payable subtotal
-            if (item.is_lucky_spin_gift || item.is_free_gift) return total;
-            const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
-                ? Number(item.original_price)
-                : Number(item.rate || item.price || 0);
-            return total + (originalPrice * Number(item.quantity || item.qty || 0));
-        }, 0);
+        let regularSubtotal = 0;
+        let comboSubtotal = 0;
+
+        this.cartItems.forEach(item => {
+            if (item.is_lucky_spin_gift || item.is_free_gift) return;
+            const qty = Number(item.quantity || item.qty || 0);
+            if (item.is_combo) {
+                const comboPrice = Number(item.price || item.rate || item.original_price || 0);
+                comboSubtotal += (comboPrice * qty);
+            } else {
+                const originalPrice = (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0)
+                    ? Number(item.original_price)
+                    : Number(item.rate || item.price || 0);
+                regularSubtotal += (originalPrice * qty);
+            }
+        });
         
-        // Apply wholesale discounts
-        const discount70 = Math.round(this.orderValue * 0.7 * 100) / 100;
-        const afterDiscount70 = this.orderValue - discount70;
+        this.regularSubtotal = regularSubtotal;
+        this.comboSubtotal = comboSubtotal;
+        this.orderValue = regularSubtotal + comboSubtotal;
+
+        // Apply wholesale discounts ONLY to regular products (Combos consume net offer price)
+        const discount70 = Math.round(regularSubtotal * 0.7 * 100) / 100;
+        const afterDiscount70 = regularSubtotal - discount70;
         const discount15 = Math.round(afterDiscount70 * 0.15 * 100) / 100;
         const afterDiscount15 = afterDiscount70 - discount15;
+
+        this.discount70 = discount70;
+        this.discount15 = discount15;
+
+        // Subtotal of payable items: regular after discounts + combos at net price
+        const totalItemsPayable = afterDiscount15 + comboSubtotal;
+        // Zero delivery/packing fee for combos! Packing fee (+5%) applies ONLY to regular products
         const packingCharge = Math.round(afterDiscount15 * 0.05 * 100) / 100;
+        this.packingCharge = packingCharge;
         
-        let finalTotal = afterDiscount15 + packingCharge;
+        let finalTotal = totalItemsPayable + packingCharge;
         
         // Apply coupon discount if available
         if (this.couponData) {
             finalTotal -= (this.couponData.discount_amount || 0);
         }
 
+        // Apply lucky spin discount if active
+        if (this.luckySpinDiscount > 0) {
+            finalTotal -= this.luckySpinDiscount;
+        }
+
+        this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
+
         // Qualifying amount for Lucky Wheel threshold (final order value before lucky spin discount)
-        this.qualifyingAmount = Math.max(0, Math.round(finalTotal * 100) / 100);
+        this.qualifyingAmount = Math.max(0, Math.round((totalItemsPayable + packingCharge - (this.couponData ? (this.couponData.discount_amount || 0) : 0)) * 100) / 100);
 
         // Strict 5k threshold check
         const isEligible = this.qualifyingAmount >= 5000;
@@ -818,17 +848,20 @@ class SmartCheckout {
                 ? Number(item.original_price)
                 : Number(item.rate || item.price || 0);
             const isGift = item.is_lucky_spin_gift || item.is_free_gift;
-            const total = isGift ? 0 : (originalPrice * qty);
+            const isCombo = !!item.is_combo;
+            const unitPrice = isCombo ? Number(item.price || item.rate || originalPrice) : originalPrice;
+            const total = isGift ? 0 : (unitPrice * qty);
             
             html += `
-                <div class="flex items-center justify-between p-3 ${isGift ? 'bg-amber-50/70 border-2 border-amber-400' : 'bg-gray-50 border border-gray-200'} rounded-lg">
+                <div class="flex items-center justify-between p-3 ${isGift ? 'bg-amber-50/70 border-2 border-amber-400' : (isCombo ? 'bg-amber-50/40 border border-amber-300' : 'bg-gray-50 border border-gray-200')} rounded-lg">
                     <div class="flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <h4 class="font-bold text-gray-900 text-sm sm:text-base">${name}</h4>
                             ${isGift ? '<span class="px-2 py-0.5 bg-amber-400 text-purple-950 font-black text-[10px] uppercase rounded-full">FREE GIFT</span>' : ''}
+                            ${isCombo ? '<span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] uppercase rounded-full">COMBO OFFER (NET PRICE)</span>' : ''}
                         </div>
                         <p class="text-xs sm:text-sm text-gray-600">
-                            ${isGift ? `Qty: ${qty} (Value: ₹${originalPrice.toFixed(2)})` : `Qty: ${qty} × ₹${originalPrice.toFixed(2)}`}
+                            ${isGift ? `Qty: ${qty} (Value: ₹${originalPrice.toFixed(2)})` : (isCombo ? `Qty: ${qty} × ₹${unitPrice.toFixed(2)} (Direct Net Offer)` : `Qty: ${qty} × ₹${originalPrice.toFixed(2)}`)}
                         </p>
                     </div>
                     <div class="text-right">
@@ -843,11 +876,9 @@ class SmartCheckout {
         container.innerHTML = html;
         
         // Update summary
-        const discount70 = Math.round(this.orderValue * 0.7 * 100) / 100;
-        const afterDiscount70 = this.orderValue - discount70;
-        const discount15 = Math.round(afterDiscount70 * 0.15 * 100) / 100;
-        const afterDiscount15 = afterDiscount70 - discount15;
-        const packingCharge = Math.round(afterDiscount15 * 0.05 * 100) / 100;
+        const discount70 = this.discount70 || 0;
+        const discount15 = this.discount15 || 0;
+        const packingCharge = this.packingCharge || 0;
         
         document.getElementById('order-value').textContent = `₹${this.orderValue.toFixed(2)}`;
         document.getElementById('discount-70').textContent = `-₹${discount70.toFixed(2)}`;
@@ -879,7 +910,20 @@ class SmartCheckout {
         if (hiddenPrize) hiddenPrize.value = this.luckySpinPrize || '';
         if (hiddenDisc) hiddenDisc.value = this.luckySpinDiscount || 0;
 
-        document.getElementById('packing-charge').textContent = `₹${packingCharge.toFixed(2)}`;
+        const packingEl = document.getElementById('packing-charge');
+        const packingLabelEl = document.getElementById('packing-charge-label');
+        if (packingEl) {
+            if ((this.packingCharge || 0) === 0 && (this.comboSubtotal || 0) > 0) {
+                if (packingLabelEl) packingLabelEl.textContent = 'Delivery & Packing:';
+                packingEl.innerHTML = '<span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full text-xs">All-Inclusive</span>';
+            } else if ((this.packingCharge || 0) > 0 && (this.comboSubtotal || 0) > 0) {
+                if (packingLabelEl) packingLabelEl.textContent = 'Packing (+5% regular items):';
+                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
+            } else {
+                if (packingLabelEl) packingLabelEl.textContent = 'Packing Charge (5%):';
+                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
+            }
+        }
         document.getElementById('final-total').textContent = `₹${this.finalTotal.toFixed(2)}`;
         document.getElementById('cart-subtotal').textContent = `₹${this.orderValue.toFixed(2)}`;
 

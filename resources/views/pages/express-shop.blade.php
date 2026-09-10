@@ -26,6 +26,7 @@
                 <div id="categoryDropdownMenu" class="bg-white rounded-lg shadow-md border mt-2 p-2 space-y-1 hidden z-20 absolute w-64 max-w-full">
                     <ul class="space-y-2">
                         <li><a href="{{ route('express-shop') }}" class="text-gray-700 hover:text-yellow-600">All Products</a></li>
+                        <li><a href="{{ route('combos') }}" class="flex items-center justify-between text-amber-700 hover:text-amber-800 font-bold bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded transition"><span>🔥 Diwali Combos</span><span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black uppercase">Offer</span></a></li>
                         @php
                             $dbCategories = \App\Models\Category::where('is_active', true)
                                 ->orderBy('sort_order')

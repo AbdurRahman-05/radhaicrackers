@@ -170,16 +170,18 @@
 
         <div class="flex flex-col md:flex-row items-center justify-between w-full text-xs sm:text-sm gap-2 md:gap-0">
             <!-- Call Section -->
-            <div class="flex items-start md:items-center md:flex-row">
+            <div class="flex items-center flex-wrap gap-1">
                 <span class="flex items-center">
                     <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
                     </svg>
                     <span class="font-bold">Business Enquiry :</span>
                 </span>
-                <span class="md:ml-1">+91 8807060809</span>
+                <a href="tel:+918807860809" class="hover:underline md:ml-1">+91 8807860809</a>
                 <span class="md:ml-1">/</span>
-                <span class="md:ml-1">+91 9751048974</span>
+                <a href="tel:+918807060809" class="hover:underline md:ml-1">+91 8807060809</a>
+                <span class="md:ml-1">/</span>
+                <a href="tel:+919751048974" class="hover:underline md:ml-1">+91 9751048974</a>
             </div>
             <!-- Office Time Section -->
             <div class="flex items-start md:items-center md:flex-row">
@@ -246,6 +248,8 @@
                 <a href="{{ route('shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Estimate</a>
                 <span class="text-white">|</span>
                 <a href="{{ route('express-shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Quotation</a>
+                <span class="text-white">|</span>
+                <a href="{{ route('combos') }}" class="a text-amber-300 hover:text-amber-200 font-bold text-sm lg:text-base flex items-center gap-1"><span>🔥 Combos</span></a>
                 <span class="text-white">|</span>
                 <a href="{{ route('price-list') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Price List</a>
                 <span class="text-white">|</span>
@@ -334,6 +338,7 @@
                     <a href="{{ route('about') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">About Us</a>
                     <a href="{{ route('shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Estimate</a>
                     <a href="{{ route('express-shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Quotation</a>
+                    <a href="{{ route('combos') }}" class="block p-2 sm:p-3 text-amber-600 font-bold hover:bg-amber-50 rounded-lg transition-colors text-sm sm:text-base flex items-center gap-1.5"><span>🔥 Diwali Combos</span></a>
                     <a href="{{ route('price-list') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Price List</a>
                     <a href="{{ url('/user/orders') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Order Tracking</a>
                     <a href="{{ route('contact') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Contact Us</a>
@@ -397,6 +402,7 @@
                             <li><a href="{{ route('about') }}" class="a text-black-300 hover:text-orange-400 transition-colors">About Us</a></li>
                             <li><a href="{{ route('shop') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Crackers</a></li>
                             <li><a href="{{ route('express-shop') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Express Shop</a></li>
+                            <li><a href="{{ route('combos') }}" class="a text-black-300 hover:text-orange-400 transition-colors font-semibold">🔥 Combo Offers</a></li>
                             <li><a href="{{ url('/user/orders') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Order Tracking</a></li>
                             <li><a href="{{ route('contact') }}" class="a text-black-300 hover:text-orange-400 transition-colors">Contact Us</a></li>
                         </ul>
@@ -420,6 +426,7 @@
                                     <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
                                 </svg>
                                 <div>
+                                    <a href="tel:+918807860809" class="text-black-300 hover:text-black-400 transition-colors text-sm">+91 8807860809</a><br>
                                     <a href="tel:+918807060809" class="text-black-300 hover:text-black-400 transition-colors text-sm">+91 8807060809</a><br>
                                     <a href="tel:+919751048974" class="text-black-300 hover:text-black-400 transition-colors text-sm">+91 9751048974</a>
                                 </div>

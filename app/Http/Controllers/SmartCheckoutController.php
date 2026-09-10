@@ -132,22 +132,41 @@ class SmartCheckoutController extends Controller
             }
 
             // Calculate total from items to ensure accuracy (exclude free gifts)
+            $regularSubtotal = 0;
+            $comboSubtotal = 0;
             $calculatedTotal = 0;
-            foreach ($items as $item) {
+
+            foreach ($items as &$item) {
                 if (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift'])) {
                     continue;
                 }
-                $itemTotal = ($item['original_price'] ?? 0) * ($item['quantity'] ?? 0);
-                $calculatedTotal += $itemTotal;
-            }
+                $qty = (int)($item['quantity'] ?? 1);
+                $pId = (int)($item['product_id'] ?? 0);
+                $pName = (string)($item['product_name'] ?? '');
+                $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
 
-            // Apply discounts
-            $discount70 = $calculatedTotal * 0.7;
-            $afterDiscount70 = $calculatedTotal - $discount70;
+                if ($isCombo) {
+                    $item['is_combo'] = true;
+                    $comboPrice = (float)($item['price'] ?? $item['rate'] ?? $item['original_price'] ?? 0);
+                    $comboSubtotal += $comboPrice * $qty;
+                    $calculatedTotal += $comboPrice * $qty;
+                } else {
+                    $itemTotal = (float)($item['original_price'] ?? $item['rate'] ?? 0) * $qty;
+                    $regularSubtotal += $itemTotal;
+                    $calculatedTotal += $itemTotal;
+                }
+            }
+            unset($item);
+
+            // Apply discounts ONLY on regular items (combos consume their exact net offer price)
+            $discount70 = $regularSubtotal * 0.7;
+            $afterDiscount70 = $regularSubtotal - $discount70;
             $discount15 = $afterDiscount70 * 0.15;
             $afterDiscount15 = $afterDiscount70 - $discount15;
+            $totalPayableItems = $afterDiscount15 + $comboSubtotal;
+            // No delivery/packing charge for combo packs; 5% packing charge applies ONLY to regular products
             $packingCharge = $afterDiscount15 * 0.05;
-            $finalTotal = $afterDiscount15 + $packingCharge;
+            $finalTotal = $totalPayableItems + $packingCharge;
 
             // Calculate coupon discount only if code is present
             $couponDiscount = 0;
@@ -272,9 +291,9 @@ class SmartCheckoutController extends Controller
             $orderData['total'] = $mailTotal;
             $orderData['subtotal'] = $calculatedTotal;
             $orderData['discount_70_percent'] = $discount70;
-            $orderData['amount_after_70_discount'] = $afterDiscount70;
+            $orderData['amount_after_70_discount'] = $afterDiscount70 + $comboSubtotal;
             $orderData['special_discount_15_percent'] = $discount15;
-            $orderData['amount_after_15_discount'] = $afterDiscount15;
+            $orderData['amount_after_15_discount'] = $afterDiscount15 + $comboSubtotal;
             $orderData['packing_charge_5_percent'] = $packingCharge;
             $orderData['coupon_code'] = $request->input('coupon_code');
             $orderData['coupon_discount'] = $couponDiscount;

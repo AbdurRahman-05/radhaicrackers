@@ -461,6 +461,7 @@
                         $originalPrice = is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0);
                         $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                         $isLuckyGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
+                        $isCombo = (is_array($item) && !empty($item['is_combo'])) || (is_object($item) && !empty($item->is_combo)) || (str_contains(strtoupper(is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? '')), 'COMBO'));
                         
                         $line = $isLuckyGift ? 0 : ($originalPrice * $quantity);
                         if (!$isLuckyGift) {
@@ -474,13 +475,15 @@
                     @endphp
                     <tr>
                         <td class="sno">{{ $itemSno++ }}</td>
-                        <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : '' }}">{{ $isLuckyGift ? '🎁 GIFT' : $catalogSno }}</td>
+                        <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : ($isCombo ? 'color: #B67121;' : '') }}">{{ $isLuckyGift ? '🎁 GIFT' : ($isCombo ? '🔥 COMBO' : $catalogSno) }}</td>
                         <td class="product">
-                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : 'color: #111827;' }}">
+                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : ($isCombo ? 'color: #B67121;' : 'color: #111827;') }}">
                                 {!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}
                             </div>
                             @if($isLuckyGift)
                                 <div style="font-size: 8.5px; color: #D97706; font-weight: bold; padding-top: 3px; line-height: 1.2;">🎉 Lucky Spinning Wheel Free Gift</div>
+                            @elseif($isCombo)
+                                <div style="font-size: 8px; color: #B67121; font-weight: bold; padding-top: 2px; line-height: 1.2;">🔥 Pre-Discounted Diwali Value Combo Pack (Net Price)</div>
                             @elseif($productDesc)
                                 <div style="font-size: 8px; color: #4B5563; font-weight: normal; padding-top: 2px; line-height: 1.2;">{{ $productDesc }}</div>
                             @endif
@@ -521,22 +524,34 @@
             <div class="summary-box">
                 <div class="label" style="font-size:12px; font-weight:bold; color:#1E093B; margin-top:0px;">Summary</div>
                 @php
-                    // Subtotal using original MRP (original_price or rate or price)
-                    $subtotal = 0;
+                    // Subtotal using original MRP for regular items and offer price for combos
+                    $regularSubtotal = 0;
+                    $comboSubtotal = 0;
                     if (isset($order->items) && is_iterable($order->items)) {
                         foreach ($order->items as $item) {
                             $isGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
                             if ($isGift) continue;
+                            $pId = is_array($item) ? ($item['product_id'] ?? 0) : ($item->product_id ?? 0);
+                            $pName = is_array($item) ? ($item['product_name'] ?? $item['name'] ?? '') : ($item->product_name ?? $item->name ?? '');
+                            $isCombo = (is_array($item) && !empty($item['is_combo'])) || (is_object($item) && !empty($item->is_combo)) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
+
                             $originalPrice = is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0);
                             $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
-                            $subtotal += $originalPrice * $quantity;
+                            if ($isCombo) {
+                                $comboSubtotal += (float)$originalPrice * $quantity;
+                            } else {
+                                $regularSubtotal += (float)$originalPrice * $quantity;
+                            }
                         }
                     }
-                    $discount70 = $subtotal * 0.70;
-                    $afterDiscount = $subtotal - $discount70;
-                    $specialDiscount = $afterDiscount * 0.15;
-                    $afterSpecial = $afterDiscount - $specialDiscount;
-                    $packing = $afterSpecial * 0.05;
+                    $subtotal = $regularSubtotal + $comboSubtotal;
+                    $discount70 = isset($order->discount_70_percent) ? (float)$order->discount_70_percent : ($regularSubtotal * 0.70);
+                    $afterDiscount = isset($order->amount_after_70_discount) ? (float)$order->amount_after_70_discount : ($regularSubtotal - $discount70 + $comboSubtotal);
+                    $specialDiscount = isset($order->special_discount_15_percent) ? (float)$order->special_discount_15_percent : (($regularSubtotal - $discount70) * 0.15);
+                    $regularAfterSpecial = ($regularSubtotal - $discount70) - $specialDiscount;
+                    $afterSpecial = isset($order->amount_after_15_discount) ? (float)$order->amount_after_15_discount : ($regularAfterSpecial + $comboSubtotal);
+                    // Combos have NO delivery/packing charge; 5% packing applies ONLY to regular products
+                    $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : ($regularAfterSpecial * 0.05);
                     $netAmount = $afterSpecial + $packing;
                     $couponDiscount = $order->coupon_discount ?? 0;
                     $luckySpinDiscount = $order->lucky_spin_discount ?? 0;
@@ -559,8 +574,13 @@
                     <tr><td class="label">Discount (70%)</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
                     <tr><td class="label">After Discount</td><td class="value">₹{{ number_format($afterDiscount, 2) }}</td></tr>
                     <tr><td class="label">Special Disc (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
-                    <tr><td class="label">After Spl. Disc</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
-                    <tr><td class="label">Packing (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    @if($packing > 0)
+                        <tr><td class="label">Packing (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    @elseif($comboSubtotal > 0)
+                        <tr><td class="label">Delivery & Packing</td><td class="value" style="color:#059669;font-weight:bold;">All-Inclusive</td></tr>
+                    @else
+                        <tr><td class="label">Packing (5%)</td><td class="value">₹0.00</td></tr>
+                    @endif
                     @if($order->coupon_code)
                         <tr><td class="label">Coupon Code</td><td class="value">{{ $order->coupon_code }}</td></tr>
                     @endif

@@ -520,31 +520,46 @@ class Orders extends Component
     // Recalculate totals in real time for modal
     public function recalculateTotals()
     {
+        $regularSubtotal = 0;
+        $comboSubtotal = 0;
         $subtotal = 0;
         $discount70 = 0;
         $discount15 = 0;
 
         foreach ($this->editItems as $item) {
             // Lucky spin free gifts don't contribute to subtotal or line discounts
-            if (!empty($item['is_lucky_spin_gift'])) {
+            if (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift'])) {
                 continue;
             }
 
-            $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
-            $qty = (int)$item['quantity'];
-            $lineSubtotal = $origPrice * $qty;
+            $qty = (int)($item['quantity'] ?? 1);
+            $pId = (int)($item['product_id'] ?? 0);
+            $pName = (string)($item['product_name'] ?? '');
+            $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
 
-            $subtotal += $lineSubtotal;
-            $lineDisc70 = round($lineSubtotal * 0.70, 2);
-            $discount70 += $lineDisc70;
+            if ($isCombo) {
+                $comboPrice = (float)($item['price'] ?? $item['rate'] ?? $item['original_price'] ?? 0);
+                $comboSubtotal += $comboPrice * $qty;
+                $subtotal += $comboPrice * $qty;
+            } else {
+                $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
+                $lineSubtotal = $origPrice * $qty;
+                $regularSubtotal += $lineSubtotal;
+                $subtotal += $lineSubtotal;
 
-            $after70 = $lineSubtotal - $lineDisc70;
-            $lineDisc15 = round($after70 * 0.15, 2);
-            $discount15 += $lineDisc15;
+                $lineDisc70 = round($lineSubtotal * 0.70, 2);
+                $discount70 += $lineDisc70;
+
+                $after70 = $lineSubtotal - $lineDisc70;
+                $lineDisc15 = round($after70 * 0.15, 2);
+                $discount15 += $lineDisc15;
+            }
         }
 
-        $after15 = $subtotal - $discount70 - $discount15;
-        $packingCharge = round($after15 * 0.05, 2);
+        $regularAfter15 = $regularSubtotal - $discount70 - $discount15;
+        $after15 = $regularAfter15 + $comboSubtotal;
+        // Zero delivery/packing fee for combos; 5% packing charge applies ONLY to regular products
+        $packingCharge = round($regularAfter15 * 0.05, 2);
         
         $couponDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->coupon_discount) {

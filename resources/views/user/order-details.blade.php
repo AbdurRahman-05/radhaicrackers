@@ -104,12 +104,12 @@
                             <span class="text-lg font-semibold text-gray-900">₹{{ number_format($subtotal, 2) }}</span>
                         </div>
                         @php
-                            $discount_70 = round($subtotal * 0.7, 2);
-                            $after_70 = $subtotal - $discount_70;
-                            $discount_15 = round($after_70 * 0.15, 2);
-                            $after_15 = $after_70 - $discount_15;
-                            $packing = round($after_15 * 0.05, 2);
-                            $net_amount = round($after_15 + $packing, 2);
+                            $discount_70 = isset($order->discount_70_percent) ? (float)$order->discount_70_percent : round($subtotal * 0.7, 2);
+                            $after_70 = isset($order->amount_after_70_discount) ? (float)$order->amount_after_70_discount : ($subtotal - $discount_70);
+                            $discount_15 = isset($order->special_discount_15_percent) ? (float)$order->special_discount_15_percent : round($after_70 * 0.15, 2);
+                            $after_15 = isset($order->amount_after_15_discount) ? (float)$order->amount_after_15_discount : ($after_70 - $discount_15);
+                            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : round($after_15 * 0.05, 2);
+                            $net_amount = isset($order->final_amount) ? (float)$order->final_amount : round($after_15 + $packing, 2);
                         @endphp
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-gray-700">Discount (70%)</span>
@@ -127,10 +127,17 @@
                             <span class="text-gray-700">After Spl. Discount</span>
                             <span class="text-gray-700">₹{{ number_format($after_15, 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-700">Packing (5%)</span>
-                            <span class="text-gray-700">₹{{ number_format($packing, 2) }}</span>
-                        </div>
+                        @if($packing > 0)
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Packing (5%)</span>
+                                <span class="text-gray-700">₹{{ number_format($packing, 2) }}</span>
+                            </div>
+                        @else
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-gray-700">Delivery & Packing</span>
+                                <span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full text-xs">All-Inclusive</span>
+                            </div>
+                        @endif
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-lg font-semibold text-gray-900">Net Amount</span>
                             <span class="text-lg font-semibold text-gray-900">₹{{ number_format($net_amount, 2) }}</span>
