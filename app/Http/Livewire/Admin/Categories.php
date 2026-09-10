@@ -139,9 +139,13 @@ class Categories extends Component
             $category->stocks_count = (clone $categoryStockQuery)->where('is_active', true)->count();
             $category->total_year_stocks = (clone $categoryStockQuery)->count();
 
-            // When filtered by year: status is active if it has active products in that year and category is_active
+            // When filtered by year: if category has products in that year, status depends on having active products; if no products exist for that year, status reflects category's own is_active state
             if ($selectedYear !== '' && $selectedYear !== null && $selectedYear !== 'all') {
-                $category->year_is_active = (bool)($category->is_active && ($category->stocks_count > 0));
+                if ($category->total_year_stocks > 0) {
+                    $category->year_is_active = (bool)($category->is_active && ($category->stocks_count > 0));
+                } else {
+                    $category->year_is_active = (bool)$category->is_active;
+                }
             } else {
                 $category->year_is_active = (bool)$category->is_active;
             }
@@ -183,7 +187,7 @@ class Categories extends Component
             $this->slug = $category->slug;
             $this->description = $category->description ?? '';
             $this->parent_id = $category->parent_id;
-            $this->is_active = $category->is_active;
+            $this->is_active = (bool)$category->is_active;
             $this->sort_order = $category->sort_order ?? 0;
             $this->icon = $category->icon ?? '';
             $this->color = $category->color ?? '';
@@ -386,20 +390,28 @@ class Categories extends Component
             $yearScope = $this->selected_year;
 
             if ($yearScope !== '' && $yearScope !== null && $yearScope !== 'all') {
-                $currentlyActive = \App\Models\Stock::where(function($q) use ($category) {
+                $categoryStockQuery = \App\Models\Stock::where(function($q) use ($category) {
                     $q->where('category', $category->name)
                       ->orWhere('category_id', $category->id)
                       ->orWhere('category', (string)$category->id);
-                })->whereYear('created_at', $yearScope)->where('is_active', true)->exists();
+                })->whereYear('created_at', $yearScope);
+
+                $totalYearStocks = (clone $categoryStockQuery)->count();
+
+                if ($totalYearStocks === 0) {
+                    $newStatus = !$category->is_active;
+                    $category->update(['is_active' => $newStatus]);
+                    $status = $newStatus ? 'activated' : 'deactivated';
+                    session()->flash('success', "Category '{$category->name}' {$status}!");
+                    return;
+                }
+
+                $currentlyActive = (clone $categoryStockQuery)->where('is_active', true)->exists();
 
                 $newStatus = !$currentlyActive;
 
                 // Update only stocks for the selected year
-                \App\Models\Stock::where(function($q) use ($category) {
-                    $q->where('category', $category->name)
-                      ->orWhere('category_id', $category->id)
-                      ->orWhere('category', (string)$category->id);
-                })->whereYear('created_at', $yearScope)->update([
+                (clone $categoryStockQuery)->update([
                     'is_active' => $newStatus,
                     'show_on_shop' => $newStatus
                 ]);
