@@ -189,15 +189,17 @@ class SmartCheckoutController extends Controller
             
             $finalTotal = max(0, $finalTotal - $couponDiscount);
 
-            // Process Lucky Spinning Wheel Prize (strictly for orders >= ₹5,000)
+            // Process Lucky Spinning Wheel Prize (strictly for NORMAL purchases >= ₹5,000)
             $luckySpinPrize = $request->input('lucky_spin_prize');
             $luckySpinDiscount = 0;
 
-            // Check if eligible for lucky spin (qualifying threshold: finalTotal >= 5000)
-            $isLuckySpinEligible = ($finalTotal >= 5000);
+            // Check if eligible for lucky spin:
+            // STRICT RULE: Lucky Wheel is ONLY unlocked for normal purchase above ₹5,000 (combos do not count)
+            $normalPurchaseTotal = max(0, ($afterDiscount15 + $packingCharge) - $couponDiscount);
+            $isLuckySpinEligible = ($normalPurchaseTotal >= 5000);
 
             if (!$isLuckySpinEligible) {
-                // If total amount is less than 5000, remove lucky spin gifts and reset discount
+                // If normal purchase is less than 5000, remove lucky spin gifts and reset discount
                 $items = array_values(array_filter($items, function($it) {
                     return empty($it['is_lucky_spin_gift']);
                 }));

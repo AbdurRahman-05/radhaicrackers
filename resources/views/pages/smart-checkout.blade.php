@@ -131,10 +131,10 @@
                                 🔒
                             </div>
                             <div>
-                                <h4 class="font-extrabold text-sm text-amber-300">Unlock the Wheel for Orders Above ₹5,000!</h4>
+                                <h4 class="font-extrabold text-sm text-amber-300">Unlock the Wheel for Normal Crackers Above ₹5,000!</h4>
                                 <p class="text-xs text-purple-200 mt-0.5">
-                                    Current order value: <strong class="text-white" id="wheel-current-amount">₹0.00</strong>. 
-                                    Add <strong class="text-yellow-300" id="wheel-remaining-amount">₹5,000.00</strong> more to unlock your free spin!
+                                    Normal crackers total: <strong class="text-white" id="wheel-current-amount">₹0.00</strong>. 
+                                    Add <strong class="text-yellow-300" id="wheel-remaining-amount">₹5,000.00</strong> more of normal crackers to unlock your free spin!
                                 </p>
                             </div>
                         </div>
@@ -206,7 +206,7 @@
                             <div id="wheel-locked-overlay" class="absolute inset-0 rounded-full bg-purple-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4 z-20">
                                 <span class="text-4xl mb-1">🔒</span>
                                 <span class="font-extrabold text-xs text-amber-300 uppercase tracking-wider">Locked</span>
-                                <span class="text-[10px] text-purple-200 mt-0.5">Orders Above ₹5,000</span>
+                                <span class="text-[10px] text-purple-200 mt-0.5">Normal Crackers Above ₹5,000</span>
                             </div>
                         </div>
 
@@ -765,10 +765,14 @@ class SmartCheckout {
 
         this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
 
-        // Qualifying amount for Lucky Wheel threshold (final order value before lucky spin discount)
-        this.qualifyingAmount = Math.max(0, Math.round((totalItemsPayable + packingCharge - (this.couponData ? (this.couponData.discount_amount || 0) : 0)) * 100) / 100);
+        // Qualifying amount for Lucky Wheel threshold:
+        // STRICT RULE: Lucky Wheel is ONLY for normal purchases above ₹5,000 (like old style).
+        // Combos have separate all-inclusive net offer pricing and DO NOT count towards unlocking the Lucky Wheel.
+        const normalPurchasePayable = afterDiscount15 + packingCharge;
+        const couponDisc = this.couponData ? (this.couponData.discount_amount || 0) : 0;
+        this.qualifyingAmount = Math.max(0, Math.round((normalPurchasePayable - couponDisc) * 100) / 100);
 
-        // Strict 5k threshold check
+        // Strict 5k threshold check ONLY for normal purchases
         const isEligible = this.qualifyingAmount >= 5000;
 
         if (!isEligible) {
@@ -937,8 +941,8 @@ class SmartCheckout {
         if (!this.wheelCanvas) return;
         this.wheelCtx = this.wheelCanvas.getContext('2d');
 
-        // Only restore saved spin result if qualifying amount is >= 5000
-        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        // Only restore saved spin result if qualifying normal purchase amount is >= 5000
+        const qualAmount = typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : 0;
         if (qualAmount >= 5000) {
             const saved = sessionStorage.getItem('lucky_spin_result');
             if (saved) {
@@ -1124,7 +1128,7 @@ class SmartCheckout {
     }
 
     updateLuckyWheelState() {
-        const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
+        const qualAmount = typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : 0;
         const isEligible = qualAmount >= 5000;
 
         const lockedBanner = document.getElementById('wheel-locked-banner');

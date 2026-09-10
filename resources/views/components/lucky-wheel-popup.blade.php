@@ -617,8 +617,13 @@
             if (Array.isArray(cart)) {
                 cart.forEach(item => {
                     if (item.is_lucky_spin_gift || item.is_free_gift) return;
+                    // Exclude combo packs from lucky wheel qualification
+                    const pId = parseInt(item.product_id || 0);
+                    const pName = (item.product_name || item.name || '').toUpperCase();
+                    if (item.is_combo || (pId >= 999000 && pId <= 999999) || pName.includes('COMBO')) return;
+
                     const rate = parseFloat(item.rate || item.price || 0);
-                    const qty = parseInt(item.quantity || 0);
+                    const qty = parseInt(item.quantity || item.qty || 0);
                     subtotal += rate * qty;
                 });
             }

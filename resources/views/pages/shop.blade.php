@@ -578,8 +578,9 @@ function updateCartSummary() {
     const packingCharge = regularSubtotal * 0.05;
     const finalTotal = subtotal + packingCharge;
 
-    // If final total drops below 5,000, remove any lingering lucky spin free gifts
-    if (finalTotal < 5000 && cart.some(item => item.is_lucky_spin_gift)) {
+    const normalPayable = regularSubtotal + packingCharge;
+    // If normal purchase drops below 5,000, remove any lingering lucky spin free gifts
+    if (normalPayable < 5000 && cart.some(item => item.is_lucky_spin_gift)) {
         cart = cart.filter(item => !item.is_lucky_spin_gift);
         saveCart(cart);
         try { sessionStorage.removeItem('lucky_spin_result'); } catch(e) {}
