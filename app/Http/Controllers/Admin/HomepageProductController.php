@@ -34,9 +34,10 @@ class HomepageProductController extends Controller
     {
         $categories = Category::where('is_active', true)->orderBy('name')->pluck('name', 'id');
 
-        // Fetch all inventory products for quick autofill
-        $stocks = Stock::orderBy('item_name')
-            ->get(['id', 'item_name', 'category', 'category_id', 'description', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'quantity', 'image', 'youtube_url', 'is_popular', 'is_latest'])
+        // Fetch all inventory products, prioritizing Current Year Active Products (is_active = 1)
+        $stocks = Stock::orderByRaw('CASE WHEN is_active = 1 THEN 0 ELSE 1 END')
+            ->orderBy('item_name')
+            ->get(['id', 'item_name', 'category', 'category_id', 'description', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'quantity', 'image', 'youtube_url', 'is_popular', 'is_latest', 'is_active', 'created_at'])
             ->map(function ($s) {
                 return [
                     'id' => $s->id,
@@ -54,10 +55,14 @@ class HomepageProductController extends Controller
                     'youtube_url' => $s->youtube_url ?? '',
                     'is_popular' => (bool)$s->is_popular,
                     'is_latest' => (bool)$s->is_latest,
+                    'is_active' => (bool)$s->is_active,
+                    'is_current_active' => ($s->is_active == 1),
                 ];
             });
 
-        return view('admin.homepage_products.create', compact('categories', 'stocks'));
+        $availableImages = \App\Models\HomepageCategory::getAvailable2026Images();
+
+        return view('admin.homepage_products.create', compact('categories', 'stocks', 'availableImages'));
     }
 
     /**
@@ -77,11 +82,12 @@ class HomepageProductController extends Controller
             'youtube_url' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:5120',
             'existing_image' => 'nullable|string',
+            'selected_image' => 'nullable|string',
         ]);
 
         $imagePath = null;
 
-        // Handle uploaded file
+        // Handle uploaded file or selected 2026 gallery image or existing image
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file->getClientOriginalName());
@@ -99,6 +105,8 @@ class HomepageProductController extends Controller
             @copy($targetDir . '/' . $filename, $storageTargetDir . '/' . $filename);
 
             $imagePath = 'homepage_products/' . $filename;
+        } elseif (!empty($validated['selected_image'])) {
+            $imagePath = $validated['selected_image'];
         } elseif (!empty($validated['existing_image'])) {
             $imagePath = $validated['existing_image'];
         }
@@ -144,8 +152,9 @@ class HomepageProductController extends Controller
         $product = HomepageProduct::findOrFail($id);
         $categories = Category::where('is_active', true)->orderBy('name')->pluck('name', 'id');
 
-        $stocks = Stock::orderBy('item_name')
-            ->get(['id', 'item_name', 'category', 'category_id', 'description', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'quantity', 'image', 'youtube_url', 'is_popular', 'is_latest'])
+        $stocks = Stock::orderByRaw('CASE WHEN is_active = 1 THEN 0 ELSE 1 END')
+            ->orderBy('item_name')
+            ->get(['id', 'item_name', 'category', 'category_id', 'description', 'price', 'original_price', 'discount_percentage', 'special_discount_percentage', 'quantity', 'image', 'youtube_url', 'is_popular', 'is_latest', 'is_active', 'created_at'])
             ->map(function ($s) {
                 return [
                     'id' => $s->id,
@@ -163,10 +172,14 @@ class HomepageProductController extends Controller
                     'youtube_url' => $s->youtube_url ?? '',
                     'is_popular' => (bool)$s->is_popular,
                     'is_latest' => (bool)$s->is_latest,
+                    'is_active' => (bool)$s->is_active,
+                    'is_current_active' => ($s->is_active == 1),
                 ];
             });
 
-        return view('admin.homepage_products.edit', compact('product', 'categories', 'stocks'));
+        $availableImages = \App\Models\HomepageCategory::getAvailable2026Images();
+
+        return view('admin.homepage_products.edit', compact('product', 'categories', 'stocks', 'availableImages'));
     }
 
     /**
@@ -188,6 +201,7 @@ class HomepageProductController extends Controller
             'youtube_url' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:5120',
             'existing_image' => 'nullable|string',
+            'selected_image' => 'nullable|string',
         ]);
 
         if ($request->hasFile('image')) {
@@ -207,6 +221,8 @@ class HomepageProductController extends Controller
             @copy($targetDir . '/' . $filename, $storageTargetDir . '/' . $filename);
 
             $product->image = 'homepage_products/' . $filename;
+        } elseif (!empty($validated['selected_image'])) {
+            $product->image = $validated['selected_image'];
         } elseif (!empty($validated['existing_image'])) {
             $product->image = $validated['existing_image'];
         }
@@ -289,8 +305,10 @@ class HomepageProductController extends Controller
      */
     public function syncFromStocks()
     {
-        $featuredStocks = Stock::where('is_popular', true)
-            ->orWhere('is_latest', true)
+        $featuredStocks = Stock::where('is_active', 1)
+            ->where(function ($q) {
+                $q->where('is_popular', true)->orWhere('is_latest', true);
+            })
             ->get();
 
         $importedCount = 0;

@@ -150,43 +150,18 @@
         <p class="text-center text-amber-200 text-sm mb-10">Explore our wide selection of authentic Sivakasi firecrackers</p>
         <div class="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 lg:grid-cols-7 md:gap-6 scrollbar-thin scrollbar-thumb-gray-200">
             @php
-                $categoryConfigs = [
-                    'SINGLE FLASH' => ['search' => 'SINGLE FLASH', 'patterns' => ['single flash', 'single colour shot', '2" single'], 'default_img' => 'images/radhe_crackers_images_2026/single flash.png'],
-                    'BIJILI CRACKERS' => ['search' => 'BIJILI CRACKERS', 'patterns' => ['bijili'], 'default_img' => 'images/radhe_crackers_images_2026/bijili crackers.png'],
-                    'BOMBS' => ['search' => 'BOMB', 'patterns' => ['bomb'], 'default_img' => 'images/bijili-crackers.jpg'],
-                    'ROCKETS' => ['search' => 'ROCKET', 'patterns' => ['rocket'], 'default_img' => 'images/radhe_crackers_images_2026/rockets.png'],
-                    'SPARKLERS' => ['search' => 'SPARKLERS', 'patterns' => ['sparkler'], 'default_img' => 'images/radhe_crackers_images_2026/sparkles.png'],
-                    'CHIT PUT' => ['search' => 'CHIT PUT', 'patterns' => ['chit put', 'paper flash'], 'default_img' => 'images/new.png'],
-                    'TWINKLING STAR' => ['search' => 'TWINKLING STAR', 'patterns' => ['twinkling'], 'default_img' => 'images/single-flash.webp'],
-                ];
-                $resolvedCategories = [];
-                foreach ($categoryConfigs as $displayName => $cfg) {
-                    $stockQuery = \App\Models\Stock::where(function($q) use ($cfg) {
-                        foreach ($cfg['patterns'] as $p) {
-                            $q->orWhere('category', 'LIKE', "%$p%")
-                              ->orWhere('item_name', 'LIKE', "%$p%");
-                        }
-                    });
-                    $count = (clone $stockQuery)->count();
-                    $sampleStock = (clone $stockQuery)->whereNotNull('image')->where('image', '!=', '')->first();
-                    $imgUrl = $sampleStock ? $sampleStock->image_url : asset($cfg['default_img']);
-                    $resolvedCategories[$displayName] = [
-                        'image' => $imgUrl,
-                        'count' => $count,
-                        'search' => $cfg['search']
-                    ];
-                }
+                $homepageCategories = \App\Models\HomepageCategory::getActiveCategories();
             @endphp
-            @foreach($resolvedCategories as $categoryName => $category)
-                <a href="{{ route('express-shop') }}?category={{ urlencode($category['search']) }}" 
+            @foreach($homepageCategories as $category)
+                <a href="{{ route('express-shop') }}?category={{ urlencode($category->search_term ?: $category->name) }}" 
                    class="min-w-[160px] md:min-w-0 bg-white rounded-xl shadow group cursor-pointer border border-gray-100 hover:border-amber-400 hover:shadow-xl transition-all flex-shrink-0 block transform hover:-translate-y-1">
                     <div class="relative overflow-hidden rounded-t-xl bg-gray-50 h-28 flex items-center justify-center">
-                        <img src="{{ $category['image'] }}" alt="{{ $categoryName }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                        <img src="{{ $category->image_url }}" alt="{{ $category->name }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
                         <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-300"></div>
                     </div>
                     <div class="p-3 text-center">
-                        <h3 class="font-bold text-gray-900 mb-1 text-sm group-hover:text-amber-700 transition-colors">{{ $categoryName }}</h3>
-                        <p class="text-xs text-gray-500 font-medium">{{ $category['count'] }} Products</p>
+                        <h3 class="font-bold text-gray-900 mb-1 text-sm group-hover:text-amber-700 transition-colors">{{ $category->name }}</h3>
+                        <p class="text-xs text-gray-500 font-medium">{{ $category->display_count }} Products</p>
                     </div>
                 </a>
             @endforeach
@@ -218,7 +193,7 @@
                 $popularProducts = \App\Models\HomepageProduct::where('is_popular', true)->where('is_active', true)->get();
                 if ($popularProducts->isEmpty()) {
                     $popularProducts = \App\Models\Stock::where('is_popular', true)
-                        ->where(function($q) { $q->where('is_active', 1)->orWhere('quantity', '>', 0); })
+                        ->where('is_active', 1)
                         ->take(8)
                         ->get();
                 }
@@ -279,7 +254,7 @@
                 $latestProducts = \App\Models\HomepageProduct::where('is_latest', true)->where('is_active', true)->get();
                 if ($latestProducts->isEmpty()) {
                     $latestProducts = \App\Models\Stock::where('is_latest', true)
-                        ->where(function($q) { $q->where('is_active', 1)->orWhere('quantity', '>', 0); })
+                        ->where('is_active', 1)
                         ->take(6)
                         ->get();
                 }

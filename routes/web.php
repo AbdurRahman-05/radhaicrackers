@@ -328,6 +328,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('homepage_products/sync-from-stocks', [App\Http\Controllers\Admin\HomepageProductController::class, 'syncFromStocks'])->name('homepage_products.sync_from_stocks');
         Route::resource('homepage_products', App\Http\Controllers\Admin\HomepageProductController::class);
 
+        // Homepage Category Cards Management (Best For Your Categories - 2026)
+        Route::post('homepage_categories/{id}/toggle', [App\Http\Controllers\Admin\HomepageCategoryController::class, 'toggle'])->name('homepage_categories.toggle');
+        Route::post('homepage_categories/reset-defaults', [App\Http\Controllers\Admin\HomepageCategoryController::class, 'resetDefaults'])->name('homepage_categories.reset_defaults');
+        Route::resource('homepage_categories', App\Http\Controllers\Admin\HomepageCategoryController::class);
+
         // Hero Carousel Management
         Route::post('hero_carousel/{id}/toggle', [App\Http\Controllers\Admin\HeroCarouselController::class, 'toggle'])->name('hero_carousel.toggle');
         Route::resource('hero_carousel', App\Http\Controllers\Admin\HeroCarouselController::class);

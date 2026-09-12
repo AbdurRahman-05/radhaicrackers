@@ -27,32 +27,69 @@
 
     <!-- QUICK SELECT FROM INVENTORY (MAGIC AUTOFILL) -->
     <div class="mb-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-xl p-5 text-white shadow-md">
-        <div class="flex items-center gap-2 mb-2">
-            <span class="text-xl">✨</span>
-            <h2 class="text-base font-bold">Fast Quick-Fill: Select from Current Inventory</h2>
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">✨</span>
+                <h2 class="text-base font-bold">Fast Quick-Fill: Select from Inventory</h2>
+            </div>
+            <!-- Quick Filter Toggle -->
+            <div class="flex items-center bg-black/20 p-1 rounded-lg text-xs">
+                <button type="button" id="filterActiveOnlyBtn" class="px-2.5 py-1 rounded-md font-bold bg-white text-amber-900 shadow-sm transition">
+                    🌟 2026 Active Only ({{ $stocks->where('is_active', true)->count() }})
+                </button>
+                <button type="button" id="filterAllBtn" class="px-2.5 py-1 rounded-md font-medium text-white hover:text-amber-100 transition">
+                    📦 All Products ({{ $stocks->count() }})
+                </button>
+            </div>
         </div>
-        <p class="text-xs text-amber-100 mb-3">Choose any product from your estimate/stock catalog to automatically fill its name, price, discounts, category, and image with 1 click!</p>
+        <p class="text-xs text-amber-100 mb-3">Current year active products are prioritized at the top. Selecting an item auto-fills all fields!</p>
         <div class="relative">
             <select id="quickStockSelect" class="w-full bg-white text-gray-900 border-0 rounded-lg p-3 text-sm font-medium shadow-sm focus:ring-2 focus:ring-white">
-                <option value="">-- Click here to select a product from Inventory / Estimate --</option>
-                @foreach($stocks as $stk)
-                    <option value="{{ $stk['id'] }}" 
-                            data-name="{{ $stk['name'] }}"
-                            data-category="{{ $stk['category_id'] ?: $stk['category'] }}"
-                            data-description="{{ $stk['description'] }}"
-                            data-price="{{ $stk['price'] }}"
-                            data-original-price="{{ $stk['original_price'] }}"
-                            data-discount="{{ $stk['discount_percentage'] }}"
-                            data-special-discount="{{ $stk['special_discount_percentage'] }}"
-                            data-quantity="{{ $stk['quantity'] }}"
-                            data-image="{{ $stk['image'] }}"
-                            data-image-url="{{ $stk['image_url'] }}"
-                            data-youtube="{{ $stk['youtube_url'] }}"
-                            data-popular="{{ $stk['is_popular'] ? '1' : '0' }}"
-                            data-latest="{{ $stk['is_latest'] ? '1' : '0' }}">
-                        {{ $stk['name'] }} &mdash; ₹{{ number_format($stk['price'], 2) }} ({{ $stk['category'] ?: 'General' }})
-                    </option>
-                @endforeach
+                <option value="">-- Click here to select a product --</option>
+                
+                <optgroup id="optgroupActive" label="🌟 CURRENT YEAR (2026) ACTIVE PRODUCTS ({{ $stocks->where('is_active', true)->count() }})">
+                    @foreach($stocks->where('is_active', true) as $stk)
+                        <option value="{{ $stk['id'] }}" 
+                                data-name="{{ $stk['name'] }}"
+                                data-category="{{ $stk['category_id'] ?: $stk['category'] }}"
+                                data-description="{{ $stk['description'] }}"
+                                data-price="{{ $stk['price'] }}"
+                                data-original-price="{{ $stk['original_price'] }}"
+                                data-discount="{{ $stk['discount_percentage'] }}"
+                                data-special-discount="{{ $stk['special_discount_percentage'] }}"
+                                data-quantity="{{ $stk['quantity'] }}"
+                                data-image="{{ $stk['image'] }}"
+                                data-image-url="{{ $stk['image_url'] }}"
+                                data-youtube="{{ $stk['youtube_url'] }}"
+                                data-popular="{{ $stk['is_popular'] ? '1' : '0' }}"
+                                data-latest="{{ $stk['is_latest'] ? '1' : '0' }}"
+                                data-is-active="1">
+                            ⭐ [2026 ACTIVE] {{ $stk['name'] }} &mdash; ₹{{ number_format($stk['price'], 2) }} ({{ $stk['category'] ?: 'General' }})
+                        </option>
+                    @endforeach
+                </optgroup>
+
+                <optgroup id="optgroupInactive" label="📦 Other / All Inventory Products ({{ $stocks->where('is_active', false)->count() }})">
+                    @foreach($stocks->where('is_active', false) as $stk)
+                        <option value="{{ $stk['id'] }}" 
+                                data-name="{{ $stk['name'] }}"
+                                data-category="{{ $stk['category_id'] ?: $stk['category'] }}"
+                                data-description="{{ $stk['description'] }}"
+                                data-price="{{ $stk['price'] }}"
+                                data-original-price="{{ $stk['original_price'] }}"
+                                data-discount="{{ $stk['discount_percentage'] }}"
+                                data-special-discount="{{ $stk['special_discount_percentage'] }}"
+                                data-quantity="{{ $stk['quantity'] }}"
+                                data-image="{{ $stk['image'] }}"
+                                data-image-url="{{ $stk['image_url'] }}"
+                                data-youtube="{{ $stk['youtube_url'] }}"
+                                data-popular="{{ $stk['is_popular'] ? '1' : '0' }}"
+                                data-latest="{{ $stk['is_latest'] ? '1' : '0' }}"
+                                data-is-active="0">
+                            {{ $stk['name'] }} &mdash; ₹{{ number_format($stk['price'], 2) }} ({{ $stk['category'] ?: 'General' }})
+                        </option>
+                    @endforeach
+                </optgroup>
             </select>
         </div>
     </div>
@@ -63,6 +100,7 @@
 
         <!-- Hidden input for stock existing image path -->
         <input type="hidden" name="existing_image" id="existing_image_input" value="{{ old('existing_image') }}">
+        <input type="hidden" name="selected_image" id="selected_image_input" value="{{ old('selected_image') }}">
 
         <!-- Section 1: Basic Info -->
         <div>
@@ -137,8 +175,30 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Upload New Image File (Optional)</label>
                         <input type="file" id="imageFileInput" name="image" accept="image/*" class="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-800 cursor-pointer">
-                        <p class="text-[11px] text-gray-500 mt-1">If a product was selected above, its existing image is automatically used unless you upload a new one.</p>
+                        <p class="text-[11px] text-gray-500 mt-1">If a product was selected above, its existing image is automatically used unless you upload or pick another one.</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- 2026 Current Year Images Picker -->
+            <div class="mt-4 pt-3 border-t border-gray-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-gray-700 uppercase">🌟 Or Select from Current 2026 Product Images Gallery:</span>
+                    <span class="text-[11px] text-amber-700 font-medium">Click image to apply instantly</span>
+                </div>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-thin">
+                    @foreach($availableImages as $img)
+                        <div class="gallery-select-card border rounded-lg p-1.5 cursor-pointer bg-white hover:border-amber-400 hover:shadow-sm transition text-center"
+                             data-path="{{ $img['path'] }}"
+                             data-url="{{ $img['url'] }}"
+                             data-title="{{ $img['title'] }}"
+                             onclick="selectProductGalleryImage(this)">
+                            <div class="h-14 flex items-center justify-center bg-gray-50 rounded p-1 mb-1">
+                                <img src="{{ $img['url'] }}" alt="{{ $img['title'] }}" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <span class="text-[10px] font-bold text-gray-700 block truncate" title="{{ $img['title'] }}">{{ $img['title'] }}</span>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -195,6 +255,27 @@
 </div>
 
 <script>
+function selectProductGalleryImage(element) {
+    document.querySelectorAll('.gallery-select-card').forEach(card => {
+        card.classList.remove('border-amber-500', 'ring-2', 'ring-amber-500', 'bg-amber-50');
+        card.classList.add('border-gray-200', 'bg-white');
+    });
+
+    element.classList.remove('border-gray-200', 'bg-white');
+    element.classList.add('border-amber-500', 'ring-2', 'ring-amber-500', 'bg-amber-50');
+
+    const path = element.dataset.path;
+    const url = element.dataset.url;
+
+    document.getElementById('selected_image_input').value = path;
+    document.getElementById('existing_image_input').value = '';
+    const imgPreview = document.getElementById('imagePreview');
+    imgPreview.src = url;
+    const tag = document.getElementById('previewTag');
+    tag.textContent = '2026 Image';
+    tag.className = 'absolute bottom-1 right-1 bg-amber-700 text-white text-[10px] px-1.5 py-0.5 rounded opacity-90';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const quickSelect = document.getElementById('quickStockSelect');
     const nameInput = document.getElementById('item_name');
@@ -212,6 +293,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const imagePreview = document.getElementById('imagePreview');
     const previewTag = document.getElementById('previewTag');
     const fileInput = document.getElementById('imageFileInput');
+
+    // Filter toggles
+    const filterActiveOnlyBtn = document.getElementById('filterActiveOnlyBtn');
+    const filterAllBtn = document.getElementById('filterAllBtn');
+    const optgroupInactive = document.getElementById('optgroupInactive');
+
+    if (filterActiveOnlyBtn && filterAllBtn && optgroupInactive) {
+        filterActiveOnlyBtn.addEventListener('click', function() {
+            optgroupInactive.style.display = 'none';
+            filterActiveOnlyBtn.className = 'px-2.5 py-1 rounded-md font-bold bg-white text-amber-900 shadow-sm transition';
+            filterAllBtn.className = 'px-2.5 py-1 rounded-md font-medium text-white hover:text-amber-100 transition';
+        });
+
+        filterAllBtn.addEventListener('click', function() {
+            optgroupInactive.style.display = '';
+            filterAllBtn.className = 'px-2.5 py-1 rounded-md font-bold bg-white text-amber-900 shadow-sm transition';
+            filterActiveOnlyBtn.className = 'px-2.5 py-1 rounded-md font-medium text-white hover:text-amber-100 transition';
+        });
+    }
 
     // Quick Autofill from inventory
     quickSelect.addEventListener('change', function() {
@@ -244,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (selected.dataset.imageUrl) {
             imagePreview.src = selected.dataset.imageUrl;
-            previewTag.textContent = 'Inventory Image';
+            previewTag.textContent = selected.dataset.isActive === '1' ? '2026 Stock Image' : 'Inventory Image';
             previewTag.className = 'absolute bottom-1 right-1 bg-green-700 text-white text-[10px] px-1.5 py-0.5 rounded opacity-90';
         }
     });

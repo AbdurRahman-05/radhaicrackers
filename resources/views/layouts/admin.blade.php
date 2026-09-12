@@ -114,6 +114,12 @@
                          Home Page Products
                      </a>
 
+                     <a href="{{ route('admin.homepage_categories.index') }}" 
+                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.homepage_categories.*') ? 'bg-gray-700' : '' }}">
+                         <i class="fas fa-th-large w-5 h-5 mr-3 text-orange-400"></i>
+                         Category Cards (2026)
+                     </a>
+
                     <a href="{{ route('admin.content') }}" 
                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.content*') ? 'bg-gray-700' : '' }}">
                         <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
@@ -158,7 +164,7 @@
                                 <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                                     <i class="fas fa-user text-white text-sm"></i>
                                 </div>
-                                <span class="hidden md:block">{{ Auth::user()->name }}</span>
+                                <span class="hidden md:block">{{ Auth::user()?->name ?? 'Admin' }}</span>
                                 <i class="fas fa-chevron-down text-xs"></i>
                             </button>
 
