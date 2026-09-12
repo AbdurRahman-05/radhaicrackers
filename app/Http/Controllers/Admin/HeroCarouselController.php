@@ -25,11 +25,14 @@ class HeroCarouselController extends Controller
     public function create()
     {
         HeroSlide::createTableIfNotExists();
-        // Find preset images available in radhe_crackers_images_2026 and images
+        // Find preset images available in radhe_crackers_images_2026 (excluding combo page banners)
         $presetImages = [];
         $bannerDir = public_path('images/radhe_crackers_images_2026');
         if (File::isDirectory($bannerDir)) {
             foreach (File::files($bannerDir) as $file) {
+                if (stripos($file->getFilename(), 'combo') !== false) {
+                    continue;
+                }
                 $presetImages[] = 'images/radhe_crackers_images_2026/' . $file->getFilename();
             }
         }
@@ -101,6 +104,9 @@ class HeroCarouselController extends Controller
         $bannerDir = public_path('images/radhe_crackers_images_2026');
         if (File::isDirectory($bannerDir)) {
             foreach (File::files($bannerDir) as $file) {
+                if (stripos($file->getFilename(), 'combo') !== false) {
+                    continue;
+                }
                 $presetImages[] = 'images/radhe_crackers_images_2026/' . $file->getFilename();
             }
         }

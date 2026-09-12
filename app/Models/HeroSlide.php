@@ -47,7 +47,7 @@ class HeroSlide extends Model
                     $table->timestamps();
                 });
 
-                // Seed initial default slides using high quality 2026 banner images
+                // Seed initial default slides using high quality 2026 banner images (Home carousel only)
                 DB::table('hero_slides')->insert([
                     [
                         'title' => 'Festival of Lights Celebration',
@@ -71,18 +71,17 @@ class HeroSlide extends Model
                         'created_at' => now(),
                         'updated_at' => now(),
                     ],
-                    [
-                        'title' => 'Mega Diwali Combo Packs',
-                        'subtitle' => 'Curated festive family packages for non-stop celebrations',
-                        'image' => 'images/radhe_crackers_images_2026/combo packs banner.png',
-                        'link_url' => '/combos',
-                        'button_text' => 'View Combos',
-                        'sort_order' => 3,
-                        'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ],
                 ]);
+            } else {
+                // Ensure any previously seeded combo banner is removed from hero slider table
+                try {
+                    DB::table('hero_slides')
+                        ->where('image', 'like', '%combo packs banner%')
+                        ->orWhere('link_url', 'like', '%/combos%')
+                        ->delete();
+                } catch (\Throwable $ex) {
+                    // Ignore if DB issue
+                }
             }
         } catch (\Throwable $e) {
             // Silently ignore if table already created concurrently
@@ -96,7 +95,10 @@ class HeroSlide extends Model
     {
         try {
             self::createTableIfNotExists();
-            return static::where('is_active', true)->orderBy('sort_order', 'asc')->get();
+            return static::where('is_active', true)
+                ->where('image', 'not like', '%combo%')
+                ->orderBy('sort_order', 'asc')
+                ->get();
         } catch (\Throwable $e) {
             return collect();
         }

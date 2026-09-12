@@ -235,70 +235,84 @@
 </div>
 
     <!-- Navigation -->
-    <nav class=" text-white border-b-2 border-gray-900 shadow-sm"style="background-color: #1E093B;">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-12 sm:h-16">
-            
-            <!-- Center: Navigation Links -->
-            <div class="hidden md:flex items-center space-x-2 lg:space-x-6">
-                <a href="{{ route('home') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Home</a>
-                <span class="text-white">|</span>
-                <a href="{{ route('about') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">About Us</a>
-                <span class="text-white">|</span>
-                <a href="{{ route('shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Estimate</a>
-                <span class="text-white">|</span>
-                <a href="{{ route('express-shop') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Quotation</a>
-                <span class="text-white">|</span>
-                <a href="{{ route('combos') }}" class="a text-amber-300 hover:text-amber-200 font-bold text-sm lg:text-base flex items-center gap-1"><span>🔥 Combos</span></a>
-                <span class="text-white">|</span>
-                <a href="{{ route('price-list') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Price List</a>
-                <span class="text-white">|</span>
-                <a href="{{ url('/user/orders') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Order Tracking</a>
-                <span class="text-white">|</span>
-                <a href="{{ route('contact') }}" class="a text-white-700 hover:text-white-500 font-medium text-sm lg:text-base">Contact Us</a>
-            </div>
+    <nav class="text-white border-b border-purple-950/40 shadow-sm" style="background-color: #1E093B;">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-12 sm:h-14">
+                
+                <!-- Desktop Navigation Links (All strictly in a single clean line) -->
+                <div class="hidden md:flex items-center flex-nowrap whitespace-nowrap py-1 space-x-1.5 md:space-x-2 lg:space-x-4 xl:space-x-5 text-xs md:text-[13px] lg:text-sm font-medium">
+                    <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Home</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
 
-<div class="hidden md:flex items-center justify-end w-full md:w-1/3 text-right">
-                @auth
-                <span class="flex items-center">
-                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="hidden sm:inline">{{ auth()->user()->name }}</span>
-                    <span class="sm:hidden">{{ auth()->user()->name }}</span>
-                </span>
-                <form method="POST" action="{{ route('logout') }}" class="a inline">
-                    @csrf
-                    <button type="submit" class="a text-white hover:text-gray-200 transition-colors font-medium mx-6">Logout</button>
-                </form>
-                @else
-                <a href="{{ route('login') }}" class="a text-white hover:text-gray-800 transition-colors font-medium">Login</a>
-                @endauth
-            </div>
+                    <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">About Us</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
 
-            <!-- Mobile Buttons -->
-            <div class="md:hidden flex items-center justify-between w-full">
-                <!-- Menu Button Left -->
-                <button onclick="toggleMobileMenu()" class="text-white-700 hover:text-primary-500 p-2 order-1">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-                <!-- Login/Logout Button Right -->
-                <div class="order-2">
+                    <a href="{{ route('shop') }}" class="{{ request()->routeIs('shop') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Estimate</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
+
+                    <a href="{{ route('express-shop') }}" class="{{ request()->routeIs('express-shop') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Quotation</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
+
+                    <a href="{{ route('combos') }}" class="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 font-bold whitespace-nowrap px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/35 transition-all hover:bg-amber-500/25 shadow-sm">
+                        <span>🔥</span>
+                        <span>Combos</span>
+                    </a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
+
+                    <a href="{{ route('price-list') }}" class="{{ request()->routeIs('price-list') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Price List</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
+
+                    <a href="{{ url('/user/orders') }}" class="{{ request()->is('user/orders*') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Order Tracking</a>
+                    <span class="text-white/20 select-none text-xs font-light" aria-hidden="true">|</span>
+
+                    <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'text-amber-400 font-bold' : 'text-white/90 hover:text-amber-300' }} whitespace-nowrap transition-colors py-1">Contact Us</a>
+                </div>
+
+                <!-- Right Side: User Authentication -->
+                <div class="hidden md:flex items-center justify-end flex-shrink-0 whitespace-nowrap ml-3 text-xs lg:text-sm">
                     @auth
-                        <form method="POST" action="{{ route('logout') }}" class="inline">
-                            @csrf
-                            <button type="submit" class="font-bold text-white hover:text-gray-200 transition-colors">Logout</button>
-                        </form>
+                        <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/15 text-white shadow-sm">
+                            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium text-white max-w-[130px] truncate">{{ auth()->user()->name }}</span>
+                            <span class="text-white/30">|</span>
+                            <form method="POST" action="{{ route('logout') }}" class="inline m-0 p-0">
+                                @csrf
+                                <button type="submit" class="text-amber-300 hover:text-amber-200 hover:underline transition-colors font-semibold">Logout</button>
+                            </form>
+                        </div>
                     @else
-                        <a href="{{ route('login') }}" class="font-bold text-white hover:text-gray-200 transition-colors">Login</a>
+                        <a href="{{ route('login') }}" class="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs lg:text-sm shadow transition-all hover:scale-105">Login</a>
                     @endauth
+                </div>
+
+                <!-- Mobile Buttons -->
+                <div class="md:hidden flex items-center justify-between w-full">
+                    <!-- Menu Button Left -->
+                    <button onclick="toggleMobileMenu()" class="text-white hover:text-amber-400 p-2" aria-label="Open Menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    <!-- Login/Logout Button Right -->
+                    <div>
+                        @auth
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-200">{{ auth()->user()->name }}</span>
+                                <form method="POST" action="{{ route('logout') }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-xs font-bold text-amber-300 hover:text-amber-200 px-2 py-1 rounded bg-white/10">Logout</button>
+                                </form>
+                            </div>
+                        @else
+                            <a href="{{ route('login') }}" class="text-xs font-bold text-amber-300 hover:text-amber-200 px-3 py-1 rounded bg-white/10">Login</a>
+                        @endauth
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
 
 
@@ -333,15 +347,15 @@
                 --}}
                 
                 <!-- Mobile Navigation Links -->
-                <div class="space-y-2">
-                    <a href="{{ route('home') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-sm sm:text-base">Home</a>
-                    <a href="{{ route('about') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">About Us</a>
-                    <a href="{{ route('shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Estimate</a>
-                    <a href="{{ route('express-shop') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Quotation</a>
-                    <a href="{{ route('combos') }}" class="block p-2 sm:p-3 text-amber-600 font-bold hover:bg-amber-50 rounded-lg transition-colors text-sm sm:text-base flex items-center gap-1.5"><span>🔥 Diwali Combos</span></a>
-                    <a href="{{ route('price-list') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Price List</a>
-                    <a href="{{ url('/user/orders') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Order Tracking</a>
-                    <a href="{{ route('contact') }}" class="block p-2 sm:p-3 text-gray-700 hover:bg--gray-50 rounded-lg transition-colors text-sm sm:text-base">Contact Us</a>
+                <div class="space-y-1.5">
+                    <a href="{{ route('home') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Home</a>
+                    <a href="{{ route('about') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">About Us</a>
+                    <a href="{{ route('shop') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Estimate</a>
+                    <a href="{{ route('express-shop') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Quotation</a>
+                    <a href="{{ route('combos') }}" class="block px-3 py-2 text-amber-600 font-bold hover:bg-amber-50 rounded-lg transition-colors text-sm flex items-center gap-1.5"><span>🔥 Diwali Combos</span></a>
+                    <a href="{{ route('price-list') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Price List</a>
+                    <a href="{{ url('/user/orders') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Order Tracking</a>
+                    <a href="{{ route('contact') }}" class="block px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-amber-600 rounded-lg transition-colors text-sm font-medium">Contact Us</a>
                 </div>
                 
                 <!-- Mobile User Menu -->

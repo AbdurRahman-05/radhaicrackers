@@ -4,48 +4,51 @@
 
 @section('content')
 <div class="bg-gray-50 min-h-screen pb-24">
-    <!-- Festive Hero Header -->
-    <div class="relative overflow-hidden text-white py-12 md:py-16 shadow-lg" style="background: radial-gradient(circle at 50% 30%, #3B1270 0%, #1E093B 70%, #120424 100%);">
-        <!-- Decorative Glow & Sparks -->
+    <!-- Festive Combo Hero Banner -->
+    <div class="relative bg-gradient-to-b from-[#120424] via-[#1E093B] to-[#120424] py-4 sm:py-6 border-b border-amber-500/20 shadow-xl overflow-hidden">
+        <!-- Background subtle sparkle glow -->
         <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#F59E0B 1px, transparent 1px); background-size: 24px 24px;"></div>
         
-        <div class="max-w-7xl mx-auto px-4 relative z-10 text-center">
-            <!-- Top Badges -->
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold text-xs sm:text-sm uppercase tracking-wider mb-4 shadow-sm">
-                <span>🪔</span>
-                <span>Exclusive Diwali Value Offers • Only Branded Items</span>
-                <span>🎆</span>
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 relative z-10">
+            <!-- Graphical Combo Packs Banner -->
+            <div class="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-400/40 bg-gray-950 transition-all duration-300 hover:border-amber-400/70 hover:shadow-amber-500/10">
+                <img src="{{ asset('images/radhe_crackers_images_2026/combo packs banner.png') }}" 
+                     alt="Radhe Crackers Diwali Combo Packs - ₹3,000, ₹5,000, ₹8,000" 
+                     class="w-full h-auto object-cover block"
+                     loading="eager">
             </div>
 
-            <!-- Main Heading -->
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
-                Radhe Crackers <span class="text-amber-400">Combo Packs</span>
-            </h1>
-
-            <!-- Tamil Greeting Tagline from Flyer -->
-            <p class="text-base sm:text-lg md:text-xl font-medium text-amber-200/95 max-w-3xl mx-auto mb-6">
-                "பட்டாசு ஒளியில் உங்கள் சந்தோஷம் இன்னும் பிரகாசமாகட்டும்!"
-            </p>
-
-            <p class="text-xs sm:text-sm text-gray-300 max-w-2xl mx-auto mb-8">
-                Carefully curated family celebration combos with exact excel item lists. Direct factory pricing with zero hidden costs. What you see is exactly what you get!
-            </p>
+            <!-- Quick Navigation Action Pills -->
+            <div class="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                <span class="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                    <span>⚡</span> Jump to Combo:
+                </span>
+                <a href="#card-combo_3k" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-95 border border-amber-300/40">
+                    <span>🧨</span> ₹3,000 Family Pack
+                </a>
+                <a href="#card-combo_5k" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-95 border border-blue-300/40">
+                    <span>🔥</span> ₹5,000 Mega Festive (Popular)
+                </a>
+                <a href="#card-combo_8k" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all hover:scale-105 active:scale-95 border border-purple-300/40">
+                    <span>👑</span> ₹8,000 Grand Royal
+                </a>
+            </div>
 
             <!-- 4 Trust Badges from Flyer -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
-                <div class="bg-white/10 backdrop-blur-sm border border-amber-400/20 rounded-xl py-2.5 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 mt-4">
+                <div class="bg-white/10 backdrop-blur-md border border-amber-400/20 rounded-xl py-2 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200 shadow-sm">
                     <span class="text-base">✨</span>
                     <span>ONLY BRANDED ITEMS</span>
                 </div>
-                <div class="bg-white/10 backdrop-blur-sm border border-amber-400/20 rounded-xl py-2.5 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200">
+                <div class="bg-white/10 backdrop-blur-md border border-amber-400/20 rounded-xl py-2 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200 shadow-sm">
                     <span class="text-base">🛡️</span>
                     <span>PREMIUM QUALITY</span>
                 </div>
-                <div class="bg-white/10 backdrop-blur-sm border border-amber-400/20 rounded-xl py-2.5 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200">
+                <div class="bg-white/10 backdrop-blur-md border border-amber-400/20 rounded-xl py-2 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200 shadow-sm">
                     <span class="text-base">🤝</span>
                     <span>TRUSTED BRANDS</span>
                 </div>
-                <div class="bg-white/10 backdrop-blur-sm border border-amber-400/20 rounded-xl py-2.5 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200">
+                <div class="bg-white/10 backdrop-blur-md border border-amber-400/20 rounded-xl py-2 px-3 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-amber-200 shadow-sm">
                     <span class="text-base">👍</span>
                     <span>BEST VALUE</span>
                 </div>
@@ -97,7 +100,7 @@
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             @foreach($combos as $comboId => $combo)
-                <div class="bg-white rounded-3xl shadow-xl border {{ $combo['highlight'] ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-gray-200' }} overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 relative" id="card-{{ $combo['id'] }}">
+                <div class="bg-white rounded-3xl shadow-xl border {{ $combo['highlight'] ? 'border-amber-400 ring-2 ring-amber-400/40' : 'border-gray-200' }} overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 relative scroll-mt-6" id="card-{{ $combo['id'] }}">
                     
                     <!-- Top Ribbon -->
                     @if($combo['highlight'])

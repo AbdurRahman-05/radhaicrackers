@@ -25,7 +25,7 @@ return new class extends Migration
                 $table->timestamps();
             });
 
-            // Seed initial default slides using high quality 2026 banner images
+            // Seed initial default slides using high quality 2026 banner images (Home carousel only)
             DB::table('hero_slides')->insert([
                 [
                     'title' => 'Festival of Lights Celebration',
@@ -45,17 +45,6 @@ return new class extends Migration
                     'link_url' => '/quotation',
                     'button_text' => 'Explore Offers',
                     'sort_order' => 2,
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'title' => 'Mega Diwali Combo Packs',
-                    'subtitle' => 'Curated festive family packages for non-stop celebrations',
-                    'image' => 'images/radhe_crackers_images_2026/combo packs banner.png',
-                    'link_url' => '/combos',
-                    'button_text' => 'View Combos',
-                    'sort_order' => 3,
                     'is_active' => true,
                     'created_at' => now(),
                     'updated_at' => now(),
