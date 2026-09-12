@@ -175,23 +175,42 @@
                         <!-- Add to Cart & Buy Controls -->
                         <div class="pt-4 border-t border-gray-100 space-y-3">
                             <div class="flex items-center justify-between gap-3">
-                                <span class="text-xs font-bold text-gray-600">Pack Quantity:</span>
-                                <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm bg-white">
-                                    <button type="button" onclick="adjustComboQty('{{ $combo['id'] }}', -1)" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 font-black text-sm active:scale-95 transition">&minus;</button>
-                                    <input type="number" id="qty-{{ $combo['id'] }}" value="1" min="1" max="99" class="w-12 text-center text-sm font-black border-none focus:ring-0 p-0 text-gray-800" readonly>
-                                    <button type="button" onclick="adjustComboQty('{{ $combo['id'] }}', 1)" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 font-black text-sm active:scale-95 transition">&plus;</button>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-gray-600">Pack Quantity:</span>
+                                    <span id="status-badge-{{ $combo['id'] }}" class="hidden text-[10px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">In Cart: 1</span>
+                                </div>
+                                <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm bg-white transition-all" id="qty-box-{{ $combo['id'] }}">
+                                    <button type="button" 
+                                            id="btn-minus-{{ $combo['id'] }}" 
+                                            onclick="adjustComboQty('{{ $combo['id'] }}', -1)" 
+                                            class="px-3 py-1.5 text-gray-300 font-black text-sm active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" 
+                                            disabled 
+                                            title="Decrease quantity">&minus;</button>
+                                    <input type="number" 
+                                           id="qty-{{ $combo['id'] }}" 
+                                           value="0" 
+                                           min="0" 
+                                           max="99" 
+                                           class="w-12 text-center text-sm font-bold border-none focus:ring-0 p-0 text-gray-400 bg-transparent" 
+                                           readonly>
+                                    <button type="button" 
+                                            id="btn-plus-{{ $combo['id'] }}" 
+                                            onclick="adjustComboQty('{{ $combo['id'] }}', 1)" 
+                                            class="px-3 py-1.5 text-amber-700 hover:bg-amber-100 font-black text-sm active:scale-95 transition cursor-pointer" 
+                                            title="Click to directly add to cart">&plus;</button>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">
                                 <button type="button" 
-                                        onclick="addComboToCart('{{ $combo['id'] }}', false)" 
-                                        class="w-full py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-white transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 bg-[#B67121] hover:bg-orange-600">
-                                    <span>🛒 Add to Cart</span>
+                                        id="btn-add-{{ $combo['id'] }}" 
+                                        onclick="addComboBtnClicked('{{ $combo['id'] }}')" 
+                                        class="w-full py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-white transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 bg-[#B67121] hover:bg-orange-600 cursor-pointer">
+                                    <span id="btn-add-text-{{ $combo['id'] }}">🛒 Add to Cart</span>
                                 </button>
                                 <button type="button" 
-                                        onclick="addComboToCart('{{ $combo['id'] }}', true)" 
-                                        class="w-full py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-white transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 bg-[#1E093B] hover:bg-[#2D0B5A]">
+                                        onclick="buyComboNow('{{ $combo['id'] }}')" 
+                                        class="w-full py-3 px-3 rounded-xl font-bold text-xs sm:text-sm text-white transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 bg-[#1E093B] hover:bg-[#2D0B5A] cursor-pointer">
                                     <span>⚡ Buy Now</span>
                                 </button>
                             </div>
@@ -380,43 +399,134 @@ function filterComboItems(comboId) {
     });
 }
 
-function adjustComboQty(comboId, delta) {
+function updateComboCardVisualState(comboId, qty) {
     const input = document.getElementById('qty-' + comboId);
-    if (!input) return;
-    let val = parseInt(input.value || 1) + delta;
-    val = Math.max(1, Math.min(99, val));
-    input.value = val;
+    const minusBtn = document.getElementById('btn-minus-' + comboId);
+    const badge = document.getElementById('status-badge-' + comboId);
+    const qtyBox = document.getElementById('qty-box-' + comboId);
+    const addBtnText = document.getElementById('btn-add-text-' + comboId);
+
+    if (input) {
+        input.value = qty;
+        if (qty > 0) {
+            input.classList.remove('text-gray-400');
+            input.classList.add('text-gray-900', 'font-black');
+        } else {
+            input.classList.remove('text-gray-900', 'font-black');
+            input.classList.add('text-gray-400', 'font-bold');
+        }
+    }
+
+    if (minusBtn) {
+        if (qty > 0) {
+            minusBtn.disabled = false;
+            minusBtn.classList.remove('text-gray-300', 'cursor-not-allowed', 'opacity-30');
+            minusBtn.classList.add('text-gray-700', 'hover:bg-gray-100');
+        } else {
+            minusBtn.disabled = true;
+            minusBtn.classList.remove('text-gray-700', 'hover:bg-gray-100');
+            minusBtn.classList.add('text-gray-300', 'cursor-not-allowed', 'opacity-30');
+        }
+    }
+
+    if (badge) {
+        if (qty > 0) {
+            badge.textContent = `In Cart: ${qty}`;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    if (qtyBox) {
+        if (qty > 0) {
+            qtyBox.classList.add('border-amber-500', 'ring-2', 'ring-amber-400/40', 'bg-amber-50/20');
+            qtyBox.classList.remove('border-gray-300');
+        } else {
+            qtyBox.classList.remove('border-amber-500', 'ring-2', 'ring-amber-400/40', 'bg-amber-50/20');
+            qtyBox.classList.add('border-gray-300');
+        }
+    }
+
+    if (addBtnText) {
+        if (qty > 0) {
+            addBtnText.textContent = `✓ In Cart (${qty}) • Add +`;
+        } else {
+            addBtnText.textContent = `🛒 Add to Cart`;
+        }
+    }
 }
 
-function getCart() {
-    return JSON.parse(localStorage.getItem('cartItems') || '[]');
-}
-
-function saveCart(cart) {
-    localStorage.setItem('cartItems', JSON.stringify(cart));
-    syncCartUI();
-}
-
-function addComboToCart(comboId, proceedNow = false) {
+function adjustComboQty(comboId, delta) {
     const combo = comboData[comboId];
     if (!combo) return;
 
-    const qtyInput = document.getElementById('qty-' + comboId);
-    const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+    let cart = getCart();
+    const existingIndex = cart.findIndex(item => item.product_id === combo.numeric_id || item.product_id === combo.id || item.is_combo_id === combo.id);
+    let currentQty = existingIndex > -1 ? parseInt(cart[existingIndex].quantity || 0) : 0;
+
+    let newQty = currentQty + delta;
+    if (newQty < 0) newQty = 0;
+    if (newQty > 99) newQty = 99;
+
+    if (newQty === currentQty && delta < 0 && currentQty === 0) {
+        return;
+    }
+
+    if (newQty === 0) {
+        if (existingIndex > -1) {
+            cart.splice(existingIndex, 1);
+            saveCart(cart);
+            showToast(`Removed ${combo.name} from cart`);
+        }
+    } else {
+        if (existingIndex > -1) {
+            cart[existingIndex].quantity = newQty;
+            cart[existingIndex].total = newQty * combo.offer_price;
+        } else {
+            cart.push({
+                product_id: combo.numeric_id,
+                is_combo_id: combo.id,
+                product_name: combo.name,
+                content: `${combo.total_products} Products (${combo.total_qty} Items)`,
+                rate: combo.offer_price,
+                price: combo.offer_price,
+                original_price: combo.offer_price,
+                is_combo: true,
+                quantity: newQty,
+                total: combo.offer_price * newQty
+            });
+        }
+        saveCart(cart);
+
+        if (delta > 0 && currentQty === 0) {
+            showToast(`Added 1x ${combo.name} directly to your cart! 🎆`);
+            const panel = document.getElementById('cart-summary-panel');
+            if (panel && panel.classList.contains('hidden')) {
+                toggleCartDrawer();
+            }
+        } else if (delta > 0) {
+            showToast(`Updated ${combo.name} quantity to ${newQty}! 🎆`);
+        } else {
+            showToast(`Updated ${combo.name} quantity to ${newQty}`);
+        }
+    }
+
+    syncCartUI();
+}
+
+function addComboBtnClicked(comboId) {
+    adjustComboQty(comboId, 1);
+}
+
+function buyComboNow(comboId) {
+    const combo = comboData[comboId];
+    if (!combo) return;
 
     let cart = getCart();
-    
-    // Check if combo already in cart
     const existingIndex = cart.findIndex(item => item.product_id === combo.numeric_id || item.product_id === combo.id || item.is_combo_id === combo.id);
 
-    if (existingIndex > -1) {
-        if (proceedNow) {
-            cart[existingIndex].quantity = qty;
-        } else {
-            cart[existingIndex].quantity += qty;
-        }
-        cart[existingIndex].total = cart[existingIndex].quantity * combo.offer_price;
-    } else {
+    if (existingIndex === -1) {
         cart.push({
             product_id: combo.numeric_id,
             is_combo_id: combo.id,
@@ -426,24 +536,29 @@ function addComboToCart(comboId, proceedNow = false) {
             price: combo.offer_price,
             original_price: combo.offer_price,
             is_combo: true,
-            quantity: qty,
-            total: combo.offer_price * qty
+            quantity: 1,
+            total: combo.offer_price
         });
+        saveCart(cart);
     }
+    proceedToCheckout();
+}
 
-    saveCart(cart);
-
+function addComboToCart(comboId, proceedNow = false) {
     if (proceedNow) {
-        proceedToCheckout();
+        buyComboNow(comboId);
     } else {
-        // Visual confirmation toast
-        showToast(`Added ${qty}x ${combo.name} to your cart!`);
-        // Expand drawer temporarily
-        const panel = document.getElementById('cart-summary-panel');
-        if (panel && panel.classList.contains('hidden')) {
-            toggleCartDrawer();
-        }
+        adjustComboQty(comboId, 1);
     }
+}
+
+function getCart() {
+    return JSON.parse(localStorage.getItem('cartItems') || '[]');
+}
+
+function saveCart(cart) {
+    localStorage.setItem('cartItems', JSON.stringify(cart));
+    syncCartUI();
 }
 
 function toggleCartDrawer() {
@@ -493,6 +608,16 @@ function syncCartUI() {
     const summarySubtotal = document.getElementById('summary-subtotal');
     const summaryPacking = document.getElementById('summary-packing');
     const summaryTotal = document.getElementById('summary-total');
+
+    // Sync all combo cards on page with localStorage cart
+    if (typeof comboData === 'object' && comboData !== null) {
+        Object.keys(comboData).forEach(comboId => {
+            const combo = comboData[comboId];
+            const cartItem = (cart && Array.isArray(cart)) ? cart.find(item => item.product_id === combo.numeric_id || item.product_id === combo.id || item.is_combo_id === combo.id) : null;
+            const qty = cartItem ? parseInt(cartItem.quantity || 0) : 0;
+            updateComboCardVisualState(comboId, qty);
+        });
+    }
 
     if (!cart || cart.length === 0) {
         if (wrapper) wrapper.style.display = 'none';
@@ -547,9 +672,8 @@ function syncCartUI() {
     });
 
     const payableItemsSubtotal = regularPayableSubtotal + comboPayableSubtotal;
-    // No delivery/packing fee for combos! 5% packing applies ONLY to regular products
-    const packing = regularPayableSubtotal * 0.05;
-    const finalTotal = payableItemsSubtotal + packing;
+    const packing = Math.round(payableItemsSubtotal * 0.05 * 100) / 100;
+    const finalTotal = Math.round(payableItemsSubtotal + packing);
 
     if (badgeTotal) badgeTotal.textContent = '₹' + Math.round(finalTotal).toLocaleString('en-IN');
     if (badgeCount) badgeCount.textContent = totalItemsQty;
@@ -557,16 +681,8 @@ function syncCartUI() {
     if (summarySubtotal) summarySubtotal.textContent = '₹' + payableItemsSubtotal.toFixed(2);
     if (summaryPacking) {
         const packingLabel = document.getElementById('packing-label');
-        if (packing === 0 && comboPayableSubtotal > 0) {
-            if (packingLabel) packingLabel.textContent = 'Delivery & Packing:';
-            summaryPacking.innerHTML = '<span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full text-xs">All-Inclusive</span>';
-        } else if (packing > 0 && comboPayableSubtotal > 0) {
-            if (packingLabel) packingLabel.textContent = 'Packing (+5% regular items):';
-            summaryPacking.textContent = '₹' + packing.toFixed(2);
-        } else {
-            if (packingLabel) packingLabel.textContent = 'Delivery/Packing Fee (+5%):';
-            summaryPacking.textContent = '₹' + packing.toFixed(2);
-        }
+        if (packingLabel) packingLabel.textContent = 'Add packing 5%:';
+        summaryPacking.textContent = '₹' + packing.toFixed(2);
     }
     if (summaryTotal) summaryTotal.textContent = '₹' + Math.round(finalTotal).toLocaleString('en-IN');
 }

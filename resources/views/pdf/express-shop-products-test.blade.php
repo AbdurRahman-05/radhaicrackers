@@ -355,40 +355,49 @@
         <div class="section-title">Summary</div>
             
         @php
-            // Subtotal using original MRP (original_price or rate or price)
-            $subtotal = 0;
+            $regularSubtotal = 0;
+            $comboSubtotal = 0;
             if (isset($order->items) && is_iterable($order->items)) {
                 foreach ($order->items as $item) {
-                    $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
+                    $pId = (int)($item['product_id'] ?? 0);
+                    $pName = (string)($item['product_name'] ?? '');
+                    $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
                     $quantity = $item['quantity'] ?? 0;
-                    $subtotal += $originalPrice * $quantity;
+                    if ($isCombo) {
+                        $comboPrice = $item['rate'] ?? $item['price'] ?? $item['original_price'] ?? 0;
+                        $comboSubtotal += $comboPrice * $quantity;
+                    } else {
+                        $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
+                        $regularSubtotal += $originalPrice * $quantity;
+                    }
                 }
             }
-            // Unified discount calculation
-            $discount70 = round($subtotal * 0.70, 2);
-            $afterDiscount = $subtotal - $discount70;
+            $discount70 = round($regularSubtotal * 0.70, 2);
+            $afterDiscount = round($regularSubtotal - $discount70, 2);
             $specialDiscount = round($afterDiscount * 0.15, 2);
-            $afterSpecial = $afterDiscount - $specialDiscount;
-            $packing = round($afterSpecial * 0.05, 2);
-            $netAmount = $afterSpecial + $packing;
-            $couponDiscount = $order->coupon_discount ?? 0;
-            $finalAmount = $netAmount - $couponDiscount;
+            $afterSpecial = round($afterDiscount - $specialDiscount, 2);
+            $couponDiscount = (float)($order->coupon_discount ?? 0);
+            $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
+            $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
+            $packing = round($totalBeforePacking * 0.05, 2);
+            $finalAmount = round($totalBeforePacking + $packing);
         @endphp
 
         <table class="summary-table">
-            <tr><td class="label">Sub Total</td><td class="value">₹{{ number_format($subtotal, 2) }}</td></tr>
+            <tr><td class="label">SubTotal</td><td class="value">₹{{ number_format($regularSubtotal, 2) }}</td></tr>
             <tr><td class="label">Discount (70%)</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
             <tr><td class="label">After Discount</td><td class="value">₹{{ number_format($afterDiscount, 2) }}</td></tr>
-            <tr><td class="label">Special Disc (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
-            <tr><td class="label">After Spl. Disc</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
-            <tr><td class="label">Packing (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
-            @if($order->coupon_code)
+            <tr><td class="label">Spl Discount (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
+            <tr><td class="label">After Spl. Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
+            @if(!empty($order->coupon_code))
                 <tr><td class="label">Coupon Code</td><td class="value">{{ $order->coupon_code }}</td></tr>
             @endif
-            @if($couponDiscount)
-                <tr><td class="label">Coupon Discount</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
-            @endif
-            <tr><td class="label">Net Amount</td><td class="value" style="background:#1E093B;color:#fff;font-size:14px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
+            <tr><td class="label">Coupon Discount</td><td class="value">{{ $couponDiscount > 0 ? '-₹' . number_format($couponDiscount, 2) : '0000' }}</td></tr>
+            <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
+            <tr><td class="label">Net rate Items / Combo</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
+            <tr><td class="label"><strong>T. Amt</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
+            <tr><td class="label">Add packing 5%</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+            <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Amt / Payable Amt</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
         </table>
         
         <div style="margin-top: 15px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">

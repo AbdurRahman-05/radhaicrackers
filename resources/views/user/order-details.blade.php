@@ -72,7 +72,23 @@
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Order Items</h2>
                     @php
                         $items = is_array($order->items_json) && count($order->items_json) ? $order->items_json : $order->items;
-                        $subtotal = 0;
+                        $regularSubtotal = 0;
+                        $comboSubtotal = 0;
+                        if (is_iterable($items)) {
+                            foreach ($items as $item) {
+                                $pId = is_array($item) ? (int)($item['product_id'] ?? 0) : (int)($item->product_id ?? 0);
+                                $pName = is_array($item) ? (string)($item['product_name'] ?? '') : (string)($item->product_name ?? '');
+                                $isCombo = is_array($item) ? (!empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO')) : (!empty($item->is_combo) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO'));
+                                $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
+                                if ($isCombo) {
+                                    $cRate = is_array($item) ? ($item['rate'] ?? ($item['price'] ?? 0)) : ($item->rate ?? ($item->price ?? 0));
+                                    $comboSubtotal += $cRate * $quantity;
+                                } else {
+                                    $rRate = is_array($item) ? ($item['original_price'] ?? ($item['rate'] ?? ($item['price'] ?? 0))) : ($item->original_price ?? ($item->rate ?? ($item->price ?? 0)));
+                                    $regularSubtotal += $rRate * $quantity;
+                                }
+                            }
+                        }
                     @endphp
                     <div class="space-y-4">
                         @foreach($items as $item)
@@ -81,14 +97,12 @@
                                 $itemQty = is_array($item) ? ($item['quantity'] ?? 0) : $item->quantity;
                                 $itemPrice = is_array($item) ? ($item['rate'] ?? ($item['price'] ?? 0)) : $item->price;
                                 $itemTotal = is_array($item) ? ($item['total'] ?? ($item['subtotal'] ?? 0)) : $item->subtotal;
-                                $subtotal += $itemTotal;
                             @endphp
                             <div class="flex justify-between items-center border-b border-gray-200 pb-4 last:border-b-0">
                                 <div>
                                     <h3 class="font-medium text-gray-900">
                                         {!! html_entity_decode($itemName) !!}
-                                        
-                                        </h3>
+                                    </h3>
                                     <p class="text-sm text-gray-600">Quantity: {{ $itemQty }}</p>
                                 </div>
                                 <div class="text-right">
@@ -98,50 +112,96 @@
                             </div>
                         @endforeach
                     </div>
-                    <div class="border-t border-gray-200 pt-4 mt-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-lg font-semibold text-gray-900">Subtotal</span>
-                            <span class="text-lg font-semibold text-gray-900">₹{{ number_format($subtotal, 2) }}</span>
-                        </div>
+                    <div class="border-t border-gray-200 pt-4 mt-4 space-y-2 text-sm">
                         @php
-                            $discount_70 = isset($order->discount_70_percent) ? (float)$order->discount_70_percent : round($subtotal * 0.7, 2);
-                            $after_70 = isset($order->amount_after_70_discount) ? (float)$order->amount_after_70_discount : ($subtotal - $discount_70);
-                            $discount_15 = isset($order->special_discount_15_percent) ? (float)$order->special_discount_15_percent : round($after_70 * 0.15, 2);
-                            $after_15 = isset($order->amount_after_15_discount) ? (float)$order->amount_after_15_discount : ($after_70 - $discount_15);
-                            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : round($after_15 * 0.05, 2);
-                            $net_amount = isset($order->final_amount) ? (float)$order->final_amount : round($after_15 + $packing, 2);
+                            $discount70 = isset($order->discount_70_percent) && (float)$order->discount_70_percent > 0 ? (float)$order->discount_70_percent : round($regularSubtotal * 0.70, 2);
+                            $afterDiscount70 = isset($order->amount_after_70_discount) && (float)$order->amount_after_70_discount > 0 ? (float)$order->amount_after_70_discount : round($regularSubtotal - $discount70, 2);
+                            $specialDiscount15 = isset($order->special_discount_15_percent) && (float)$order->special_discount_15_percent > 0 ? (float)$order->special_discount_15_percent : round($afterDiscount70 * 0.15, 2);
+                            $afterSpecial15 = isset($order->amount_after_15_discount) && (float)$order->amount_after_15_discount > 0 ? (float)$order->amount_after_15_discount : round($afterDiscount70 - $specialDiscount15, 2);
+                            $couponDiscount = (float)($order->coupon_discount ?? 0);
+                            $afterCoupon = isset($order->amount_after_coupon) && (float)$order->amount_after_coupon > 0 ? (float)$order->amount_after_coupon : max(0, round($afterSpecial15 - $couponDiscount, 2));
+                            $totalBeforePacking = isset($order->total_before_packing) && (float)$order->total_before_packing > 0 ? (float)$order->total_before_packing : round($afterCoupon + $comboSubtotal, 2);
+                            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 ? (float)$order->packing_charge_5_percent : round($totalBeforePacking * 0.05, 2);
+                            $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
+                            $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 ? (float)$order->total_amount : (isset($order->total) && (float)$order->total > 0 ? (float)$order->total : max(0, round($totalBeforePacking + $packing - $spinDiscount)));
+
+                            $receivedAmount = (isset($order->receive_amount) && is_numeric($order->receive_amount)) ? (float)$order->receive_amount : 0;
+                            if ($receivedAmount == 0 && $order->status === 'confirmed' && (($order->payment_status ?? '') === 'paid' || ($order->payment->status ?? '') === 'paid')) {
+                                $receivedAmount = $netPayable;
+                            }
+                            $balanceDue = max(0, $netPayable - $receivedAmount);
                         @endphp
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-700">Discount (70%)</span>
-                            <span class="text-gray-700">-₹{{ number_format($discount_70, 2) }}</span>
+
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>SubTotal</span>
+                            <span>₹{{ number_format($regularSubtotal, 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-700">After Discount</span>
-                            <span class="text-gray-700">₹{{ number_format($after_70, 2) }}</span>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Discount (70%)</span>
+                            <span>-₹{{ number_format($discount70, 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-700">Special Discount (15%)</span>
-                            <span class="text-gray-700">-₹{{ number_format($discount_15, 2) }}</span>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>After Discount</span>
+                            <span>₹{{ number_format($afterDiscount70, 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-gray-700">After Spl. Discount</span>
-                            <span class="text-gray-700">₹{{ number_format($after_15, 2) }}</span>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Spl Discount (15%)</span>
+                            <span>-₹{{ number_format($specialDiscount15, 2) }}</span>
                         </div>
-                        @if($packing > 0)
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-gray-700">Packing (5%)</span>
-                                <span class="text-gray-700">₹{{ number_format($packing, 2) }}</span>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>After Spl. Discount</span>
+                            <span>₹{{ number_format($afterSpecial15, 2) }}</span>
+                        </div>
+                        @if($couponDiscount > 0 || !empty($order->coupon_code))
+                            <div class="flex justify-between items-center text-gray-700">
+                                <span>Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif</span>
+                                <span>-₹{{ number_format($couponDiscount, 2) }}</span>
                             </div>
-                        @else
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-gray-700">Delivery & Packing</span>
-                                <span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full text-xs">All-Inclusive</span>
+                            <div class="flex justify-between items-center text-gray-700">
+                                <span>After Coupon Discount</span>
+                                <span>₹{{ number_format($afterCoupon, 2) }}</span>
                             </div>
                         @endif
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-lg font-semibold text-gray-900">Net Amount</span>
-                            <span class="text-lg font-semibold text-gray-900">₹{{ number_format($net_amount, 2) }}</span>
+                        @if($comboSubtotal > 0)
+                            <div class="flex justify-between items-center text-gray-700">
+                                <span>Net rate Items / Combo</span>
+                                <span>₹{{ number_format($comboSubtotal, 2) }}</span>
+                            </div>
+                        @endif
+                        @if($order->lucky_spin_prize)
+                            <div class="flex justify-between items-center text-amber-800 font-medium">
+                                <span>🎡 Lucky Spin Prize</span>
+                                <span>{{ $order->lucky_spin_prize }}</span>
+                            </div>
+                        @endif
+                        @if($spinDiscount > 0)
+                            <div class="flex justify-between items-center text-emerald-700 font-medium">
+                                <span>🎡 Lucky Spin Disc (5%)</span>
+                                <span>-₹{{ number_format($spinDiscount, 2) }}</span>
+                            </div>
+                        @endif
+                        <div class="flex justify-between items-center font-semibold text-gray-800">
+                            <span>T. Amt</span>
+                            <span>₹{{ number_format($totalBeforePacking, 2) }}</span>
                         </div>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Add packing 5%</span>
+                            <span>₹{{ number_format($packing, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-bold text-gray-900 border-t pt-2 mt-1">
+                            <span>Net Amt / Payable Amt</span>
+                            <span>₹{{ number_format($netPayable, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm font-semibold text-gray-800">
+                            <span>Received Amt</span>
+                            <span>₹{{ number_format($receivedAmount, 2) }}</span>
+                        </div>
+                        @if($balanceDue > 0)
+                            <div class="flex justify-between items-center text-sm font-bold text-red-600">
+                                <span>Balance Due</span>
+                                <span>₹{{ number_format($balanceDue, 2) }}</span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

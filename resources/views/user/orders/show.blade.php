@@ -85,52 +85,61 @@
                 <h3 class="text-lg font-semibold mb-3">Order Summary:</h3>
                 <div class="space-y-2 text-sm">
                     @php
-                        // Calculate original order value from items
-                        $originalOrderValue = 0;
+                        $regularSubtotal = 0;
+                        $comboSubtotal = 0;
                         if (isset($order->items) && is_iterable($order->items)) {
                             foreach ($order->items as $item) {
                                 if (!empty($item['is_lucky_spin_gift'])) {
                                     continue; // Skip free gifts from calculating subtotal
                                 }
-                                // Use original price if available, otherwise use current price
-                                $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
+                                $pId = (int)($item['product_id'] ?? 0);
+                                $pName = (string)($item['product_name'] ?? '');
+                                $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
                                 $quantity = $item['quantity'] ?? 0;
-                                $originalOrderValue += $originalPrice * $quantity;
+                                if ($isCombo) {
+                                    $comboPrice = $item['rate'] ?? $item['price'] ?? $item['original_price'] ?? 0;
+                                    $comboSubtotal += $comboPrice * $quantity;
+                                } else {
+                                    $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
+                                    $regularSubtotal += $originalPrice * $quantity;
+                                }
                             }
                         }
                         
-                        // Calculate discounts
-                        $discount70 = round($originalOrderValue * 0.70, 2);
-                        $afterDiscount = $originalOrderValue - $discount70;
+                        $discount70 = round($regularSubtotal * 0.70, 2);
+                        $afterDiscount = round($regularSubtotal - $discount70, 2);
                         $specialDiscount = round($afterDiscount * 0.15, 2);
-                        $afterSpecial = $afterDiscount - $specialDiscount;
-                        $packing = round($afterSpecial * 0.05, 2);
-                        $netAmount = $afterSpecial + $packing;
-                        $couponDiscount = $order->coupon_discount ?? 0;
-                        $spinDiscount = $order->lucky_spin_discount ?? 0;
-                        $finalAmount = max(0, $netAmount - $couponDiscount - $spinDiscount);
+                        $afterSpecial = round($afterDiscount - $specialDiscount, 2);
+                        $couponDiscount = (float)($order->coupon_discount ?? 0);
+                        $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
+                        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
+                        $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 ? (float)$order->packing_charge_5_percent : round($totalBeforePacking * 0.05, 2);
+                        $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
+                        $netPayable = max(0, round($totalBeforePacking + $packing - $spinDiscount));
+                        if (!empty($order->total_amount) && (float)$order->total_amount > 0) {
+                            $netPayable = (float)$order->total_amount;
+                        } elseif (!empty($order->total) && (float)$order->total > 0) {
+                            $netPayable = (float)$order->total;
+                        }
+
+                        $receivedAmount = (isset($order->receive_amount) && is_numeric($order->receive_amount)) ? (float)$order->receive_amount : 0;
+                        if ($receivedAmount == 0 && $order->status === 'confirmed' && (($order->payment_status ?? '') === 'paid' || ($order->payment->status ?? '') === 'paid')) {
+                            $receivedAmount = $netPayable;
+                        }
+                        $balanceDue = max(0, $netPayable - $receivedAmount);
                     @endphp
                     
-                    <div><strong>Order Value:</strong> ₹{{ number_format($originalOrderValue, 2) }}</div>
+                    <div><strong>SubTotal:</strong> ₹{{ number_format($regularSubtotal, 2) }}</div>
                     <div><strong>Discount (70%):</strong> -₹{{ number_format($discount70, 2) }}</div>
                     <div><strong>After Discount:</strong> ₹{{ number_format($afterDiscount, 2) }}</div>
-                    <div><strong>Special Disc (15%):</strong> -₹{{ number_format($specialDiscount, 2) }}</div>
-                    <div><strong>After Spl. Disc:</strong> ₹{{ number_format($afterSpecial, 2) }}</div>
-                    <div><strong>Packing (5%):</strong> ₹{{ number_format($packing, 2) }}</div>
-                    <div><strong>Payment Status:</strong> 
-                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                            @if($order->payment_status === 'paid') bg-green-100 text-green-800
-                            @elseif($order->payment_status === 'pending') bg-yellow-100 text-yellow-800
-                            @else bg-red-100 text-red-800
-                            @endif">
-                            {{ ucfirst($order->payment_status ?? 'N/A') }}
-                        </span>
-                    </div>
-                    @if($order->coupon_code)
-                        <div><strong>Coupon Code:</strong> {{ $order->coupon_code }}</div>
+                    <div><strong>Spl Discount (15%):</strong> -₹{{ number_format($specialDiscount, 2) }}</div>
+                    <div><strong>After Spl. Discount:</strong> ₹{{ number_format($afterSpecial, 2) }}</div>
+                    @if($couponDiscount > 0 || !empty($order->coupon_code))
+                        <div><strong>Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif:</strong> -₹{{ number_format($couponDiscount, 2) }}</div>
+                        <div><strong>After Coupon Discount:</strong> ₹{{ number_format($afterCoupon, 2) }}</div>
                     @endif
-                    @if($couponDiscount > 0)
-                        <div><strong>Coupon Discount:</strong> -₹{{ number_format($couponDiscount, 2) }}</div>
+                    @if($comboSubtotal > 0)
+                        <div><strong>Net rate Items / Combo:</strong> ₹{{ number_format($comboSubtotal, 2) }}</div>
                     @endif
                     @if($order->lucky_spin_prize)
                         <div class="mt-1 p-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between">
@@ -141,15 +150,21 @@
                     @if($spinDiscount > 0)
                         <div class="text-emerald-700 font-bold"><strong>🎡 Lucky Spin Disc (5%):</strong> -₹{{ number_format($spinDiscount, 2) }}</div>
                     @endif
-                    <div><strong>Final Amount:</strong> ₹{{ number_format($finalAmount, 2) }}</div>
-                    <div><strong>Receive Amount:</strong>
-                        @if($order->status === 'confirmed' && ($order->payment_status === 'paid' || ($order->payment->status ?? null) === 'paid'))
-                            ₹{{ number_format($order->total_amount ?? $order->total ?? $finalAmount, 2) }}
-                        @elseif(isset($order->receive_amount) && is_numeric($order->receive_amount) && $order->receive_amount > 0)
-                            ₹{{ number_format($order->receive_amount, 2) }}
-                        @else
-                            -
-                        @endif
+                    <div><strong>T. Amt:</strong> ₹{{ number_format($totalBeforePacking, 2) }}</div>
+                    <div><strong>Add packing 5%:</strong> ₹{{ number_format($packing, 2) }}</div>
+                    <div class="text-base font-bold text-gray-900 border-t pt-1"><strong>Net Amt / Payable Amt:</strong> ₹{{ number_format($netPayable, 2) }}</div>
+                    <div><strong>Received Amt:</strong> ₹{{ number_format($receivedAmount, 2) }}</div>
+                    @if($balanceDue > 0)
+                        <div class="text-red-600 font-bold"><strong>Balance Due:</strong> ₹{{ number_format($balanceDue, 2) }}</div>
+                    @endif
+                    <div><strong>Payment Status:</strong> 
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                            @if($order->payment_status === 'paid') bg-green-100 text-green-800
+                            @elseif($order->payment_status === 'pending') bg-yellow-100 text-yellow-800
+                            @else bg-red-100 text-red-800
+                            @endif">
+                            {{ ucfirst($order->payment_status ?? 'N/A') }}
+                        </span>
                     </div>
                     @if($order->verify_code)
                         <div><strong>Verify Code:</strong> {{ $order->verify_code }}</div>

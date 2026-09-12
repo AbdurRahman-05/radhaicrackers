@@ -72,6 +72,7 @@ class Orders extends Component
     public $newItemSearch = '';
     public $searchItemsList = [];
     public $newItemQty = 1;
+    public $showSearchDropdown = false;
 
     // Reset pagination and sync filter values
     public function updatedSearch() { $this->resetPage(); }
@@ -96,14 +97,32 @@ class Orders extends Component
 
     public function updatedNewItemSearch()
     {
-        $this->fetchSearchResults();
+        $term = trim($this->newItemSearch);
+        if ($term !== '') {
+            $this->searchItemsList = Stock::where('is_active', true)
+                ->where(function($q) use ($term) {
+                    $q->where('item_name', 'like', '%' . $term . '%')
+                      ->orWhere('id', $term);
+                })
+                ->take(15)
+                ->get()
+                ->toArray();
+            $this->showSearchDropdown = true;
+        } else {
+            $this->searchItemsList = [];
+            $this->showSearchDropdown = false;
+        }
     }
 
     public function fetchSearchResults()
     {
-        if (trim($this->newItemSearch) !== '') {
+        $term = trim($this->newItemSearch);
+        if ($term !== '') {
             $this->searchItemsList = Stock::where('is_active', true)
-                ->where('item_name', 'like', '%' . trim($this->newItemSearch) . '%')
+                ->where(function($q) use ($term) {
+                    $q->where('item_name', 'like', '%' . $term . '%')
+                      ->orWhere('id', $term);
+                })
                 ->take(15)
                 ->get()
                 ->toArray();
@@ -114,6 +133,7 @@ class Orders extends Component
                 ->get()
                 ->toArray();
         }
+        $this->showSearchDropdown = true;
     }
 
     public function selectNewItem($stockId)
@@ -123,6 +143,27 @@ class Orders extends Component
             $this->newProductId = $stock->id;
             $this->newItemSearch = $stock->item_name;
             $this->searchItemsList = [];
+            $this->showSearchDropdown = false;
+        }
+    }
+
+    public function closeSearchDropdown()
+    {
+        $this->showSearchDropdown = false;
+        $this->searchItemsList = [];
+    }
+
+    public function updatedEditItems($value, $key)
+    {
+        if (str_contains($key, 'quantity')) {
+            $parts = explode('.', $key);
+            $index = (int)$parts[0];
+            if (isset($this->editItems[$index])) {
+                $qty = max(1, (int)$value);
+                $this->editItems[$index]['quantity'] = $qty;
+                $rate = (float)($this->editItems[$index]['rate'] ?? $this->editItems[$index]['price'] ?? 0);
+                $this->editItems[$index]['total'] = $rate * $qty;
+            }
         }
     }
 
@@ -300,6 +341,19 @@ class Orders extends Component
             'timeline' => $todayTimeline,
         ];
 
+        // Pre-calculate active stocks catalog serial mapping to match price list catalog serials
+        $allActiveCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->get();
+        $allActiveStocks = Stock::where('is_active', true)->get()->groupBy('category');
+        $catalogSnoMap = [];
+        $snoCounter = 0;
+        foreach ($allActiveCats as $cat) {
+            $catStocks = $allActiveStocks->get($cat->name) ?? $allActiveStocks->get($cat->id) ?? collect();
+            foreach ($catStocks->sortBy('order_within_category') as $stockItem) {
+                $snoCounter++;
+                $catalogSnoMap[$stockItem->id] = $snoCounter;
+            }
+        }
+
         return view('livewire.admin.orders', [
             'orders' => $orders,
             'totalOrders' => $totalOrders,
@@ -311,6 +365,7 @@ class Orders extends Component
             'available_years' => $availableYears,
             'allStocks' => $allStocks,
             'todayBreakdown' => $todayBreakdown,
+            'catalogSnoMap' => $catalogSnoMap,
         ])->layout('layouts.admin');
     }
 
@@ -401,32 +456,54 @@ class Orders extends Component
         $this->editTransportProvider = $order->transport_provider ?? '';
         $this->editTransportDetails = $order->transport_details ?? '';
 
-        // Format items for modal editing safely whether array or collection
+        $this->newProductId = '';
+        $this->newItemSearch = '';
+        $this->searchItemsList = [];
+        $this->showSearchDropdown = false;
+        $this->newItemQty = 1;
+
+        // Format items for modal editing safely whether array, json, or DB collection
         $this->editItems = [];
-        $rawItems = $order->items_json ?: (is_array($order->items) ? $order->items : []);
+        $rawItems = $order->items_json;
+        if (empty($rawItems)) {
+            $dbItems = \App\Models\OrderItem::where('order_id', $order->id)->get();
+            if ($dbItems->isNotEmpty()) {
+                $rawItems = $dbItems->toArray();
+            } elseif (!empty($order->items)) {
+                $rawItems = is_array($order->items) ? $order->items : $order->items->toArray();
+            } else {
+                $rawItems = [];
+            }
+        }
+
         if ($rawItems && (is_array($rawItems) || is_object($rawItems))) {
             foreach ($rawItems as $item) {
-                $productId = is_array($item) ? ($item['product_id'] ?? null) : ($item->product_id ?? null);
+                $productId = is_array($item) ? ($item['product_id'] ?? $item['stock_id'] ?? null) : ($item->product_id ?? $item->stock_id ?? null);
                 $productName = is_array($item) ? ($item['product_name'] ?? null) : ($item->product_name ?? null);
                 $qty = (int)(is_array($item) ? ($item['quantity'] ?? 1) : ($item->quantity ?? 1));
-                $price = (float)(is_array($item) ? ($item['rate'] ?? $item['price'] ?? 0) : ($item->price ?? 0));
+                $price = (float)(is_array($item) ? ($item['rate'] ?? $item['price'] ?? 0) : ($item->price ?? $item->rate ?? 0));
                 $id = is_array($item) ? ($item['id'] ?? null) : ($item->id ?? null);
+                $isLuckySpinGift = is_array($item) ? (!empty($item['is_lucky_spin_gift'])) : (!empty($item->is_lucky_spin_gift));
 
                 $stock = $productId ? Stock::find($productId) : null;
-                $origPrice = (float)($stock->original_price ?? ($price > 0 ? $price / 0.255 : 0));
-                $isLuckySpinGift = is_array($item) ? (!empty($item['is_lucky_spin_gift'])) : (!empty($item->is_lucky_spin_gift));
+                $origPrice = (!empty($stock->original_price) && (float)$stock->original_price > 0)
+                    ? (float)$stock->original_price
+                    : ((!empty($item['original_price']) && (float)$item['original_price'] > 0)
+                        ? (float)$item['original_price']
+                        : ($price > 0 ? round($price / 0.255, 2) : 0));
 
                 $this->editItems[] = [
                     'id' => $id,
                     'product_id' => $productId,
+                    'stock_id' => $productId,
                     'product_name' => $productName ?: ($stock->item_name ?? 'Product #' . $productId),
                     'rate' => $price,
                     'price' => $price,
                     'original_price' => $origPrice,
                     'discount_percentage' => (float)($stock->discount_percentage ?? 70),
                     'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
-                    'quantity' => $qty,
-                    'total' => $price * $qty,
+                    'quantity' => max(1, $qty),
+                    'total' => $price * max(1, $qty),
                     'is_lucky_spin_gift' => $isLuckySpinGift,
                 ];
             }
@@ -446,61 +523,101 @@ class Orders extends Component
         $this->newProductId = '';
         $this->newItemSearch = '';
         $this->searchItemsList = [];
+        $this->showSearchDropdown = false;
         $this->newItemQty = 1;
     }
 
-    public function updateItemQty($index, $newQty)
+    public function updateItemQty($index, $newQty = null)
     {
         if (isset($this->editItems[$index])) {
-            $qty = max(1, (int)$newQty);
+            $qty = ($newQty !== null && is_numeric($newQty)) ? max(1, (int)$newQty) : max(1, (int)($this->editItems[$index]['quantity'] ?? 1));
             $this->editItems[$index]['quantity'] = $qty;
-            $this->editItems[$index]['total'] = $this->editItems[$index]['rate'] * $qty;
+            $rate = (float)($this->editItems[$index]['rate'] ?? $this->editItems[$index]['price'] ?? 0);
+            $this->editItems[$index]['total'] = $rate * $qty;
+        }
+    }
+
+    public function increaseQty($index)
+    {
+        if (isset($this->editItems[$index])) {
+            $this->editItems[$index]['quantity'] = (int)($this->editItems[$index]['quantity'] ?? 1) + 1;
+            $rate = (float)($this->editItems[$index]['rate'] ?? $this->editItems[$index]['price'] ?? 0);
+            $this->editItems[$index]['total'] = $rate * $this->editItems[$index]['quantity'];
+        }
+    }
+
+    public function decreaseQty($index)
+    {
+        if (isset($this->editItems[$index])) {
+            $current = (int)($this->editItems[$index]['quantity'] ?? 1);
+            if ($current > 1) {
+                $this->editItems[$index]['quantity'] = $current - 1;
+                $rate = (float)($this->editItems[$index]['rate'] ?? $this->editItems[$index]['price'] ?? 0);
+                $this->editItems[$index]['total'] = $rate * $this->editItems[$index]['quantity'];
+            }
         }
     }
 
     public function removeItem($index)
     {
         if (isset($this->editItems[$index])) {
+            $itemName = $this->editItems[$index]['product_name'] ?? 'Item';
             array_splice($this->editItems, $index, 1);
+            $this->editItems = array_values($this->editItems);
+            session()->flash('modal_success', "Removed \"{$itemName}\" from order.");
         }
     }
 
     public function addNewItem()
     {
-        if (empty($this->newProductId) && !empty($this->newItemSearch)) {
-            $stock = Stock::where('is_active', true)
-                ->where('item_name', 'like', '%' . trim($this->newItemSearch) . '%')
-                ->first();
-            if ($stock) {
-                $this->newProductId = $stock->id;
-            }
+        $stock = null;
+        if (!empty($this->newProductId)) {
+            $stock = Stock::find($this->newProductId);
         }
 
-        if (empty($this->newProductId)) return;
+        if (!$stock && !empty($this->newItemSearch)) {
+            $term = trim($this->newItemSearch);
+            $stock = Stock::where('is_active', true)
+                ->where(function($q) use ($term) {
+                    $q->where('item_name', 'like', '%' . $term . '%')
+                      ->orWhere('id', $term);
+                })
+                ->first();
+        }
 
-        $stock = Stock::find($this->newProductId);
-        if (!$stock) return;
+        if (!$stock) {
+            session()->flash('modal_error', 'Please select or search a valid product to add.');
+            return;
+        }
+
+        $qty = max(1, (int)$this->newItemQty);
 
         // Check if already in editItems
         foreach ($this->editItems as $idx => $item) {
-            if ($item['product_id'] == $stock->id) {
-                $this->editItems[$idx]['quantity'] += (int)$this->newItemQty;
-                $this->editItems[$idx]['total'] = $this->editItems[$idx]['rate'] * $this->editItems[$idx]['quantity'];
+            if (($item['product_id'] ?? null) == $stock->id) {
+                $this->editItems[$idx]['quantity'] += $qty;
+                $rate = (float)($this->editItems[$idx]['rate'] ?? $this->editItems[$idx]['price'] ?? 0);
+                $this->editItems[$idx]['total'] = $rate * $this->editItems[$idx]['quantity'];
+                
                 $this->newProductId = '';
                 $this->newItemSearch = '';
                 $this->searchItemsList = [];
+                $this->showSearchDropdown = false;
                 $this->newItemQty = 1;
+                session()->flash('modal_success', "Updated quantity for \"{$stock->item_name}\" to {$this->editItems[$idx]['quantity']}.");
                 return;
             }
         }
 
         $rate = (float)($stock->price ?? 0);
-        $originalPrice = (float)($stock->original_price ?? $rate);
-        $qty = max(1, (int)$this->newItemQty);
+        $originalPrice = (!empty($stock->original_price) && (float)$stock->original_price > 0)
+            ? (float)$stock->original_price
+            : ($rate > 0 ? round($rate / 0.255, 2) : 0);
 
         $this->editItems[] = [
             'id' => null,
             'product_id' => $stock->id,
+            'stock_id' => $stock->id,
             'product_name' => $stock->item_name,
             'rate' => $rate,
             'price' => $rate,
@@ -509,12 +626,15 @@ class Orders extends Component
             'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
             'quantity' => $qty,
             'total' => $rate * $qty,
+            'is_lucky_spin_gift' => false,
         ];
 
         $this->newProductId = '';
         $this->newItemSearch = '';
         $this->searchItemsList = [];
+        $this->showSearchDropdown = false;
         $this->newItemQty = 1;
+        session()->flash('modal_success', "Added \"{$stock->item_name}\" (Qty: {$qty}) to order.");
     }
 
     // Recalculate totals in real time for modal
@@ -522,9 +642,6 @@ class Orders extends Component
     {
         $regularSubtotal = 0;
         $comboSubtotal = 0;
-        $subtotal = 0;
-        $discount70 = 0;
-        $discount15 = 0;
 
         foreach ($this->editItems as $item) {
             // Lucky spin free gifts don't contribute to subtotal or line discounts
@@ -540,49 +657,52 @@ class Orders extends Component
             if ($isCombo) {
                 $comboPrice = (float)($item['price'] ?? $item['rate'] ?? $item['original_price'] ?? 0);
                 $comboSubtotal += $comboPrice * $qty;
-                $subtotal += $comboPrice * $qty;
             } else {
-                $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
+                $rate = (float)($item['rate'] ?? $item['price'] ?? 0);
+                $origPrice = (!empty($item['original_price']) && (float)$item['original_price'] > $rate)
+                    ? (float)$item['original_price']
+                    : ($rate > 0 ? round($rate / 0.255, 2) : 0);
+
                 $lineSubtotal = $origPrice * $qty;
                 $regularSubtotal += $lineSubtotal;
-                $subtotal += $lineSubtotal;
-
-                $lineDisc70 = round($lineSubtotal * 0.70, 2);
-                $discount70 += $lineDisc70;
-
-                $after70 = $lineSubtotal - $lineDisc70;
-                $lineDisc15 = round($after70 * 0.15, 2);
-                $discount15 += $lineDisc15;
             }
         }
 
-        $regularAfter15 = $regularSubtotal - $discount70 - $discount15;
-        $after15 = $regularAfter15 + $comboSubtotal;
-        // Zero delivery/packing fee for combos; 5% packing charge applies ONLY to regular products
-        $packingCharge = round($regularAfter15 * 0.05, 2);
+        $discount70 = round($regularSubtotal * 0.70, 2);
+        $afterDiscount70 = round($regularSubtotal - $discount70, 2);
+        $discount15 = round($afterDiscount70 * 0.15, 2);
+        $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
         
         $couponDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->coupon_discount) {
             $couponDiscount = (float)$this->editingOrder->coupon_discount;
         }
 
+        $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
+        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2); // T. Amt
+        $packingCharge = round($totalBeforePacking * 0.05, 2); // Add packing 5%
+
         $luckySpinDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {
             $luckySpinDiscount = (float)$this->editingOrder->lucky_spin_discount;
         }
 
-        $taxableAmount = max(0, $after15 + $packingCharge - $couponDiscount - $luckySpinDiscount);
+        $taxableAmount = max(0, $totalBeforePacking + $packingCharge - $luckySpinDiscount);
         $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
         $finalTotal = round($taxableAmount + $gstAmount);
 
         return [
-            'subtotal' => $subtotal,
+            'subtotal' => $regularSubtotal,
+            'regular_subtotal' => $regularSubtotal,
             'discount_70_percent' => $discount70,
-            'amount_after_70_discount' => $subtotal - $discount70,
+            'amount_after_70_discount' => $afterDiscount70,
             'special_discount_15_percent' => $discount15,
-            'amount_after_15_discount' => $after15,
-            'packing_charge_5_percent' => $packingCharge,
+            'amount_after_15_discount' => $afterDiscount15,
             'coupon_discount' => $couponDiscount,
+            'amount_after_coupon' => $afterCoupon,
+            'combo_subtotal' => $comboSubtotal,
+            'total_before_packing' => $totalBeforePacking,
+            'packing_charge_5_percent' => $packingCharge,
             'lucky_spin_discount' => $luckySpinDiscount,
             'gst_amount' => $gstAmount,
             'total' => $finalTotal,
@@ -606,8 +726,20 @@ class Orders extends Component
             'editCustomerMobile' => 'required|string|max:20',
         ]);
 
+        if (empty($this->editItems)) {
+            session()->flash('modal_error', 'Order must contain at least one item.');
+            return;
+        }
+
         try {
             $oldStatus = strtolower($order->status);
+
+            // Once an order is confirmed or processed, do not allow moving back to pending
+            if ($oldStatus !== 'pending' && $this->editStatus === 'pending') {
+                session()->flash('modal_error', 'A confirmed order cannot be moved back to pending.');
+                return;
+            }
+
             $oldPaymentStatus = strtolower($order->payment_status);
             $oldReceiveAmount = $order->receive_amount;
             $oldNotes = $order->notes;
@@ -617,20 +749,29 @@ class Orders extends Component
             $newItemsJson = [];
             foreach ($this->editItems as $item) {
                 $isGift = !empty($item['is_lucky_spin_gift']);
-                $origPrice = (float)($item['original_price'] ?? ($item['rate'] / 0.255));
-                $qty = (int)$item['quantity'];
-                $rate = $isGift ? 0 : (float)$item['rate'];
+                $rate = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
+                $qty = max(1, (int)($item['quantity'] ?? 1));
+                $origPrice = (!empty($item['original_price']) && (float)$item['original_price'] > $rate)
+                    ? (float)$item['original_price']
+                    : ($rate > 0 ? round($rate / 0.255, 2) : 0);
+
+                $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
+                $productName = $item['product_name'] ?? 'Product';
 
                 $newItemsJson[] = [
-                    'product_id' => $item['product_id'],
-                    'product_name' => $item['product_name'],
-                    'content' => '',
+                    'id' => $item['id'] ?? null,
+                    'product_id' => $productId,
+                    'stock_id' => $productId,
+                    'product_name' => $productName,
+                    'content' => $item['content'] ?? '',
                     'rate' => $rate,
+                    'price' => $rate,
                     'original_price' => $origPrice,
-                    'discount_percentage' => $item['discount_percentage'] ?? 0,
-                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 0,
+                    'discount_percentage' => $item['discount_percentage'] ?? 70,
+                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 15,
                     'quantity' => $qty,
                     'total' => $rate * $qty,
+                    'subtotal' => $rate * $qty,
                     'is_lucky_spin_gift' => $isGift
                 ];
             }
@@ -682,6 +823,26 @@ class Orders extends Component
             ];
 
             $order->update($updateData);
+
+            // Sync OrderItem database table records
+            try {
+                \App\Models\OrderItem::where('order_id', $order->id)->delete();
+                foreach ($newItemsJson as $itemRow) {
+                    \App\Models\OrderItem::create([
+                        'order_id' => $order->id,
+                        'stock_id' => $itemRow['product_id'],
+                        'product_name' => $itemRow['product_name'],
+                        'content' => $itemRow['content'] ?? '',
+                        'rate' => $itemRow['rate'],
+                        'price' => $itemRow['price'],
+                        'quantity' => $itemRow['quantity'],
+                        'total' => $itemRow['total'],
+                        'subtotal' => $itemRow['subtotal'],
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Could not sync OrderItem table: ' . $e->getMessage());
+            }
 
             // Recalculate product stock ordered_counts dynamically based on confirmed/edited order items
             Stock::recalculateOrderedCounts();
@@ -779,6 +940,12 @@ class Orders extends Component
 
         $oldStatus = strtolower($order->status);
         if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        // Once an order is confirmed or processed, do not allow moving back to pending
+        if ($oldStatus !== 'pending' && $newStatus === 'pending') {
+            session()->flash('error', 'A confirmed order cannot be moved back to pending.');
             return;
         }
 

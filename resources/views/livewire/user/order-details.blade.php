@@ -83,6 +83,118 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Order Summary -->
+            <div class="mt-6 pt-6 border-t border-gray-200 flex justify-end">
+                <div class="w-full md:w-80 space-y-2 text-sm">
+                    @php
+                        $regularSubtotal = 0;
+                        $comboSubtotal = 0;
+                        if (isset($order->items) && is_iterable($order->items)) {
+                            foreach ($order->items as $item) {
+                                $pId = (int)($item->product_id ?? ($item['product_id'] ?? 0));
+                                $pName = (string)($item->product_name ?? ($item['product_name'] ?? ''));
+                                $isCombo = !empty($item->is_combo) || !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
+                                $quantity = $item->quantity ?? ($item['quantity'] ?? 0);
+                                if ($isCombo) {
+                                    $comboPrice = $item->rate ?? ($item->price ?? ($item['rate'] ?? ($item['price'] ?? 0)));
+                                    $comboSubtotal += $comboPrice * $quantity;
+                                } else {
+                                    $originalPrice = $item->original_price ?? ($item->rate ?? ($item->price ?? ($item['original_price'] ?? ($item['rate'] ?? ($item['price'] ?? 0)))));
+                                    $regularSubtotal += $originalPrice * $quantity;
+                                }
+                            }
+                        }
+                        $discount70 = round($regularSubtotal * 0.70, 2);
+                        $afterDiscount70 = round($regularSubtotal - $discount70, 2);
+                        $specialDiscount15 = round($afterDiscount70 * 0.15, 2);
+                        $afterSpecial15 = round($afterDiscount70 - $specialDiscount15, 2);
+                        $couponDiscount = (float)($order->coupon_discount ?? 0);
+                        $afterCoupon = max(0, round($afterSpecial15 - $couponDiscount, 2));
+                        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
+                        $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 ? (float)$order->packing_charge_5_percent : round($totalBeforePacking * 0.05, 2);
+                        $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
+                        $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 ? (float)$order->total_amount : (isset($order->total) && (float)$order->total > 0 ? (float)$order->total : max(0, round($totalBeforePacking + $packing - $spinDiscount)));
+
+                        $receivedAmount = (isset($order->receive_amount) && is_numeric($order->receive_amount)) ? (float)$order->receive_amount : 0;
+                        if ($receivedAmount == 0 && $order->status === 'confirmed' && (($order->payment_status ?? '') === 'paid' || ($order->payment->status ?? '') === 'paid')) {
+                            $receivedAmount = $netPayable;
+                        }
+                        $balanceDue = max(0, $netPayable - $receivedAmount);
+                    @endphp
+
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>SubTotal</span>
+                        <span>₹{{ number_format($regularSubtotal, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>Discount (70%)</span>
+                        <span>-₹{{ number_format($discount70, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>After Discount</span>
+                        <span>₹{{ number_format($afterDiscount70, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>Spl Discount (15%)</span>
+                        <span>-₹{{ number_format($specialDiscount15, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>After Spl. Discount</span>
+                        <span>₹{{ number_format($afterSpecial15, 2) }}</span>
+                    </div>
+                    @if($couponDiscount > 0 || !empty($order->coupon_code))
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif</span>
+                            <span>-₹{{ number_format($couponDiscount, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>After Coupon Discount</span>
+                            <span>₹{{ number_format($afterCoupon, 2) }}</span>
+                        </div>
+                    @endif
+                    @if($comboSubtotal > 0)
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Net rate Items / Combo</span>
+                            <span>₹{{ number_format($comboSubtotal, 2) }}</span>
+                        </div>
+                    @endif
+                    @if($order->lucky_spin_prize)
+                        <div class="flex justify-between items-center text-amber-800 font-medium">
+                            <span>🎡 Lucky Spin Prize</span>
+                            <span>{{ $order->lucky_spin_prize }}</span>
+                        </div>
+                    @endif
+                    @if($spinDiscount > 0)
+                        <div class="flex justify-between items-center text-emerald-700 font-medium">
+                            <span>🎡 Lucky Spin Disc (5%)</span>
+                            <span>-₹{{ number_format($spinDiscount, 2) }}</span>
+                        </div>
+                    @endif
+                    <div class="flex justify-between items-center font-semibold text-gray-800">
+                        <span>T. Amt</span>
+                        <span>₹{{ number_format($totalBeforePacking, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-gray-700">
+                        <span>Add packing 5%</span>
+                        <span>₹{{ number_format($packing, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-base font-bold text-gray-900 border-t pt-2 mt-1">
+                        <span>Net Amt / Payable Amt</span>
+                        <span>₹{{ number_format($netPayable, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm font-semibold text-gray-800">
+                        <span>Received Amt</span>
+                        <span>₹{{ number_format($receivedAmount, 2) }}</span>
+                    </div>
+                    @if($balanceDue > 0)
+                        <div class="flex justify-between items-center text-sm font-bold text-red-600">
+                            <span>Balance Due</span>
+                            <span>₹{{ number_format($balanceDue, 2) }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
         @if($order->logs && $order->logs->count() > 0)
         <div class="bg-white border border-gray-200 rounded-lg p-6">

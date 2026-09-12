@@ -158,15 +158,11 @@ class SmartCheckoutController extends Controller
             }
             unset($item);
 
-            // Apply discounts ONLY on regular items (combos consume their exact net offer price)
-            $discount70 = $regularSubtotal * 0.7;
-            $afterDiscount70 = $regularSubtotal - $discount70;
-            $discount15 = $afterDiscount70 * 0.15;
-            $afterDiscount15 = $afterDiscount70 - $discount15;
-            $totalPayableItems = $afterDiscount15 + $comboSubtotal;
-            // No delivery/packing charge for combo packs; 5% packing charge applies ONLY to regular products
-            $packingCharge = $afterDiscount15 * 0.05;
-            $finalTotal = $totalPayableItems + $packingCharge;
+            // Apply wholesale discounts on regular items (MRP)
+            $discount70 = round($regularSubtotal * 0.70, 2);
+            $afterDiscount70 = round($regularSubtotal - $discount70, 2);
+            $discount15 = round($afterDiscount70 * 0.15, 2);
+            $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
             // Calculate coupon discount only if code is present
             $couponDiscount = 0;
@@ -178,16 +174,24 @@ class SmartCheckoutController extends Controller
                 
                 if ($coupon) {
                     if ($coupon->type === 'percentage') {
-                        $couponDiscount = $finalTotal * ($coupon->value / 100);
+                        $couponDiscount = round($afterDiscount15 * ($coupon->value / 100), 2);
                     } elseif ($coupon->type === 'fixed' || $coupon->type === 'fixed_amount') {
-                        $couponDiscount = $coupon->value;
+                        $couponDiscount = (float)$coupon->value;
                     }
-                    // Ensure coupon discount doesn't exceed final total
-                    $couponDiscount = min($couponDiscount, $finalTotal);
+                    $couponDiscount = min($couponDiscount, $afterDiscount15);
                 }
             }
-            
-            $finalTotal = max(0, $finalTotal - $couponDiscount);
+
+            $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
+
+            // T. Amt = After Coupon Discount + Net rate Items / Combo
+            $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
+
+            // Add packing 5% on T. Amt
+            $packingCharge = round($totalBeforePacking * 0.05, 2);
+
+            // Net Amt / Payable Amt
+            $finalTotal = round($totalBeforePacking + $packingCharge);
 
             // Process Lucky Spinning Wheel Prize (strictly for NORMAL purchases >= ₹5,000)
             $luckySpinPrize = $request->input('lucky_spin_prize');
@@ -291,11 +295,11 @@ class SmartCheckoutController extends Controller
             $orderData['items_json'] = $items;
             $orderData['total_amount'] = $mailTotal;
             $orderData['total'] = $mailTotal;
-            $orderData['subtotal'] = $calculatedTotal;
+            $orderData['subtotal'] = $regularSubtotal > 0 ? $regularSubtotal : $comboSubtotal;
             $orderData['discount_70_percent'] = $discount70;
-            $orderData['amount_after_70_discount'] = $afterDiscount70 + $comboSubtotal;
+            $orderData['amount_after_70_discount'] = $afterDiscount70;
             $orderData['special_discount_15_percent'] = $discount15;
-            $orderData['amount_after_15_discount'] = $afterDiscount15 + $comboSubtotal;
+            $orderData['amount_after_15_discount'] = $afterDiscount15;
             $orderData['packing_charge_5_percent'] = $packingCharge;
             $orderData['coupon_code'] = $request->input('coupon_code');
             $orderData['coupon_discount'] = $couponDiscount;

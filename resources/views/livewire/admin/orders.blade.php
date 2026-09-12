@@ -374,7 +374,9 @@
                             @elseif($order->status === 'completed') bg-green-100 text-green-800 border-green-300
                             @else bg-red-100 text-red-800 border-red-300
                             @endif">
-                            <option value="pending" {{ strtolower($order->status) === 'pending' ? 'selected' : '' }}>Pending</option>
+                            @if(strtolower($order->status) === 'pending')
+                                <option value="pending" {{ strtolower($order->status) === 'pending' ? 'selected' : '' }}>Pending</option>
+                            @endif
                             <option value="confirmed" {{ strtolower($order->status) === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                             <option value="dispatched" {{ strtolower($order->status) === 'dispatched' ? 'selected' : '' }}>Dispatched</option>
                             <option value="completed" {{ strtolower($order->status) === 'completed' ? 'selected' : '' }}>Completed</option>
@@ -562,7 +564,7 @@
                     <!-- Ordered Items List (Editable Quantities) -->
                     <div class="border border-gray-100 rounded-xl overflow-visible">
                         @php 
-                            $currentModalItems = $editItems ?? $editingOrderItems ?? []; 
+                            $currentModalItems = $this->editItems ?: ($editItems ?? []); 
                             $currentSnoMap = $catalogSnoMap ?? [];
                         @endphp
                         <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -592,7 +594,7 @@
                                     <tr>
                                         <th class="px-4 py-2 text-left" style="width: 60px;">S.No.</th>
                                         <th class="px-4 py-2 text-left">Item Name</th>
-                                        <th class="px-4 py-2 text-center" style="width: 100px;">Qty</th>
+                                        <th class="px-4 py-2 text-center" style="width: 120px;">Qty</th>
                                         <th class="px-4 py-2 text-right">Price</th>
                                         <th class="px-4 py-2 text-right">Total</th>
                                         <th class="px-4 py-2 text-center" style="width: 50px;">Action</th>
@@ -607,7 +609,7 @@
                                         $itemPrice = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
                                         $itemQty = (int)($item['quantity'] ?? 0);
                                     @endphp
-                                    <tr class="{{ $isGift ? 'bg-amber-50/40' : '' }}">
+                                    <tr wire:key="edit-order-item-{{ $productId }}-{{ $index }}" class="{{ $isGift ? 'bg-amber-50/40' : '' }}">
                                         <td class="px-4 py-2 text-left text-gray-500 font-medium">{{ $catalogSno }}</td>
                                         <td class="px-4 py-2 font-medium text-gray-900">
                                             {!! html_entity_decode($item['product_name'] ?? '-') !!}
@@ -618,7 +620,11 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-2 text-center">
-                                            <input type="number" min="1" wire:model.live="editItems.{{ $index }}.quantity" wire:change="updateItemQty({{ $index }}, $event.target.value)" class="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-center font-bold text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none" />
+                                            <div class="inline-flex items-center justify-center border border-gray-300 rounded bg-white shadow-sm overflow-hidden">
+                                                <button type="button" wire:click="decreaseQty({{ $index }})" class="w-6 h-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center transition-colors">-</button>
+                                                <input type="number" min="1" wire:model.live.debounce.300ms="editItems.{{ $index }}.quantity" class="w-12 px-1 py-0.5 border-0 text-center font-bold text-xs focus:ring-0 focus:outline-none" />
+                                                <button type="button" wire:click="increaseQty({{ $index }})" class="w-6 h-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center transition-colors">+</button>
+                                            </div>
                                         </td>
                                         <td class="px-4 py-2 text-right">
                                             @if($isGift)
@@ -635,7 +641,7 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-2 text-center">
-                                            <button type="button" wire:click="removeItem({{ $index }})" class="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                            <button type="button" wire:click="removeItem({{ $index }})" class="text-red-500 hover:text-red-700 p-1 transition-colors" title="Remove Item">
                                                 <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                             </button>
                                         </td>
@@ -646,22 +652,39 @@
                         </div>
 
                         <!-- Add Item Input UI Form Section -->
-                        <div class="bg-purple-50/50 p-4 border-t border-b border-gray-100 overflow-visible">
+                        <div class="bg-purple-50/50 p-4 border-t border-b border-gray-100 overflow-visible relative">
                             <h5 class="text-xs font-bold uppercase tracking-wider text-purple-700 mb-2 flex items-center gap-1">
                                 ➕ Add Product to Order
                             </h5>
                             
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end overflow-visible">
                                 <div class="relative sm:col-span-2 overflow-visible" id="productSearchContainer">
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Product Search</label>
-                                    <input type="text" wire:model.live="newItemSearch" wire:focus="fetchSearchResults" placeholder="Type name or click to search..." class="w-full px-2.5 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Product Search (Name or ID)</label>
+                                    <div class="relative">
+                                        <input type="text" 
+                                            wire:model.live.debounce.250ms="newItemSearch" 
+                                            wire:focus="fetchSearchResults" 
+                                            placeholder="Type name or code to search..." 
+                                            class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white pr-6" />
+                                        @if(!empty($newItemSearch) || $showSearchDropdown)
+                                            <button type="button" wire:click="closeSearchDropdown" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold" title="Close search">✕</button>
+                                        @endif
+                                    </div>
                                     
-                                    @if(!empty($searchItemsList))
-                                        <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
+                                    @if($showSearchDropdown && !empty($searchItemsList))
+                                        <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-52 overflow-y-auto divide-y divide-gray-100">
                                             @foreach($searchItemsList as $stockItem)
-                                                <button type="button" wire:click="selectNewItem({{ $stockItem['id'] }})" class="w-full text-left px-3 py-2 text-xs hover:bg-purple-100 hover:text-purple-800 transition-colors border-b border-gray-100 last:border-b-0 flex justify-between items-center">
-                                                    <span class="font-medium text-gray-800">{{ $stockItem['item_name'] }}</span>
-                                                    <span class="text-purple-600 font-bold">₹{{ number_format($stockItem['price'], 2) }}</span>
+                                                @php
+                                                    $sno = $currentSnoMap[$stockItem['id']] ?? $stockItem['id'];
+                                                @endphp
+                                                <button type="button" 
+                                                    wire:click="selectNewItem({{ $stockItem['id'] }})" 
+                                                    class="w-full text-left px-3 py-2 text-xs hover:bg-purple-100 hover:text-purple-800 transition-colors flex justify-between items-center">
+                                                    <div>
+                                                        <span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono font-bold mr-1.5">#{{ $sno }}</span>
+                                                        <span class="font-medium text-gray-800">{{ $stockItem['item_name'] }}</span>
+                                                    </div>
+                                                    <span class="text-purple-600 font-bold ml-2 shrink-0">₹{{ number_format($stockItem['price'], 2) }}</span>
                                                 </button>
                                             @endforeach
                                         </div>
@@ -670,11 +693,11 @@
                                 
                                 <div class="w-full">
                                     <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Qty</label>
-                                    <input type="number" min="1" wire:model="newItemQty" class="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center font-bold focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
+                                    <input type="number" min="1" wire:model="newItemQty" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded text-center font-bold focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
                                 </div>
                                 
                                 <div>
-                                    <button type="button" wire:click="addNewItem" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1 rounded transition-colors flex items-center justify-center gap-1.5 h-[28px] shadow-sm">
+                                    <button type="button" wire:click="addNewItem" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 rounded transition-colors flex items-center justify-center gap-1.5 shadow-sm">
                                         Add
                                     </button>
                                 </div>
@@ -686,40 +709,56 @@
                             $calculatedTotals = $this->recalculateTotals();
                         @endphp
                         <div class="bg-gray-50 p-4 border-t border-gray-100 text-xs space-y-1.5">
-                            <div class="flex justify-between text-gray-600">
-                                <span>Items Subtotal (MRP):</span>
+                            <div class="flex justify-between text-gray-700">
+                                <span>SubTotal:</span>
                                 <span class="font-medium">₹{{ number_format($calculatedTotals['subtotal'], 2) }}</span>
                             </div>
-                            @if($calculatedTotals['discount_70_percent'] > 0)
                             <div class="flex justify-between text-red-600">
-                                <span>Wholesale Discount (70%):</span>
+                                <span>Discount (70%):</span>
                                 <span class="font-medium">-₹{{ number_format($calculatedTotals['discount_70_percent'], 2) }}</span>
                             </div>
-                            @endif
-                            @if($calculatedTotals['special_discount_15_percent'] > 0)
+                            <div class="flex justify-between text-gray-700">
+                                <span>After Discount:</span>
+                                <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_70_discount'], 2) }}</span>
+                            </div>
                             <div class="flex justify-between text-red-600">
-                                <span>Special Discount (15%):</span>
+                                <span>Spl Discount (15%):</span>
                                 <span class="font-medium">-₹{{ number_format($calculatedTotals['special_discount_15_percent'], 2) }}</span>
                             </div>
-                            @endif
-                            @if($calculatedTotals['packing_charge_5_percent'] > 0)
-                            <div class="flex justify-between text-orange-600 font-medium">
-                                <span>Packing & Delivery Charge (5%):</span>
-                                <span>+₹{{ number_format($calculatedTotals['packing_charge_5_percent'], 2) }}</span>
+                            <div class="flex justify-between text-gray-700">
+                                <span>After Spl. Discount:</span>
+                                <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_15_discount'], 2) }}</span>
+                            </div>
+                            @if($calculatedTotals['coupon_discount'] > 0 || !empty($editingOrder->coupon_code))
+                            <div class="flex justify-between text-green-600">
+                                <span>Coupon Discount @if(!empty($editingOrder->coupon_code))({{ $editingOrder->coupon_code }})@endif:</span>
+                                <span class="font-medium">-₹{{ number_format($calculatedTotals['coupon_discount'], 2) }}</span>
+                            </div>
+                            <div class="flex justify-between text-gray-700">
+                                <span>After Coupon Discount:</span>
+                                <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_coupon'], 2) }}</span>
                             </div>
                             @endif
-                            @if($calculatedTotals['coupon_discount'] > 0)
-                            <div class="flex justify-between text-green-600 font-medium">
-                                <span>Coupon Discount ({{ $editingOrder->coupon_code }}):</span>
-                                <span>-₹{{ number_format($calculatedTotals['coupon_discount'], 2) }}</span>
+                            @if($calculatedTotals['combo_subtotal'] > 0)
+                            <div class="flex justify-between text-purple-700 font-medium">
+                                <span>Net rate Items / Combo:</span>
+                                <span>₹{{ number_format($calculatedTotals['combo_subtotal'], 2) }}</span>
                             </div>
                             @endif
                             @if(isset($calculatedTotals['lucky_spin_discount']) && $calculatedTotals['lucky_spin_discount'] > 0)
                             <div class="flex justify-between text-emerald-600 font-medium">
-                                <span>🎡 Lucky Spin Discount (5%):</span>
+                                <span>🎡 Lucky Spin Disc (5%):</span>
                                 <span>-₹{{ number_format($calculatedTotals['lucky_spin_discount'], 2) }}</span>
                             </div>
                             @endif
+                            <div class="flex justify-between text-gray-900 font-semibold border-t border-gray-200 pt-1">
+                                <span>T. Amt:</span>
+                                <span>₹{{ number_format($calculatedTotals['total_before_packing'], 2) }}</span>
+                            </div>
+                            <div class="flex justify-between text-orange-600 font-medium">
+                                <span>Add packing 5%:</span>
+                                <span>+₹{{ number_format($calculatedTotals['packing_charge_5_percent'], 2) }}</span>
+                            </div>
                             @if($calculatedTotals['gst_amount'] > 0)
                             <div class="flex justify-between text-blue-600 font-medium">
                                 <span>GST (18%):</span>
@@ -727,7 +766,7 @@
                             </div>
                             @endif
                             <div class="flex justify-between text-sm font-extrabold text-gray-900 border-t border-gray-200 pt-1.5 mt-1">
-                                <span>Final Order Value:</span>
+                                <span>Net Amt / Payable Amt:</span>
                                 <span class="text-orange-600 text-base">₹{{ number_format($calculatedTotals['total'], 2) }}</span>
                             </div>
                         </div>
@@ -744,7 +783,9 @@
                         <div>
                             <label for="editStatus" class="block text-xs font-semibold text-gray-600 mb-1">Order Status</label>
                             <select id="editStatus" wire:model.live="editStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                <option value="pending">Pending</option>
+                                @if(strtolower($initialStatus ?? ($editingOrder->status ?? '')) === 'pending')
+                                    <option value="pending">Pending</option>
+                                @endif
                                 <option value="confirmed">Confirmed</option>
                                 <option value="dispatched">Dispatched</option>
                                 <option value="completed">Completed</option>

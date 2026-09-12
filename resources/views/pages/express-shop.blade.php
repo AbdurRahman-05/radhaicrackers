@@ -575,7 +575,16 @@ function updateQuantity(productId, change) {
 }
 
 function saveCartToLocalStorage() {
-    const cartItems = Object.values(products)
+    const cart = getCart();
+    // Preserve combos, gifts, and any items not managed by this page
+    const preservedItems = cart.filter(item => {
+        const pId = parseInt(item.product_id || item.id || 0);
+        const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
+        const isGift = !!(item.is_lucky_spin_gift || item.is_free_gift);
+        return isCombo || isGift || !(item.product_id in products);
+    });
+
+    const quotationItems = Object.values(products)
         .filter(product => product.quantity > 0)
         .map(product => ({
             product_id: product.id,
@@ -588,7 +597,10 @@ function saveCartToLocalStorage() {
             quantity: product.quantity,
             total: product.price * product.quantity
         }));
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+
+    const combinedCart = [...preservedItems, ...quotationItems];
+    localStorage.setItem('cartItems', JSON.stringify(combinedCart));
+    return combinedCart;
 }
 
 // Remove item from cart
@@ -597,17 +609,64 @@ function removeItem(productId) {
     syncPageWithCart();
 }
 
+function removeComboFromExpressCart(index) {
+    let cart = getCart();
+    if (index >= 0 && index < cart.length) {
+        cart.splice(index, 1);
+        localStorage.setItem('cartItems', JSON.stringify(cart));
+        syncPageWithCart();
+        updateCartTotal();
+        updateCheckoutButton();
+    }
+}
+
+function calculateCartTotals() {
+    const cart = getCart();
+    let regularSubtotal = 0;
+    let comboSubtotal = 0;
+    let totalItemsQty = 0;
+
+    cart.forEach(item => {
+        if (item.is_lucky_spin_gift || item.is_free_gift) return;
+        const qty = parseInt(item.quantity || 1);
+        totalItemsQty += qty;
+
+        const pId = parseInt(item.product_id || item.id || 0);
+        const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
+
+        if (isCombo) {
+            const unitPrice = Number(item.price || item.rate || item.original_price || 0);
+            comboSubtotal += unitPrice * qty;
+        } else {
+            const unitPrice = Number(item.rate || item.price || 0);
+            regularSubtotal += unitPrice * qty;
+        }
+    });
+
+    const itemsSubtotal = regularSubtotal + comboSubtotal;
+    const packingCharge = Math.round(itemsSubtotal * 0.05 * 100) / 100;
+    const finalTotal = Math.round(itemsSubtotal + packingCharge);
+
+    return {
+        cart,
+        totalItemsQty,
+        regularSubtotal,
+        comboSubtotal,
+        itemsSubtotal,
+        packingCharge,
+        finalTotal
+    };
+}
+
 // Update cart total
 function updateCartTotal() {
-    const selectedProducts = Object.values(products).filter(product => product.quantity > 0);
-    const total = selectedProducts.reduce((sum, product) => {
-        return sum + (product.quantity * product.price);
-    }, 0);
+    const totals = calculateCartTotals();
+    const cartTotalEl = document.getElementById('cart-total');
+    if (cartTotalEl) {
+        cartTotalEl.textContent = totals.finalTotal.toFixed(2);
+    }
     
-    const totalStr = total.toFixed(2);
-    document.getElementById('cart-total').textContent = totalStr;
-    
-    renderCartSummary();
+    renderCartSummary(totals);
 
     if (typeof window.syncPopupCartStatus === 'function') {
         window.syncPopupCartStatus();
@@ -616,58 +675,42 @@ function updateCartTotal() {
 
 // Proceed to checkout
 function proceedToCheckout() {
-    const selectedProducts = Object.values(products).filter(product => product.quantity > 0);
+    saveCartToLocalStorage();
+    const totals = calculateCartTotals();
     
-    //fallback if no products selected
-    if (selectedProducts.length === 0) {
-        alert('Please select at least one product to proceed.');
+    if (totals.totalItemsQty === 0) {
+        alert('Please select at least one product or combo pack to proceed.');
         return;
     }
     
-    // Save selected items to localStorage
-    saveCartToLocalStorage();
-
-    // Create URL with selected items
-    const items = selectedProducts.map(product => `${product.id}:${product.quantity}`).join(',');
-    
-    // Calculate total with original prices (not discounted)
-    const total = Object.values(products).reduce((sum, product) => {
-        return sum + (product.quantity * (product.original_price || product.price));
-    }, 0);
-    
-    window.location.href = `{{ route('smart-checkout.show') }}?items=${items}&total=${total.toFixed(2)}`;
+    window.location.href = "{{ route('smart-checkout.show') }}";
 }
 
 // btn disabled if no products selected
 function updateCheckoutButton() {
-    const selectedProducts = Object.values(products).filter(product => product.quantity > 0);
-    const hasItems = selectedProducts.length > 0;
+    const totals = calculateCartTotals();
+    const hasItems = totals.totalItemsQty > 0;
     
-    document.getElementById('checkout-btn').disabled = !hasItems;
-    document.getElementById('estimate-pdf-btn').disabled = !hasItems;
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const estimatePdfBtn = document.getElementById('estimate-pdf-btn');
+    if (checkoutBtn) checkoutBtn.disabled = !hasItems;
+    if (estimatePdfBtn) estimatePdfBtn.disabled = !hasItems;
     
     // Show/hide floating checkout drawer wrapper
     const wrapper = document.getElementById('cart-summary-wrapper');
     if (wrapper) {
         if (hasItems) {
             wrapper.style.display = 'flex';
-            renderCartSummary();
+            renderCartSummary(totals);
         } else {
             wrapper.style.display = 'none';
         }
     }
 }
 
-function renderCartSummary() {
-    const selectedProducts = Object.values(products).filter(product => product.quantity > 0);
-    const itemsCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-    
-    const subtotal = selectedProducts.reduce((sum, product) => {
-        return sum + (product.quantity * product.price);
-    }, 0);
-    
-    const packingCharge = subtotal * 0.05;
-    const finalTotal = subtotal + packingCharge;
+function renderCartSummary(totals) {
+    if (!totals) totals = calculateCartTotals();
+    const cart = totals.cart;
     
     const badgeCount = document.getElementById('cart-badge-count');
     const badgeTotal = document.getElementById('cart-badge-total');
@@ -677,25 +720,36 @@ function renderCartSummary() {
     const totalEl = document.getElementById('summary-total');
     const listContainer = document.getElementById('cart-items-list');
 
-    if (badgeCount) badgeCount.textContent = itemsCount;
-    if (badgeTotal) badgeTotal.textContent = `₹${finalTotal.toFixed(2)}`;
-    if (itemsCountEl) itemsCountEl.textContent = itemsCount;
-    if (subtotalEl) subtotalEl.textContent = `₹${subtotal.toFixed(2)}`;
-    if (packingEl) packingEl.textContent = `₹${packingCharge.toFixed(2)}`;
-    if (totalEl) totalEl.textContent = `₹${finalTotal.toFixed(2)}`;
+    if (badgeCount) badgeCount.textContent = totals.totalItemsQty;
+    if (badgeTotal) badgeTotal.textContent = `₹${totals.finalTotal.toFixed(2)}`;
+    if (itemsCountEl) itemsCountEl.textContent = totals.totalItemsQty;
+    if (subtotalEl) subtotalEl.textContent = `₹${totals.itemsSubtotal.toFixed(2)}`;
+    if (packingEl) {
+        packingEl.textContent = `₹${totals.packingCharge.toFixed(2)}`;
+    }
+    if (totalEl) totalEl.textContent = `₹${totals.finalTotal.toFixed(2)}`;
 
     if (listContainer) {
         let html = '';
-        selectedProducts.forEach(product => {
-            const lineTotal = product.quantity * product.price;
+        cart.forEach((item, index) => {
+            const qty = parseInt(item.quantity || 1);
+            const pId = parseInt(item.product_id || item.id || 0);
+            const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
+            const price = Number(item.price || item.rate || 0);
+            const lineTotal = qty * price;
+
             html += `
-                <div class="flex items-center justify-between py-2 text-xs sm:text-sm">
+                <div class="flex items-center justify-between py-2 text-xs sm:text-sm gap-2">
                     <div class="flex-1 pr-2 text-left">
-                        <span class="font-semibold text-gray-900 block text-left">${product.name}</span>
-                        <span class="text-gray-500">${product.quantity} pcs × ₹${product.price.toFixed(2)}</span>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-semibold text-gray-900">${item.product_name || item.name}</span>
+                            ${isCombo ? '<span class="text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded-full">Combo Pack</span>' : ''}
+                        </div>
+                        <span class="text-gray-500">${qty} pcs × ₹${price.toFixed(2)}</span>
                     </div>
-                    <div class="text-right font-bold text-gray-900 flex-shrink-0">
-                        ₹${lineTotal.toFixed(2)}
+                    <div class="text-right font-bold text-gray-900 flex-shrink-0 flex items-center gap-2">
+                        <span>₹${lineTotal.toFixed(2)}</span>
+                        ${isCombo ? `<button type="button" onclick="removeComboFromExpressCart(${index})" class="text-red-500 hover:text-red-700 text-sm font-bold ml-1 cursor-pointer" title="Remove combo">&times;</button>` : ''}
                     </div>
                 </div>
             `;
@@ -719,36 +773,48 @@ function toggleCartDrawer() {
 }
 
 function clearCart() {
-    Object.keys(products).forEach(productId => {
-        products[productId].quantity = 0;
-    });
-    saveCartToLocalStorage();
-    syncPageWithCart();
-    updateCartTotal();
-    updateCheckoutButton();
+    if (confirm('Are you sure you want to clear your cart?')) {
+        Object.keys(products).forEach(productId => {
+            products[productId].quantity = 0;
+        });
+        localStorage.removeItem('cartItems');
+        syncPageWithCart();
+        updateCartTotal();
+        updateCheckoutButton();
+    }
 }
 
-// Update generateEstimate to include coupon
+// Update generateEstimate to include combos & quotation items
 function generateEstimate() {
-    // Map selected products to the correct structure for PDF
-    const selectedProducts = Object.values(products)
-        .filter(product => product.quantity > 0)
-        .map(product => ({
-            product_id: product.id,
-            product_name: product.name,
-            description: product.description || '',
-            content: product.content || '',
-            rate: product.price,
-            original_price: product.original_price,
-            discount_percentage: product.discount_percentage,
-            special_discount_percentage: product.special_discount_percentage,
-            quantity: product.quantity,
-            total: product.original_price * product.quantity
-        }));
-    if (selectedProducts.length === 0) {
-        alert('Please select at least one product.');
+    saveCartToLocalStorage();
+    const cart = getCart();
+
+    if (!cart || cart.length === 0) {
+        alert('Please select at least one product or combo pack.');
         return;
     }
+
+    const itemsForPdf = cart.map(item => {
+        const pId = parseInt(item.product_id || item.id || 0);
+        const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
+        const unitPrice = Number(item.price || item.rate || 0);
+        const origPrice = Number(item.original_price || (isCombo ? unitPrice : (unitPrice > 0 ? Math.round(unitPrice / 0.255) : unitPrice)));
+        const qty = parseInt(item.quantity || 1);
+
+        return {
+            product_id: item.product_id || pId,
+            product_name: item.product_name || item.name || '',
+            description: item.description || (isCombo ? 'Diwali Value Combo Pack' : ''),
+            content: item.content || '',
+            rate: unitPrice,
+            original_price: origPrice,
+            discount_percentage: item.discount_percentage || (isCombo ? 0 : 70),
+            special_discount_percentage: item.special_discount_percentage || (isCombo ? 0 : 15),
+            quantity: qty,
+            total: isCombo ? (unitPrice * qty) : (origPrice * qty),
+            is_combo: isCombo
+        };
+    });
 
     // Disable buttons temporarily to prevent double click
     const btn = document.getElementById('estimate-pdf-btn');
@@ -773,7 +839,7 @@ function generateEstimate() {
     const itemsInput = document.createElement('input');
     itemsInput.type = 'hidden';
     itemsInput.name = 'items';
-    itemsInput.value = JSON.stringify(selectedProducts);
+    itemsInput.value = JSON.stringify(itemsForPdf);
     form.appendChild(itemsInput);
 
     // Customer JSON (empty or default info)
