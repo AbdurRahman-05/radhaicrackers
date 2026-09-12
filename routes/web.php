@@ -322,8 +322,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Category Management
         Route::get('/categories', \App\Http\Livewire\Admin\Categories::class)->name('categories');
-        // Home Page Products CRUD (no JS, no Livewire)
+        // Home Page Products CRUD & quick toggles
+        Route::post('homepage_products/{id}/toggle-popular', [App\Http\Controllers\Admin\HomepageProductController::class, 'togglePopular'])->name('homepage_products.toggle_popular');
+        Route::post('homepage_products/{id}/toggle-latest', [App\Http\Controllers\Admin\HomepageProductController::class, 'toggleLatest'])->name('homepage_products.toggle_latest');
+        Route::post('homepage_products/sync-from-stocks', [App\Http\Controllers\Admin\HomepageProductController::class, 'syncFromStocks'])->name('homepage_products.sync_from_stocks');
         Route::resource('homepage_products', App\Http\Controllers\Admin\HomepageProductController::class);
+
+        // Hero Carousel Management
+        Route::post('hero_carousel/{id}/toggle', [App\Http\Controllers\Admin\HeroCarouselController::class, 'toggle'])->name('hero_carousel.toggle');
+        Route::resource('hero_carousel', App\Http\Controllers\Admin\HeroCarouselController::class);
+
         Route::get('/admin/galleryImages-upload', \App\Livewire\Admin\StockImageUpload::class)->name('galleryImages-upload.index');
     });
 });

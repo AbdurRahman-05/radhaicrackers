@@ -37,32 +37,75 @@
 }
 </style>
 <!-- Hero Banner Slider -->
+@php
+    $heroSlides = \App\Models\HeroSlide::where('is_active', true)->orderBy('sort_order', 'asc')->get();
+    if ($heroSlides->isEmpty()) {
+        $heroSlides = collect([
+            (object)[
+                'id' => 1,
+                'title' => 'Festival of Lights Celebration',
+                'subtitle' => 'Premium Sivakasi Crackers Direct to Your Doorstep',
+                'image_url' => asset('images/radhe_crackers_images_2026/home carosel 1.png'),
+                'link_url' => route('express-shop'),
+                'button_text' => 'Shop Now',
+            ],
+            (object)[
+                'id' => 2,
+                'title' => 'Exclusive Festive Mega Offers',
+                'subtitle' => 'Enjoy Up to 70% + 15% Special Discount This Season',
+                'image_url' => asset('images/radhe_crackers_images_2026/home carosel 2.png'),
+                'link_url' => route('express-shop'),
+                'button_text' => 'Order Now',
+            ],
+        ]);
+    }
+@endphp
 <div class="relative bg-gray-900">
-    <div class="relative h-96 md:h-[500px] overflow-hidden">
-        <!-- Banner 1 -->
-        <div class="absolute inset-0 transition-opacity duration-1000" id="banner1">
-            <img src="{{ asset('hero/bg.jpg') }}" alt="Radhe Crackers Banner" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                
+    <div class="relative h-72 sm:h-96 md:h-[500px] overflow-hidden" id="heroSliderContainer">
+        @foreach($heroSlides as $index => $slide)
+            <div class="absolute inset-0 transition-opacity duration-1000 {{ $index === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none' }} hero-slide" id="banner{{ $index }}">
+                <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?: 'Radhe Crackers Banner' }}" class="w-full h-full object-cover">
+                @if($slide->title || $slide->subtitle)
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end md:items-center justify-start md:justify-center p-6 md:p-12">
+                        <div class="max-w-2xl text-left md:text-center text-white">
+                            @if($slide->title)
+                                <h1 class="text-2xl sm:text-4xl md:text-5xl font-black drop-shadow-lg tracking-tight mb-2">{{ $slide->title }}</h1>
+                            @endif
+                            @if($slide->subtitle)
+                                <p class="text-xs sm:text-base md:text-lg text-amber-200 drop-shadow mb-4 font-medium">{{ $slide->subtitle }}</p>
+                            @endif
+                            @if($slide->link_url)
+                                <a href="{{ $slide->link_url }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-lg hover:scale-105 transition-all">
+                                    <span>{{ $slide->button_text ?: 'Order Now' }}</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
-        </div>
-        <!-- Banner 2 -->
-        <div class="absolute inset-0 transition-opacity duration-1000 opacity-0" id="banner2">
-            <img src="{{ asset('hero/bg.jpg') }}" alt="Fireworks Collection" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                
-            </div>
-        </div>
-        <!-- Banner Navigation -->
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            <button onclick="showBanner(1)" class="w-3 h-3 rounded-full bg-white bg-opacity-50 hover:bg-opacity-100 transition-colors" id="nav1"></button>
-            <button onclick="showBanner(2)" class="w-3 h-3 rounded-full bg-white bg-opacity-50 hover:bg-opacity-100 transition-colors" id="nav2"></button>
-        </div>
-    </div>
+        @endforeach
 
-    
+        @if($heroSlides->count() > 1)
+            <!-- Banner Navigation Dots -->
+            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2.5 z-20">
+                @foreach($heroSlides as $index => $slide)
+                    <button onclick="showBanner({{ $index }})" 
+                            aria-label="Go to slide {{ $index + 1 }}"
+                            class="w-3 h-3 rounded-full transition-all duration-300 {{ $index === 0 ? 'bg-amber-400 w-8' : 'bg-white/60 hover:bg-white' }} hero-nav" 
+                            id="nav{{ $index }}"></button>
+                @endforeach
+            </div>
+
+            <!-- Left / Right arrows -->
+            <button onclick="prevBanner()" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition z-20 text-lg" aria-label="Previous Slide">
+                &#10094;
+            </button>
+            <button onclick="nextBanner()" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition z-20 text-lg" aria-label="Next Slide">
+                &#10095;
+            </button>
+        @endif
+    </div>
 </div>
 
 
@@ -103,30 +146,49 @@
 @if(\Illuminate\Support\Facades\Cache::get('home_show_categories_section', true))
 <div class="py-16 bg-gradient-to-r from-[#1E093B] via-[#3B156C] to-[#B67121]">
     <div class="max-w-7xl mx-auto px-4">
-        <h2 class="text-4xl font-bold text-center text-white mb-10">Best For Your Categories</h2>
+        <h2 class="text-4xl font-bold text-center text-white mb-2">Best For Your Categories</h2>
+        <p class="text-center text-amber-200 text-sm mb-10">Explore our wide selection of authentic Sivakasi firecrackers</p>
         <div class="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-4 lg:grid-cols-7 md:gap-6 scrollbar-thin scrollbar-thumb-gray-200">
             @php
-                $categories = [
-                    'SINGLE FLASH' => ['image' => 'single-flash.webp', 'count' => \App\Models\Stock::where('category', 'SINGLE FLASH')->count()],
-                    'BIJILI CRACKERS' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'BIJILI CRACKERS')->count()],
-                    'BOMBS' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'BOMBS')->count()],
-                    'ROCKETS' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'ROCKETS')->count()],
-                    'SPARKLERS' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'SPARKLERS')->count()],
-                    'CHIT PUT' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'CHIT PUT')->count()],
-                    'TWINKLING STAR' => ['image' => 'bijili-crackers.jpg', 'count' => \App\Models\Stock::where('category', 'TWINKLING STAR')->count()]
+                $categoryConfigs = [
+                    'SINGLE FLASH' => ['search' => 'SINGLE FLASH', 'patterns' => ['single flash', 'single colour shot', '2" single'], 'default_img' => 'images/radhe_crackers_images_2026/single flash.png'],
+                    'BIJILI CRACKERS' => ['search' => 'BIJILI CRACKERS', 'patterns' => ['bijili'], 'default_img' => 'images/radhe_crackers_images_2026/bijili crackers.png'],
+                    'BOMBS' => ['search' => 'BOMB', 'patterns' => ['bomb'], 'default_img' => 'images/bijili-crackers.jpg'],
+                    'ROCKETS' => ['search' => 'ROCKET', 'patterns' => ['rocket'], 'default_img' => 'images/radhe_crackers_images_2026/rockets.png'],
+                    'SPARKLERS' => ['search' => 'SPARKLERS', 'patterns' => ['sparkler'], 'default_img' => 'images/radhe_crackers_images_2026/sparkles.png'],
+                    'CHIT PUT' => ['search' => 'CHIT PUT', 'patterns' => ['chit put', 'paper flash'], 'default_img' => 'images/new.png'],
+                    'TWINKLING STAR' => ['search' => 'TWINKLING STAR', 'patterns' => ['twinkling'], 'default_img' => 'images/single-flash.webp'],
                 ];
+                $resolvedCategories = [];
+                foreach ($categoryConfigs as $displayName => $cfg) {
+                    $stockQuery = \App\Models\Stock::where(function($q) use ($cfg) {
+                        foreach ($cfg['patterns'] as $p) {
+                            $q->orWhere('category', 'LIKE', "%$p%")
+                              ->orWhere('item_name', 'LIKE', "%$p%");
+                        }
+                    });
+                    $count = (clone $stockQuery)->count();
+                    $sampleStock = (clone $stockQuery)->whereNotNull('image')->where('image', '!=', '')->first();
+                    $imgUrl = $sampleStock ? $sampleStock->image_url : asset($cfg['default_img']);
+                    $resolvedCategories[$displayName] = [
+                        'image' => $imgUrl,
+                        'count' => $count,
+                        'search' => $cfg['search']
+                    ];
+                }
             @endphp
-            @foreach($categories as $categoryName => $category)
-                <div class="min-w-[160px] md:min-w-0 bg-white rounded-xl shadow group cursor-pointer border border-gray-100 hover:border-gray-400 transition-all flex-shrink-0">
-                    <div class="relative overflow-hidden rounded-t-xl">
-                        <img src="{{ asset('images/' . $category['image']) }}" alt="{{ $categoryName }}" class="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-300">
-                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+            @foreach($resolvedCategories as $categoryName => $category)
+                <a href="{{ route('express-shop') }}?category={{ urlencode($category['search']) }}" 
+                   class="min-w-[160px] md:min-w-0 bg-white rounded-xl shadow group cursor-pointer border border-gray-100 hover:border-amber-400 hover:shadow-xl transition-all flex-shrink-0 block transform hover:-translate-y-1">
+                    <div class="relative overflow-hidden rounded-t-xl bg-gray-50 h-28 flex items-center justify-center">
+                        <img src="{{ $category['image'] }}" alt="{{ $categoryName }}" class="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-300"></div>
                     </div>
                     <div class="p-3 text-center">
-                        <h3 class="font-semibold text-gray-900 mb-1 text-sm">{{ $categoryName }}</h3>
-                        <p class="text-xs text-gray-600">{{ $category['count'] }} Products</p>
+                        <h3 class="font-bold text-gray-900 mb-1 text-sm group-hover:text-amber-700 transition-colors">{{ $categoryName }}</h3>
+                        <p class="text-xs text-gray-500 font-medium">{{ $category['count'] }} Products</p>
                     </div>
-                </div>
+                </a>
             @endforeach
         </div>
     </div>
@@ -150,42 +212,58 @@
 <div class="py-16 text-white bg-gradient-to-r from-[#1E093B] via-[#3B156C] to-[#B67121]">
     <div class="max-w-7xl mx-auto px-4">
         <h2 class="text-4xl font-bold text-center mb-4">Popular Products</h2>
-        <p class="text-white-600 text-center mb-12">Most loved firework items</p>
+        <p class="text-amber-200 text-center mb-12">Most loved firework items</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             @php
                 $popularProducts = \App\Models\HomepageProduct::where('is_popular', true)->where('is_active', true)->get();
+                if ($popularProducts->isEmpty()) {
+                    $popularProducts = \App\Models\Stock::where('is_popular', true)
+                        ->where(function($q) { $q->where('is_active', 1)->orWhere('quantity', '>', 0); })
+                        ->take(8)
+                        ->get();
+                }
             @endphp
-            @foreach($popularProducts as $product)
-                <div class="product-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow border border-gray-100 hover:border-gray-400">
-                    <div class="p-6 text-center">
-                        <div class="flex gap-2 justify-center mb-2">
-                            @if($product->discount_percentage)
-                                <span class="bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">-{{ $product->discount_percentage }}% OFF</span>
-                            @endif
-                            @if($product->special_discount_percentage)
-                                <span class="bg-orange-500 text-white px-2 py-1 rounded text-xs font-semibold">+{{ $product->special_discount_percentage }}% Special</span>
-                            @endif
-                            @if($product->youtube_url)
-                                <a href="{{ $product->youtube_url }}" target="_blank" class="inline-block ml-1" title="Watch on YouTube">
-                                    <span class="inline-block align-middle"><i class="fab fa-youtube text-red-600 text-lg"></i></span>
-                                </a>
+            @forelse($popularProducts as $product)
+                <div class="product-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all border border-gray-100 hover:border-amber-400 flex flex-col justify-between">
+                    <div class="p-6 text-center flex flex-col items-center flex-1 justify-between">
+                        <div class="w-full">
+                            <div class="flex flex-wrap gap-1.5 justify-center mb-3">
+                                @if($product->discount_percentage)
+                                    <span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">-{{ $product->discount_percentage }}% OFF</span>
+                                @endif
+                                @if($product->special_discount_percentage)
+                                    <span class="bg-orange-500 text-white px-2 py-0.5 rounded text-xs font-bold">+{{ $product->special_discount_percentage }}% Special</span>
+                                @endif
+                                @if($product->youtube_url)
+                                    <a href="{{ $product->youtube_url }}" target="_blank" class="inline-flex items-center text-red-600 hover:text-red-700 ml-1" title="Watch Video">
+                                        <i class="fab fa-youtube text-lg"></i>
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="w-full h-36 flex items-center justify-center mb-4 bg-gray-50 rounded-xl p-2">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300">
+                            </div>
+                            <h3 class="text-base font-bold mb-1.5 text-gray-900 leading-snug">{{ $product->item_name }}</h3>
+                            @if($product->description)
+                                <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ $product->description }}</p>
                             @endif
                         </div>
-                        <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
-                        <h3 class="text-lg font-bold mb-2 text-gray-900">{{ $product->item_name }}</h3>
-                        @if($product->description)
-                            <p class="text-sm text-gray-600 mb-4">{{ $product->description }}</p>
-                        @endif
-                        <div class="mb-4 flex items-center justify-center gap-2">
-                            @if($product->original_price)
-                                <span class="line-through text-gray-400 text-lg">₹{{ number_format($product->original_price, 0) }}</span>
-                            @endif
-                            <span class="text-orange-600 font-bold text-2xl">₹{{ number_format($product->price, 0) }}</span>
+                        <div class="w-full mt-2">
+                            <div class="mb-3 flex items-baseline justify-center gap-2">
+                                @if($product->original_price && $product->original_price > $product->price)
+                                    <span class="line-through text-gray-400 text-sm">₹{{ number_format($product->original_price, 0) }}</span>
+                                @endif
+                                <span class="text-amber-700 font-extrabold text-2xl">₹{{ number_format($product->price, 0) }}</span>
+                            </div>
+                            <a href="{{ route('express-shop') }}" class="btn-primary w-full block py-2.5 font-bold rounded-xl shadow hover:shadow-lg transition text-center">Order Now</a>
                         </div>
-                        <a href="{{ route('express-shop') }}" class="btn-primary w-full mt-2 pt-2">Order Now</a>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div class="col-span-4 text-center py-8 text-amber-200">
+                    <p>No popular products featured right now. Check out our <a href="{{ route('express-shop') }}" class="underline font-bold text-yellow-300">quotation page</a> for the full catalog!</p>
+                </div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -194,43 +272,59 @@
 <!-- Latest Products Section -->
 <div class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-4">
-        <h2 class="text-4xl font-bold text-center mb-4">Latest Products</h2>
-        <p class="text-gray-600 text-center mb-12">New arrivals in our collection</p>
+        <h2 class="text-4xl font-bold text-center mb-4 text-gray-900">Latest Products</h2>
+        <p class="text-gray-500 text-center mb-12">New arrivals in our collection</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             @php
                 $latestProducts = \App\Models\HomepageProduct::where('is_latest', true)->where('is_active', true)->get();
+                if ($latestProducts->isEmpty()) {
+                    $latestProducts = \App\Models\Stock::where('is_latest', true)
+                        ->where(function($q) { $q->where('is_active', 1)->orWhere('quantity', '>', 0); })
+                        ->take(6)
+                        ->get();
+                }
             @endphp
-            @foreach($latestProducts as $product)
-                <div class="product-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow border border-gray-100 hover:border-gray-500">
-                    <div class="p-6 text-center">
-                        <div class="flex gap-2 justify-center mb-2">
-                            @if($product->discount_percentage)
-                                <span class="bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">-{{ $product->discount_percentage }}% OFF</span>
-                            @endif
-                            @if($product->special_discount_percentage)
-                                <span class="bg-orange-500 text-white px-2 py-1 rounded text-xs font-semibold">+{{ $product->special_discount_percentage }}% Special</span>
-                            @endif
-                            @if($product->youtube_url)
-                                <a href="{{ $product->youtube_url }}" target="_blank" class="inline-block ml-1" title="Watch on YouTube">
-                                    <span class="inline-block align-middle"><i class="fab fa-youtube text-red-600 text-lg"></i></span>
-                                </a>
+            @forelse($latestProducts as $product)
+                <div class="product-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all border border-gray-100 hover:border-amber-500 flex flex-col justify-between">
+                    <div class="p-6 text-center flex flex-col items-center flex-1 justify-between">
+                        <div class="w-full">
+                            <div class="flex flex-wrap gap-1.5 justify-center mb-3">
+                                @if($product->discount_percentage)
+                                    <span class="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-bold">-{{ $product->discount_percentage }}% OFF</span>
+                                @endif
+                                @if($product->special_discount_percentage)
+                                    <span class="bg-orange-500 text-white px-2 py-0.5 rounded text-xs font-bold">+{{ $product->special_discount_percentage }}% Special</span>
+                                @endif
+                                @if($product->youtube_url)
+                                    <a href="{{ $product->youtube_url }}" target="_blank" class="inline-flex items-center text-red-600 hover:text-red-700 ml-1" title="Watch Video">
+                                        <i class="fab fa-youtube text-lg"></i>
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="w-full h-36 flex items-center justify-center mb-4 bg-gray-50 rounded-xl p-2">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300">
+                            </div>
+                            <h3 class="text-base font-bold mb-1.5 text-gray-900 leading-snug">{{ $product->item_name }}</h3>
+                            @if($product->description)
+                                <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ $product->description }}</p>
                             @endif
                         </div>
-                        <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-32 object-contain mb-4 mx-auto rounded">
-                        <h3 class="text-lg font-bold mb-2 text-gray-900">{{ $product->item_name }}</h3>
-                        @if($product->description)
-                            <p class="text-sm text-gray-600 mb-4">{{ $product->description }}</p>
-                        @endif
-                        <div class="mb-4 flex items-center justify-center gap-2">
-                            @if($product->original_price)
-                                <span class="line-through text-gray-400 text-lg">₹{{ number_format($product->original_price, 0) }}</span>
-                            @endif
-                            <span class="text-orange-600 font-bold text-2xl">₹{{ number_format($product->price, 0) }}</span>
+                        <div class="w-full mt-2">
+                            <div class="mb-3 flex items-baseline justify-center gap-2">
+                                @if($product->original_price && $product->original_price > $product->price)
+                                    <span class="line-through text-gray-400 text-sm">₹{{ number_format($product->original_price, 0) }}</span>
+                                @endif
+                                <span class="text-amber-700 font-extrabold text-2xl">₹{{ number_format($product->price, 0) }}</span>
+                            </div>
+                            <a href="{{ route('express-shop') }}" class="btn-primary w-full block py-2.5 font-bold rounded-xl shadow hover:shadow-lg transition text-center">Order Now</a>
                         </div>
-                        <a href="{{ route('express-shop') }}" class="btn-primary w-full pt-2">Order Now</a>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div class="col-span-3 text-center py-8 text-gray-400">
+                    <p>No new arrivals featured right now. Check out our <a href="{{ route('express-shop') }}" class="underline font-bold text-amber-600">quotation page</a> for the full catalog!</p>
+                </div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -271,31 +365,57 @@
 }
 </style>
 <script>
+// Dynamic Banner Slider Functionality
+let currentBannerIdx = 0;
+const totalBanners = {{ $heroSlides->count() }};
 
-// Banner Slider Functionality
-let currentBanner = 1;
-const banners = ['banner1', 'banner2'];
-const navs = ['nav1', 'nav2'];
-function showBanner(bannerNumber) {
-    banners.forEach(banner => {
-        document.getElementById(banner).style.opacity = '0';
+function showBanner(index) {
+    if (totalBanners <= 0) return;
+    currentBannerIdx = (index + totalBanners) % totalBanners;
+
+    document.querySelectorAll('.hero-slide').forEach((slide, i) => {
+        if (i === currentBannerIdx) {
+            slide.classList.remove('opacity-0', 'pointer-events-none');
+            slide.classList.add('opacity-100');
+        } else {
+            slide.classList.add('opacity-0', 'pointer-events-none');
+            slide.classList.remove('opacity-100');
+        }
     });
-    navs.forEach(nav => {
-        document.getElementById(nav).classList.remove('bg-opacity-100');
-        document.getElementById(nav).classList.add('bg-opacity-50');
+
+    document.querySelectorAll('.hero-nav').forEach((nav, i) => {
+        if (i === currentBannerIdx) {
+            nav.classList.remove('bg-white/60', 'w-3');
+            nav.classList.add('bg-amber-400', 'w-8');
+        } else {
+            nav.classList.add('bg-white/60', 'w-3');
+            nav.classList.remove('bg-amber-400', 'w-8');
+        }
     });
-    document.getElementById(`banner${bannerNumber}`).style.opacity = '1';
-    document.getElementById(`nav${bannerNumber}`).classList.remove('bg-opacity-50');
-    document.getElementById(`nav${bannerNumber}`).classList.add('bg-opacity-100');
-    currentBanner = bannerNumber;
 }
-setInterval(() => {
-    currentBanner = currentBanner === 1 ? 2 : 1;
-    showBanner(currentBanner);
-}, 5000);
-document.getElementById('nav1').classList.remove('bg-opacity-50');
-document.getElementById('nav1').classList.add('bg-opacity-100');
 
+function nextBanner() {
+    showBanner(currentBannerIdx + 1);
+}
+
+function prevBanner() {
+    showBanner(currentBannerIdx - 1);
+}
+
+let bannerInterval;
+function startBannerAutoSlide() {
+    if (totalBanners > 1) {
+        bannerInterval = setInterval(nextBanner, 6000);
+    }
+}
+
+const sliderContainer = document.getElementById('heroSliderContainer');
+if (sliderContainer) {
+    sliderContainer.addEventListener('mouseenter', () => clearInterval(bannerInterval));
+    sliderContainer.addEventListener('mouseleave', () => startBannerAutoSlide());
+}
+
+startBannerAutoSlide();
 </script>
 
 <!-- Floating Compact Cost Estimator Widget -->

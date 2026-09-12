@@ -102,11 +102,17 @@
 
                
 
-                    <a href="{{ route('admin.homepage_products.index') }}" 
-                       class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.homepage_products.*') ? 'bg-gray-700' : '' }}">
-                        <i class="fas fa-star w-5 h-5 mr-3"></i>
-                        Home Page Products
-                    </a>
+                     <a href="{{ route('admin.hero_carousel.index') }}" 
+                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.hero_carousel.*') ? 'bg-gray-700' : '' }}">
+                         <i class="fas fa-images w-5 h-5 mr-3 text-amber-400"></i>
+                         Hero Carousel
+                     </a>
+
+                     <a href="{{ route('admin.homepage_products.index') }}" 
+                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.homepage_products.*') ? 'bg-gray-700' : '' }}">
+                         <i class="fas fa-star w-5 h-5 mr-3 text-yellow-400"></i>
+                         Home Page Products
+                     </a>
 
                     <a href="{{ route('admin.content') }}" 
                        class="flex items-center px-4 py-2 text-white rounded-lg hover:bg-gray-700 transition-colors {{ request()->routeIs('admin.content*') ? 'bg-gray-700' : '' }}">
