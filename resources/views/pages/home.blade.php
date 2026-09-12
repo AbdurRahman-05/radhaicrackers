@@ -38,7 +38,7 @@
 </style>
 <!-- Hero Banner Slider -->
 @php
-    $heroSlides = \App\Models\HeroSlide::where('is_active', true)->orderBy('sort_order', 'asc')->get();
+    $heroSlides = \App\Models\HeroSlide::getActiveSlides();
     if ($heroSlides->isEmpty()) {
         $heroSlides = collect([
             (object)[

@@ -14,6 +14,7 @@ class HeroCarouselController extends Controller
      */
     public function index()
     {
+        HeroSlide::createTableIfNotExists();
         $slides = HeroSlide::orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
         return view('admin.hero_carousel.index', compact('slides'));
     }
@@ -23,6 +24,7 @@ class HeroCarouselController extends Controller
      */
     public function create()
     {
+        HeroSlide::createTableIfNotExists();
         // Find preset images available in radhe_crackers_images_2026 and images
         $presetImages = [];
         $bannerDir = public_path('images/radhe_crackers_images_2026');

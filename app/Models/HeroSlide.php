@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class HeroSlide extends Model
 {
@@ -24,6 +27,80 @@ class HeroSlide extends Model
     ];
 
     protected $appends = ['image_url'];
+
+    /**
+     * Auto-create table on live hosting if migrations haven't run
+     */
+    public static function createTableIfNotExists()
+    {
+        try {
+            if (!Schema::hasTable('hero_slides')) {
+                Schema::create('hero_slides', function (Blueprint $table) {
+                    $table->id();
+                    $table->string('title')->nullable();
+                    $table->string('subtitle')->nullable();
+                    $table->string('image');
+                    $table->string('link_url')->nullable()->default('/quotation');
+                    $table->string('button_text')->nullable()->default('Order Now');
+                    $table->integer('sort_order')->default(0);
+                    $table->boolean('is_active')->default(true);
+                    $table->timestamps();
+                });
+
+                // Seed initial default slides using high quality 2026 banner images
+                DB::table('hero_slides')->insert([
+                    [
+                        'title' => 'Festival of Lights Celebration',
+                        'subtitle' => 'Premium Sivakasi Crackers Direct to Your Doorstep',
+                        'image' => 'images/radhe_crackers_images_2026/home carosel 1.png',
+                        'link_url' => '/quotation',
+                        'button_text' => 'Shop Now',
+                        'sort_order' => 1,
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                    [
+                        'title' => 'Exclusive Festive Mega Offers',
+                        'subtitle' => 'Enjoy Up to 70% + 15% Special Discount This Season',
+                        'image' => 'images/radhe_crackers_images_2026/home carosel 2.png',
+                        'link_url' => '/quotation',
+                        'button_text' => 'Explore Offers',
+                        'sort_order' => 2,
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                    [
+                        'title' => 'Mega Diwali Combo Packs',
+                        'subtitle' => 'Curated festive family packages for non-stop celebrations',
+                        'image' => 'images/radhe_crackers_images_2026/combo packs banner.png',
+                        'link_url' => '/combos',
+                        'button_text' => 'View Combos',
+                        'sort_order' => 3,
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // Silently ignore if table already created concurrently
+        }
+    }
+
+    /**
+     * Safely get active slides without crashing even if table doesn't exist yet
+     */
+    public static function getActiveSlides()
+    {
+        try {
+            self::createTableIfNotExists();
+            return static::where('is_active', true)->orderBy('sort_order', 'asc')->get();
+        } catch (\Throwable $e) {
+            return collect();
+        }
+    }
 
     public function getImageUrlAttribute()
     {
