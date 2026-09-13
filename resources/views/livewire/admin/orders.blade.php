@@ -657,6 +657,12 @@
                                 ➕ Add Product to Order
                             </h5>
                             
+                            @if (session()->has('add_item_error'))
+                                <div class="mb-2 px-2 py-1 bg-red-50 border border-red-200 text-red-700 text-[10px] font-semibold rounded">
+                                    {{ session('add_item_error') }}
+                                </div>
+                            @endif
+                            
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end overflow-visible">
                                 <div class="relative sm:col-span-2 overflow-visible" id="productSearchContainer">
                                     <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Product Search (Name or ID)</label>

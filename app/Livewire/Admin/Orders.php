@@ -573,20 +573,15 @@ class Orders extends Component
         $stock = null;
         if (!empty($this->newProductId)) {
             $stock = Stock::find($this->newProductId);
-        }
-
-        if (!$stock && !empty($this->newItemSearch)) {
-            $term = trim($this->newItemSearch);
-            $stock = Stock::where('is_active', true)
-                ->where(function($q) use ($term) {
-                    $q->where('item_name', 'like', '%' . $term . '%')
-                      ->orWhere('id', $term);
-                })
+        } elseif (!empty($this->newItemSearch)) {
+            // Fallback: if they just typed an ID or exact name without clicking the dropdown
+            $stock = Stock::where('id', $this->newItemSearch)
+                ->orWhere('item_name', $this->newItemSearch)
                 ->first();
         }
 
         if (!$stock) {
-            session()->flash('modal_error', 'Please select or search a valid product to add.');
+            session()->flash('add_item_error', 'Please select or search a valid product to add.');
             return;
         }
 
