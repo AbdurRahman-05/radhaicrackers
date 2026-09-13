@@ -1293,7 +1293,11 @@ class SmartCheckout {
         ctx.stroke();
     }
 
-          const lockedBanner = document.getElementById('wheel-locked-banner');
+    updateLuckyWheelState() {
+        const qualAmount = typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : (this.finalTotal || 0);
+        const isEligible = qualAmount >= 5000;
+
+        const lockedBanner = document.getElementById('wheel-locked-banner');
         const unlockedBanner = document.getElementById('wheel-unlocked-banner');
         const wonBanner = document.getElementById('wheel-won-banner');
         const overlay = document.getElementById('wheel-locked-overlay');
