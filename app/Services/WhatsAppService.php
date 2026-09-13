@@ -13,14 +13,14 @@ class WhatsAppService
             $phone = substr($phone, 2);
         }
 
-        $itemsList = collect($order->items_json ?? $order->items)->map(function ($item) {
+        $itemsList = collect($order->items_json ?? [])->map(function ($item) {
             $name = is_array($item) ? ($item['product_name'] ?? $item['name'] ?? 'Item') : ($item->product_name ?? 'Item');
             $qty = is_array($item) ? ($item['quantity'] ?? 1) : ($item->quantity ?? 1);
             $price = is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? 0);
             return "• {$name} x {$qty} - ₹" . number_format($price * $qty, 2);
         })->take(5)->join("\n");
 
-        $totalItemCount = count($order->items_json ?? $order->items ?? []);
+        $totalItemCount = count($order->items_json ?? []);
         if ($totalItemCount > 5) {
             $itemsList .= "\n... and " . ($totalItemCount - 5) . " more items";
         }

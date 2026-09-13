@@ -94,7 +94,10 @@ class Order extends Model
     }
 
     // Helper method to get items from JSON
-    public function getItemsAttribute()
+    // NOTE: This was renamed from getItemsAttribute to avoid shadowing the items() HasMany relationship.
+    // Use $order->items_list or $order->items_json to get JSON items array.
+    // Use $order->items to get the Eloquent OrderItem relationship.
+    public function getItemsListAttribute()
     {
         return $this->items_json ?? [];
     }

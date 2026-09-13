@@ -469,8 +469,8 @@ class Orders extends Component
             $dbItems = \App\Models\OrderItem::where('order_id', $order->id)->get();
             if ($dbItems->isNotEmpty()) {
                 $rawItems = $dbItems->toArray();
-            } elseif (!empty($order->items)) {
-                $rawItems = is_array($order->items) ? $order->items : $order->items->toArray();
+            } elseif (!empty($order->items_json)) {
+                $rawItems = $order->items_json;
             } else {
                 $rawItems = [];
             }
@@ -508,7 +508,7 @@ class Orders extends Component
                 ];
             }
         }
-        $this->editingOrderItems = &$this->editItems;
+        $this->editingOrderItems = $this->editItems;
 
         $this->showEditModal = true;
     }
@@ -866,22 +866,27 @@ class Orders extends Component
             // Track automated WhatsApp dispatches
             $waNotifications = [];
 
-            // Automatically send WhatsApp notification if order status CHANGED to confirmed
-            if ($this->editStatus === 'confirmed' && $oldStatus !== 'confirmed') {
-                $this->sendWhatsAppConfirmed($order->id);
-                $waNotifications[] = 'WhatsApp Bill sent';
-            }
+            try {
+                // Automatically send WhatsApp notification if order status CHANGED to confirmed
+                if ($this->editStatus === 'confirmed' && $oldStatus !== 'confirmed') {
+                    $this->sendWhatsAppConfirmed($order->id);
+                    $waNotifications[] = 'WhatsApp Bill sent';
+                }
 
-            // Automatically send WhatsApp notification if payment status CHANGED to paid or confirmed
-            if (in_array($this->editPaymentStatus, ['paid', 'confirmed']) && $oldPaymentStatus !== $this->editPaymentStatus) {
-                $this->sendWhatsAppPaidBill($order->id);
-                $waNotifications[] = 'WhatsApp Payment confirmation sent';
-            }
+                // Automatically send WhatsApp notification if payment status CHANGED to paid or confirmed
+                if (in_array($this->editPaymentStatus, ['paid', 'confirmed']) && $oldPaymentStatus !== $this->editPaymentStatus) {
+                    $this->sendWhatsAppPaidBill($order->id);
+                    $waNotifications[] = 'WhatsApp Payment confirmation sent';
+                }
 
-            // Automatically send WhatsApp notification if order status CHANGED to dispatched
-            if ($this->editStatus === 'dispatched' && $oldStatus !== 'dispatched') {
-                $this->sendWhatsAppDispatched($order->id);
-                $waNotifications[] = 'WhatsApp Dispatch alert sent';
+                // Automatically send WhatsApp notification if order status CHANGED to dispatched
+                if ($this->editStatus === 'dispatched' && $oldStatus !== 'dispatched') {
+                    $this->sendWhatsAppDispatched($order->id);
+                    $waNotifications[] = 'WhatsApp Dispatch alert sent';
+                }
+            } catch (\Exception $waEx) {
+                \Log::warning('WhatsApp notification failed during order save: ' . $waEx->getMessage());
+                $waNotifications[] = 'WhatsApp failed (order still saved)';
             }
 
             $this->closeEditModal();
@@ -890,6 +895,7 @@ class Orders extends Component
                 $successMsg .= " (" . implode(', ', $waNotifications) . ")";
             }
             session()->flash('success', $successMsg);
+
             
         } catch (\Exception $e) {
             if ($e instanceof \Illuminate\Validation\ValidationException) {
@@ -902,7 +908,7 @@ class Orders extends Component
 
     private function getFormattedItemsList($order)
     {
-        $rawItems = $order->items_json ?: (is_array($order->items) ? $order->items : []);
+        $rawItems = $order->items_json ?: [];
         $itemsList = [];
         if ($rawItems && (is_array($rawItems) || is_object($rawItems))) {
             foreach ($rawItems as $item) {
@@ -956,16 +962,23 @@ class Orders extends Component
         ]);
 
         $waNote = '';
-        if ($newStatus === 'confirmed') {
-            $this->sendWhatsAppConfirmed($order->id);
-            $waNote = ' (WhatsApp bill sent automatically)';
-        } elseif ($newStatus === 'dispatched') {
-            $this->sendWhatsAppDispatched($order->id);
-            $waNote = ' (WhatsApp dispatch alert sent automatically)';
+        try {
+            if ($newStatus === 'confirmed') {
+                $this->sendWhatsAppConfirmed($order->id);
+                $waNote = ' (WhatsApp bill sent automatically)';
+            } elseif ($newStatus === 'dispatched') {
+                $this->sendWhatsAppDispatched($order->id);
+                $waNote = ' (WhatsApp dispatch alert sent automatically)';
+            }
+        } catch (\Exception $e) {
+            \Log::warning('WhatsApp notification failed during status update: ' . $e->getMessage());
+            $waNote = ' (WhatsApp notification failed - status still updated)';
         }
 
+        // Flash success AFTER WhatsApp attempts so it doesn't get overwritten
         session()->flash('success', "Order #{$order->id} status updated to " . ucfirst($newStatus) . " successfully!{$waNote}");
     }
+
 
     public function sendWhatsAppConfirmed($orderId)
     {

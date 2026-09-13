@@ -324,7 +324,7 @@
 
 
     @php
-        $itemsArray = is_array($order->items) ? $order->items : (is_object($order->items) && method_exists($order->items, 'toArray') ? $order->items->toArray() : (array)$order->items);
+        $itemsArray = is_array($order->items_json) ? $order->items_json : (is_object($order->items_json) && method_exists($order->items_json, 'toArray') ? $order->items_json->toArray() : (array)($order->items_json ?? []));
         
         // Fetch all stocks metadata for sorting in one database query
         $sortedStocks = \App\Models\Stock::join('categories', function($join) {
@@ -498,8 +498,8 @@
         // Always show summary and signature on last page, even if >39 items
         $showSummarySignature = true;
         $itemCount = 0;
-        if (isset($order->items) && is_iterable($order->items)) {
-            foreach ($order->items as $item) {
+        if (isset($order->items_json) && is_iterable($order->items_json)) {
+            foreach ($order->items_json as $item) {
                 $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                 $itemCount += $quantity;
             }
@@ -512,8 +512,8 @@
                 @php
                     $regularSubtotal = 0;
                     $comboSubtotal = 0;
-                    if (isset($order->items) && is_iterable($order->items)) {
-                        foreach ($order->items as $item) {
+                    if (isset($order->items_json) && is_iterable($order->items_json)) {
+                        foreach ($order->items_json as $item) {
                             $pId = (int)($item['product_id'] ?? 0);
                             $pName = (string)($item['product_name'] ?? '');
                             $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');

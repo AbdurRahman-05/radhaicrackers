@@ -35,7 +35,7 @@ class PDFService
         // Always reload with relationships
         $order = Order::with(['items', 'user', 'payment', 'logs'])->find($order->id);
         try {
-            $items = $order->items;
+            $items = $order->items_json;
             // Calculate dynamic page height
             $rowHeight = 28; 
             $headerHeight = 250; 
@@ -246,7 +246,7 @@ class PDFService
             // Calculate total rows from all orders
             $totalRows = 0;
             foreach ($orders as $order) {
-                $items = $order->items;
+                $items = $order->items_json;
                 $totalRows += is_array($items) ? count($items) : (is_countable($items) ? count($items) : 0);
             }
             

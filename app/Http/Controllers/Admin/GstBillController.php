@@ -55,7 +55,7 @@ class GstBillController extends Controller
             $order = Order::with('items')->find($request->order_id);
             if ($order) {
                 $prefilledOrder = $order;
-                $items = is_array($order->items) ? $order->items : ($order->items_json ?? []);
+                $items = $order->items_json ?? [];
                 foreach ($items as $item) {
                     $itemArr = is_object($item) ? (array)$item : $item;
                     $prefilledItems[] = [

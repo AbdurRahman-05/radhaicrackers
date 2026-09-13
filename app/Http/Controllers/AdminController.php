@@ -625,7 +625,7 @@ class AdminController extends Controller
             // CSV Headers
             fputcsv($file, ['Order ID', 'Customer', 'Phone', 'Items', 'Total', 'Status', 'Date']);
             foreach ($orders as $order) {
-                $items = collect($order->items)->pluck('product_name')->implode(', ');
+                $items = collect($order->items_json ?? [])->pluck('product_name')->implode(', ');
                 fputcsv($file, [
                     $order->id,
                     $order->user->name,

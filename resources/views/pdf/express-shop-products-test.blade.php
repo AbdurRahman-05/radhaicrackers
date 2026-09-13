@@ -288,7 +288,7 @@
                         ->keyBy('stock_id');
 
                     // Convert to collection and sort
-                    $sortedItems = collect($order->items)->sort(function($a, $b) use ($sortedStocks) {
+                    $sortedItems = collect($order->items_json ?? [])->sort(function($a, $b) use ($sortedStocks) {
                         $idA = is_array($a) ? ($a['product_id'] ?? $a['stock_id'] ?? null) : ($a->product_id ?? $a->stock_id ?? null);
                         $idB = is_array($b) ? ($b['product_id'] ?? $b['stock_id'] ?? null) : ($b->product_id ?? $b->stock_id ?? null);
                         
@@ -365,8 +365,8 @@
         @php
             $regularSubtotal = 0;
             $comboSubtotal = 0;
-            if (isset($order->items) && is_iterable($order->items)) {
-                foreach ($order->items as $item) {
+            if (isset($order->items_json) && is_iterable($order->items_json)) {
+                foreach ($order->items_json as $item) {
                     $isGift = !empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']);
                     if ($isGift) continue;
                     $pId = (int)($item['product_id'] ?? 0);

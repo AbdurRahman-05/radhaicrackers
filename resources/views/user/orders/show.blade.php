@@ -87,8 +87,8 @@
                     @php
                         $regularSubtotal = 0;
                         $comboSubtotal = 0;
-                        if (isset($order->items) && is_iterable($order->items)) {
-                            foreach ($order->items as $item) {
+                        if (isset($order->items_json) && is_iterable($order->items_json)) {
+                            foreach ($order->items_json as $item) {
                                 if (!empty($item['is_lucky_spin_gift'])) {
                                     continue; // Skip free gifts from calculating subtotal
                                 }
@@ -190,7 +190,7 @@
         <!-- Order Items -->
         <div class="mb-6">
             <h3 class="text-lg font-semibold mb-3">Order Items</h3>
-            @if($order->items && count($order->items) > 0)
+            @if($order->items_json && count($order->items_json) > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white border border-gray-200 rounded-lg">
                         <thead class="bg-gray-50">
@@ -202,7 +202,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($order->items as $item)
+                            @foreach($order->items_json as $item)
                             @php
                                 $isGift = !empty($item['is_lucky_spin_gift']);
                                 $itemPrice = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);

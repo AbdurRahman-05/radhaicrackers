@@ -175,8 +175,8 @@ class UserOrderController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
             foreach ($orders as $order) {
-                if ($order->items && count($order->items) > 0) {
-                    foreach ($order->items as $item) {
+                if ($order->items_json && count($order->items_json) > 0) {
+                    foreach ($order->items_json as $item) {
                         fputcsv($file, [
                             $order->id,
                             $order->user->name ?? $order->customer_name,

@@ -86,8 +86,11 @@ class WhatsAppLinks extends Component
             return;
         }
 
-        $items = $order->items->map(function($item) {
-            return "• {$item->product_name} - Qty: {$item->quantity} - ₹" . number_format($item->price, 2);
+        $items = collect($order->items_json ?? [])->map(function($item) {
+            $name = is_array($item) ? ($item['product_name'] ?? 'Item') : ($item->product_name ?? 'Item');
+            $qty = is_array($item) ? ($item['quantity'] ?? 1) : ($item->quantity ?? 1);
+            $price = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? 0));
+            return "• {$name} - Qty: {$qty} - ₹" . number_format($price, 2);
         })->implode("\n");
 
         $message = $this->templates['order_summary'];

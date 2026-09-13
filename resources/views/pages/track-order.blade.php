@@ -214,10 +214,10 @@
                         </div>
 
                         <!-- Items Breakdown Accordion/Table -->
-                        @if($order->items && count($order->items) > 0)
+                        @if($order->items_json && count($order->items_json) > 0)
                         <div class="px-6 pb-6 border-t border-gray-100 pt-4">
                             <h4 class="text-xs font-black uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-1.5">
-                                <span>🛍️ Purchased Items ({{ count($order->items) }})</span>
+                                <span>🛍️ Purchased Items ({{ count($order->items_json) }})</span>
                             </h4>
                             <div class="overflow-x-auto rounded-lg border border-gray-200">
                                 <table class="w-full text-left text-xs text-gray-700">
@@ -230,12 +230,17 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 bg-white">
-                                        @foreach($order->items as $item)
+                                        @foreach($order->items_json as $item)
+                                            @php
+                                                $itemName = is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-');
+                                                $itemQty = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
+                                                $itemPrice = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? 0));
+                                            @endphp
                                             <tr>
-                                                <td class="p-2.5 font-semibold text-gray-900">{{ $item->product_name }}</td>
-                                                <td class="p-2.5 text-center font-bold">{{ $item->quantity }}</td>
-                                                <td class="p-2.5 text-right">₹{{ number_format($item->price, 2) }}</td>
-                                                <td class="p-2.5 text-right font-bold">₹{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                                <td class="p-2.5 font-semibold text-gray-900">{{ $itemName }}</td>
+                                                <td class="p-2.5 text-center font-bold">{{ $itemQty }}</td>
+                                                <td class="p-2.5 text-right">₹{{ number_format($itemPrice, 2) }}</td>
+                                                <td class="p-2.5 text-right font-bold">₹{{ number_format($itemPrice * $itemQty, 2) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

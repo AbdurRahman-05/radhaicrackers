@@ -324,7 +324,7 @@
 
 
     @php
-        $itemsArray = is_array($order->items) ? $order->items : (is_object($order->items) && method_exists($order->items, 'toArray') ? $order->items->toArray() : (array)$order->items);
+        $itemsArray = is_array($order->items_json) ? $order->items_json : (is_object($order->items_json) && method_exists($order->items_json, 'toArray') ? $order->items_json->toArray() : (array)($order->items_json ?? []));
         
         // Fetch all stocks metadata for sorting in one database query
         $sortedStocks = \App\Models\Stock::join('categories', function($join) {
@@ -502,8 +502,8 @@
         // Always show summary and signature on last page, even if >39 items
         $showSummarySignature = true;
         $itemCount = 0;
-        if (isset($order->items) && is_iterable($order->items)) {
-            foreach ($order->items as $item) {
+        if (isset($order->items_json) && is_iterable($order->items_json)) {
+            foreach ($order->items_json as $item) {
                 $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                 $itemCount += $quantity;
             }
@@ -526,8 +526,8 @@
                 @php
                     $regularSubtotal = 0;
                     $comboSubtotal = 0;
-                    if (isset($order->items) && is_iterable($order->items)) {
-                        foreach ($order->items as $item) {
+                    if (isset($order->items_json) && is_iterable($order->items_json)) {
+                        foreach ($order->items_json as $item) {
                             $isGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
                             if ($isGift) continue;
                             $pId = is_array($item) ? ($item['product_id'] ?? 0) : ($item->product_id ?? 0);

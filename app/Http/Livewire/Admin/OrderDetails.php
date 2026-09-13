@@ -55,7 +55,7 @@ class OrderDetails extends Component
         }
         $fullWaPhone = '91' . $cleanPhone;
 
-        $items = collect($this->order->items)->map(function($item) {
+        $items = collect($this->order->items_json ?? [])->map(function($item) {
             $name = is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-');
             $qty = is_array($item) ? ($item['quantity'] ?? '-') : ($item->quantity ?? '-');
             $price = is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? $item->rate ?? 0);

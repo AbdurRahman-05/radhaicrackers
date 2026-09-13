@@ -366,6 +366,7 @@
                     </td>
                     <td class="px-2 py-1.5 whitespace-nowrap">
                         <select wire:change="updateOrderStatus({{ $order->id }}, $event.target.value)" 
+                            wire:key="status-select-{{ $order->id }}-{{ $order->status }}"
                             title="Quick Change Status"
                             class="text-[11px] font-bold rounded-full px-2 py-0.5 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm
                             @if($order->status === 'pending') bg-yellow-100 text-yellow-800 border-yellow-300
@@ -375,14 +376,15 @@
                             @else bg-red-100 text-red-800 border-red-300
                             @endif">
                             @if(strtolower($order->status) === 'pending')
-                                <option value="pending" {{ strtolower($order->status) === 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="pending" selected>Pending</option>
                             @endif
-                            <option value="confirmed" {{ strtolower($order->status) === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                            <option value="dispatched" {{ strtolower($order->status) === 'dispatched' ? 'selected' : '' }}>Dispatched</option>
-                            <option value="completed" {{ strtolower($order->status) === 'completed' ? 'selected' : '' }}>Completed</option>
-                            <option value="cancelled" {{ strtolower($order->status) === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="confirmed" @selected(strtolower($order->status) === 'confirmed')>Confirmed</option>
+                            <option value="dispatched" @selected(strtolower($order->status) === 'dispatched')>Dispatched</option>
+                            <option value="completed" @selected(strtolower($order->status) === 'completed')>Completed</option>
+                            <option value="cancelled" @selected(strtolower($order->status) === 'cancelled')>Cancelled</option>
                         </select>
                     </td>
+
                     <td class="px-2 py-1.5 whitespace-nowrap">
                         <span class="inline-flex px-1.5 py-0.5 text-[10px] font-semibold rounded-full
                             @if($order->payment_status === 'paid') bg-green-100 text-green-800

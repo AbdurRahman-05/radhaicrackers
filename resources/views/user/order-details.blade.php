@@ -71,7 +71,7 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Order Items</h2>
                     @php
-                        $items = is_array($order->items_json) && count($order->items_json) ? $order->items_json : $order->items;
+                        $items = $order->items_json ?? [];
                         $regularSubtotal = 0;
                         $comboSubtotal = 0;
                         if (is_iterable($items)) {
