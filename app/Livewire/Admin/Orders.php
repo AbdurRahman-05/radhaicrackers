@@ -829,10 +829,8 @@ class Orders extends Component
                         'product_name' => $itemRow['product_name'],
                         'content' => $itemRow['content'] ?? '',
                         'rate' => $itemRow['rate'],
-                        'price' => $itemRow['price'],
                         'quantity' => $itemRow['quantity'],
                         'total' => $itemRow['total'],
-                        'subtotal' => $itemRow['subtotal'],
                     ]);
                 }
             } catch (\Throwable $e) {
