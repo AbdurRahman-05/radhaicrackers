@@ -349,43 +349,43 @@
                 
                 <div class="space-y-2.5 text-xs sm:text-sm">
                     <!-- 1. SubTotal (MRP) -->
-                    <div class="flex justify-between text-gray-700">
-                        <span class="font-medium">SubTotal:</span>
+                    <div class="flex justify-between text-gray-700" id="order-value-row">
+                        <span class="font-medium" id="order-value-label">SubTotal:</span>
                         <span id="order-value" class="font-bold text-gray-900">₹0.00</span>
                     </div>
 
                     <!-- 2. Discount (70%) -->
-                    <div class="flex justify-between text-emerald-700 font-medium">
+                    <div class="flex justify-between text-emerald-700 font-medium" id="discount-70-row">
                         <span>Discount (70%):</span>
                         <span id="discount-70">-₹0.00</span>
                     </div>
 
                     <!-- 3. After Discount -->
-                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1">
+                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1" id="after-discount-70-row">
                         <span>After Discount:</span>
                         <span id="after-discount-70" class="font-semibold text-gray-800">₹0.00</span>
                     </div>
 
                     <!-- 4. Spl Discount (15%) -->
-                    <div class="flex justify-between text-emerald-700 font-medium">
+                    <div class="flex justify-between text-emerald-700 font-medium" id="discount-15-row">
                         <span>Spl Discount (15%):</span>
                         <span id="discount-15">-₹0.00</span>
                     </div>
 
                     <!-- 5. After Spl. Discount -->
-                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1">
+                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1" id="after-discount-15-row">
                         <span>After Spl. Discount:</span>
                         <span id="after-discount-15" class="font-semibold text-gray-800">₹0.00</span>
                     </div>
 
                     <!-- 6. Coupon Discount -->
-                    <div class="flex justify-between text-purple-700 font-medium">
+                    <div class="flex justify-between text-purple-700 font-medium" id="coupon-discount-row">
                         <span>Coupon Discount:</span>
                         <span id="coupon-discount">-₹0.00</span>
                     </div>
 
                     <!-- 7. After Coupon Discount -->
-                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1">
+                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1" id="after-coupon-discount-row">
                         <span>After Coupon Discount:</span>
                         <span id="after-coupon-discount" class="font-semibold text-gray-800">₹0.00</span>
                     </div>
@@ -681,12 +681,51 @@ class SmartCheckout {
     
     loadCart() {
         const stockMap = @json($stockMap ?? []);
-        let items = [];
+        
+        // 1. Always load existing rich items from localStorage / sessionStorage FIRST
+        let localItems = [];
+        try {
+            const rawData = localStorage.getItem('cartItems') || localStorage.getItem('cart') || sessionStorage.getItem('cartItems');
+            if (rawData) {
+                const parsed = JSON.parse(rawData);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    localItems = parsed;
+                }
+            }
+        } catch (e) {
+            console.error('Error parsing cart items from storage:', e);
+        }
 
-        // 1. Check URL parameters FIRST (e.g. ?items=1773:2,1774:1)
+        // 2. Check URL parameters (e.g. ?items=1773:2,1774:1)
         const urlParams = new URLSearchParams(window.location.search);
         const itemsParam = urlParams.get('items');
-        if (itemsParam && itemsParam.trim() !== '') {
+        let items = [];
+
+        if (localItems.length > 0) {
+            items = [...localItems];
+            // If URL parameters are provided, merge or update quantities
+            if (itemsParam && itemsParam.trim() !== '') {
+                const pairs = itemsParam.split(',');
+                pairs.forEach(pair => {
+                    const parts = pair.split(':');
+                    if (parts.length === 2) {
+                        const productId = parseInt(parts[0]);
+                        const qty = parseInt(parts[1]);
+                        if (productId && qty > 0) {
+                            const existing = items.find(it => parseInt(it.product_id || it.id || 0) === productId);
+                            if (existing) {
+                                existing.quantity = qty;
+                            } else {
+                                items.push({
+                                    product_id: productId,
+                                    quantity: qty
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        } else if (itemsParam && itemsParam.trim() !== '') {
             const pairs = itemsParam.split(',');
             pairs.forEach(pair => {
                 const parts = pair.split(':');
@@ -703,35 +742,24 @@ class SmartCheckout {
             });
         }
 
-        // 2. If URL had no items, check localStorage & sessionStorage
-        if (!items || items.length === 0) {
-            const rawData = localStorage.getItem('cartItems') || localStorage.getItem('cart') || sessionStorage.getItem('cartItems');
-            if (rawData) {
-                try {
-                    const parsed = JSON.parse(rawData);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        items = parsed;
-                    }
-                } catch (e) {
-                    console.error('Error parsing cart items:', e);
-                }
-            }
-        }
-
         // 3. Hydrate all items with stockMap details to ensure valid names & original prices
         if (Array.isArray(items) && items.length > 0) {
             this.cartItems = items.map(item => {
                 const pId = parseInt(item.product_id || item.id || 0);
                 const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
-                const stock = stockMap[pId] || {};
+                const stock = stockMap[pId] || stockMap[item.product_id] || stockMap[item.id] || {};
                 
                 let origPrice = 0;
                 if (typeof item.original_price !== 'undefined' && item.original_price !== null && !isNaN(item.original_price) && Number(item.original_price) > 0) {
                     origPrice = Number(item.original_price);
                 } else if (stock.original_price && Number(stock.original_price) > 0) {
                     origPrice = Number(stock.original_price);
-                } else if (item.rate || item.price || stock.price) {
-                    origPrice = Number(item.rate || item.price || stock.price || 0);
+                } else if (stock.price && Number(stock.price) > 0) {
+                    origPrice = Number(stock.price);
+                } else if (item.rate && Number(item.rate) > 0) {
+                    origPrice = Number(item.rate);
+                } else if (item.price && Number(item.price) > 0) {
+                    origPrice = Number(item.price);
                 }
 
                 let currentRate = 0;
@@ -739,7 +767,7 @@ class SmartCheckout {
                     currentRate = Number(item.rate);
                 } else if (item.price && Number(item.price) > 0) {
                     currentRate = Number(item.price);
-                } else if (stock.price) {
+                } else if (stock.price && Number(stock.price) > 0) {
                     currentRate = Number(stock.price);
                 } else {
                     currentRate = origPrice;
@@ -749,14 +777,14 @@ class SmartCheckout {
                 const finalOrigPrice = isCombo ? (currentRate > 0 ? currentRate : origPrice) : (origPrice > 0 ? origPrice : currentRate);
 
                 return {
-                    product_id: pId,
+                    product_id: pId > 0 ? pId : (item.product_id || item.id),
                     product_name: item.product_name || item.name || stock.name || (isCombo ? 'Diwali Combo Pack' : `Product #${pId}`),
                     content: item.content || (isCombo ? 'Diwali Combo Pack' : ''),
                     rate: item.is_lucky_spin_gift ? 0 : (isCombo ? finalOrigPrice : currentRate),
                     price: isCombo ? finalOrigPrice : (item.price || currentRate),
                     original_price: finalOrigPrice,
                     quantity: qty,
-                    total: item.is_lucky_spin_gift ? 0 : ((isCombo ? finalOrigPrice : finalOrigPrice) * qty),
+                    total: item.is_lucky_spin_gift ? 0 : (finalOrigPrice * qty),
                     is_combo: isCombo,
                     is_lucky_spin_gift: !!item.is_lucky_spin_gift,
                     is_free_gift: !!item.is_free_gift
@@ -974,7 +1002,43 @@ class SmartCheckout {
         
         // Update summary elements matching handwritten slip
         const orderValueEl = document.getElementById('order-value');
-        if (orderValueEl) orderValueEl.textContent = `₹${(this.regularSubtotal || 0).toFixed(2)}`;
+        const orderValueLabel = document.getElementById('order-value-label');
+        const d70Row = document.getElementById('discount-70-row');
+        const after70Row = document.getElementById('after-discount-70-row');
+        const d15Row = document.getElementById('discount-15-row');
+        const after15Row = document.getElementById('after-discount-15-row');
+        const couponRow = document.getElementById('coupon-discount-row');
+        const afterCouponRow = document.getElementById('after-coupon-discount-row');
+        const comboRowEl = document.getElementById('combo-subtotal-row');
+        const comboSubtotalEl = document.getElementById('combo-subtotal');
+
+        if (this.regularSubtotal === 0 && this.comboSubtotal > 0) {
+            // Combos only: display combos net value as SubTotal and hide redundant wholesale discount rows
+            if (orderValueLabel) orderValueLabel.textContent = 'Combos (Net Value):';
+            if (orderValueEl) orderValueEl.textContent = `₹${(this.comboSubtotal || 0).toFixed(2)}`;
+            if (d70Row) d70Row.classList.add('hidden');
+            if (after70Row) after70Row.classList.add('hidden');
+            if (d15Row) d15Row.classList.add('hidden');
+            if (after15Row) after15Row.classList.add('hidden');
+            if (afterCouponRow) afterCouponRow.classList.add('hidden');
+            if (comboRowEl) comboRowEl.classList.add('hidden');
+        } else {
+            // Regular items present: display SubTotal (MRP) and all wholesale breakdown lines
+            if (orderValueLabel) orderValueLabel.textContent = 'SubTotal (MRP):';
+            if (orderValueEl) orderValueEl.textContent = `₹${(this.regularSubtotal || 0).toFixed(2)}`;
+            if (d70Row) d70Row.classList.remove('hidden');
+            if (after70Row) after70Row.classList.remove('hidden');
+            if (d15Row) d15Row.classList.remove('hidden');
+            if (after15Row) after15Row.classList.remove('hidden');
+            if (afterCouponRow) afterCouponRow.classList.remove('hidden');
+            
+            if (this.comboSubtotal > 0) {
+                if (comboRowEl) comboRowEl.classList.remove('hidden');
+                if (comboSubtotalEl) comboSubtotalEl.textContent = `₹${(this.comboSubtotal || 0).toFixed(2)}`;
+            } else {
+                if (comboRowEl) comboRowEl.classList.add('hidden');
+            }
+        }
 
         const d70El = document.getElementById('discount-70');
         if (d70El) d70El.textContent = `-₹${(this.discount70 || 0).toFixed(2)}`;
@@ -993,13 +1057,6 @@ class SmartCheckout {
 
         const afterCouponEl = document.getElementById('after-coupon-discount');
         if (afterCouponEl) afterCouponEl.textContent = `₹${(this.afterCouponDiscount || 0).toFixed(2)}`;
-
-        const comboSubtotalEl = document.getElementById('combo-subtotal');
-        if (comboSubtotalEl) comboSubtotalEl.textContent = `₹${(this.comboSubtotal || 0).toFixed(2)}`;
-        const comboRowEl = document.getElementById('combo-subtotal-row');
-        if (comboRowEl) {
-            comboRowEl.classList.remove('hidden');
-        }
 
         const totalBeforePackingEl = document.getElementById('total-before-packing');
         if (totalBeforePackingEl) totalBeforePackingEl.textContent = `₹${(this.totalBeforePacking || 0).toFixed(2)}`;

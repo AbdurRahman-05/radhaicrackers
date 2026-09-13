@@ -397,19 +397,8 @@
             alert('Please select at least one available product to proceed.');
             return;
         }
-        const items = cart.map(product => `${product.product_id}:${product.quantity}`).join(',');
-        
-        // Calculate total with original prices (not discounted)
-        const total = cart.reduce((sum, item) => {
-            const product = products[item.product_id];
-            if (product) {
-                // Use original price for order value
-                return sum + (item.quantity * product.original_price);
-            }
-            return sum + (item.quantity * (item.rate || item.price));
-        }, 0);
-        
-        window.location.href = `{{ route('smart-checkout.show') }}?items=${items}&total=${total.toFixed(2)}`;
+        saveCart(cart);
+        window.location.href = "{{ route('smart-checkout.show') }}";
     }
 
     // Initialize

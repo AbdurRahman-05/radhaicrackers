@@ -25,6 +25,26 @@ class SmartCheckoutController extends Controller
                 'original_price' => (float)($stock->original_price > 0 ? $stock->original_price : $stock->price),
             ];
         }
+
+        // Include predefined Diwali combos in stockMap so they can be looked up reliably
+        if (class_exists(\App\Http\Controllers\ComboOfferController::class)) {
+            $combos = \App\Http\Controllers\ComboOfferController::getCombos();
+            foreach ($combos as $comboKey => $combo) {
+                $comboInfo = [
+                    'id' => $combo['numeric_id'],
+                    'name' => $combo['name'],
+                    'price' => (float)$combo['offer_price'],
+                    'original_price' => (float)$combo['offer_price'],
+                    'is_combo' => true,
+                ];
+                $stockMap[$combo['numeric_id']] = $comboInfo;
+                $stockMap[$comboKey] = $comboInfo;
+                if (!empty($combo['id'])) {
+                    $stockMap[$combo['id']] = $comboInfo;
+                }
+            }
+        }
+
         return view('pages.smart-checkout', compact('stockMap'));
     }
 
@@ -148,10 +168,32 @@ class SmartCheckoutController extends Controller
                 if ($isCombo) {
                     $item['is_combo'] = true;
                     $comboPrice = (float)($item['price'] ?? $item['rate'] ?? $item['original_price'] ?? 0);
+                    if ($comboPrice <= 0 && class_exists(\App\Http\Controllers\ComboOfferController::class)) {
+                        $combos = \App\Http\Controllers\ComboOfferController::getCombos();
+                        foreach ($combos as $c) {
+                            if ($c['numeric_id'] == $pId || $c['id'] == ($item['is_combo_id'] ?? '') || str_contains(strtoupper($c['name']), strtoupper($pName))) {
+                                $comboPrice = (float)$c['offer_price'];
+                                $item['price'] = $comboPrice;
+                                $item['rate'] = $comboPrice;
+                                $item['original_price'] = $comboPrice;
+                                break;
+                            }
+                        }
+                    }
                     $comboSubtotal += $comboPrice * $qty;
                     $calculatedTotal += $comboPrice * $qty;
                 } else {
-                    $itemTotal = (float)($item['original_price'] ?? $item['rate'] ?? 0) * $qty;
+                    $itemOrig = (float)($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0);
+                    if ($itemOrig <= 0 && $pId > 0) {
+                        $stockDb = \App\Models\Stock::find($pId);
+                        if ($stockDb) {
+                            $itemOrig = (float)($stockDb->original_price > 0 ? $stockDb->original_price : $stockDb->price);
+                            $item['original_price'] = $itemOrig;
+                            $item['rate'] = (float)$stockDb->price;
+                            $item['price'] = (float)$stockDb->price;
+                        }
+                    }
+                    $itemTotal = $itemOrig * $qty;
                     $regularSubtotal += $itemTotal;
                     $calculatedTotal += $itemTotal;
                 }

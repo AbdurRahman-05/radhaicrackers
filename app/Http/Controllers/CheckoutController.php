@@ -9,39 +9,8 @@ class CheckoutController extends Controller
 {
     public function showForm(Request $request)
     {
-        $items = $request->query('items', '');
-        $total = (float) $request->query('total', 0);
-        $coupon_code = $request->query('coupon_code');
-        $coupon_discount = 0;
-
-        // Dynamic calculation
-        $discount_70 = round($total * 0.7, 2);
-        $subtotal_after_70 = $total - $discount_70;
-        $discount_15 = round($subtotal_after_70 * 0.15, 2);
-        $subtotal_after_15 = $subtotal_after_70 - $discount_15;
-        $packing_charge = round($subtotal_after_15 * 0.05, 2);
-        $final_total = round($subtotal_after_15 + $packing_charge, 2);
-
-        if ($coupon_code) {
-            $coupon = \App\Models\Coupon::whereRaw('LOWER(code) = ?', [strtolower($coupon_code)])->first();
-            if ($coupon && $coupon->isValid() && $final_total >= $coupon->minimum_order_amount) {
-                $coupon_discount = $coupon->calculateDiscount($final_total);
-                $final_total -= $coupon_discount;
-                session()->flash('coupon_success', "Coupon Applied: {$coupon->code} - Discount: ₹" . number_format($coupon_discount, 2));
-            } else {
-                session()->flash('coupon_error', 'Invalid or inapplicable coupon.');
-            }
-        }
-
-        $states = [
-            'Tamil Nadu', 'Kerala', 'Karnataka', 'Andhra Pradesh', 'Telangana', 'Other'
-        ];
-
-        return view('pages.checkout', compact(
-            'items', 'states', 'total',
-            'discount_70', 'discount_15', 'packing_charge', 'final_total',
-            'coupon_code', 'coupon_discount'
-        ));
+        // Redirect legacy /checkout visits seamlessly to the active /smart-checkout page
+        return redirect()->route('smart-checkout.show', $request->query());
     }
 
     public function submitForm(Request $request)
