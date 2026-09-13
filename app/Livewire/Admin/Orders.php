@@ -722,8 +722,8 @@ class Orders extends Component
         $this->validate([
             'editStatus' => 'required|in:pending,confirmed,dispatched,completed,cancelled',
             'editPaymentStatus' => 'required|in:pending,paid,failed',
-            'editCustomerName' => 'required|string|max:255',
-            'editCustomerMobile' => 'required|string|max:20',
+            'editCustomerName' => 'nullable|string|max:255',
+            'editCustomerMobile' => 'nullable|string|max:20',
         ]);
 
         if (empty($this->editItems)) {
@@ -795,8 +795,8 @@ class Orders extends Component
                 'paid_at' => $paidAtValue,
                 'notes' => $this->editNotes,
                 'receive_amount' => (is_numeric($this->editReceiveAmount) && $this->editReceiveAmount !== '') ? (float)$this->editReceiveAmount : 0,
-                'customer_name' => $this->editCustomerName,
-                'customer_mobile' => $this->editCustomerMobile,
+                'customer_name' => $this->editCustomerName ?: ($order->customer_name ?: 'Customer'),
+                'customer_mobile' => $this->editCustomerMobile ?: ($order->customer_mobile ?: '9999999999'),
                 'customer_email' => $this->editCustomerEmail,
                 'customer_state' => $this->editCustomerState,
                 'customer_district' => $this->editCustomerDistrict,
