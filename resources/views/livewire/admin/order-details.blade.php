@@ -194,58 +194,19 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @if(is_array($order->items))
-                            @foreach($order->items as $item)
-                            @php
-                                $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
-                                $catalogSno = $catalogSnoMap[$productId] ?? '-';
-                                $isGift = !empty($item['is_lucky_spin_gift']);
-                                $itemPrice = $isGift ? 0 : (float)($item['price'] ?? $item['rate'] ?? 0);
-                                $itemQty = (int)($item['quantity'] ?? 0);
-                            @endphp
-                            <tr class="{{ $isGift ? 'bg-amber-50/50' : '' }}">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
-                                        {!! html_entity_decode($item['product_name'] ?? '-') !!}
-                                        @if($isGift)
-                                            <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                                                🎁 Lucky Spin Gift
-                                            </span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $itemQty ?: '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    @if($isGift)
-                                        <span class="text-amber-800 font-bold">FREE (₹0.00)</span>
-                                    @else
-                                        ₹{{ number_format($itemPrice, 2) }}
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    @if($isGift)
-                                        <span class="text-amber-800 font-bold">₹0.00</span>
-                                    @else
-                                        ₹{{ number_format($itemPrice * $itemQty, 2) }}
-                                    @endif
-                                </td>
-                            </tr>
-                            @endforeach
-                        @else
-                        @foreach($order->items as $item)
+                        @foreach($order->items_json ?? [] as $item)
                         @php
-                            $productId = $item->product_id ?? $item->stock_id ?? null;
+                            $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
                             $catalogSno = $catalogSnoMap[$productId] ?? '-';
-                            $isGift = !empty($item->is_lucky_spin_gift);
-                            $itemPrice = $isGift ? 0 : (float)($item->price ?? $item->rate ?? 0);
-                            $itemQty = (int)($item->quantity ?? 0);
+                            $isGift = !empty($item['is_lucky_spin_gift']);
+                            $itemPrice = $isGift ? 0 : (float)($item['price'] ?? $item['rate'] ?? 0);
+                            $itemQty = (int)($item['quantity'] ?? 0);
                         @endphp
                         <tr class="{{ $isGift ? 'bg-amber-50/50' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{{ $catalogSno }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900 flex items-center gap-1.5">
-                                    {!! html_entity_decode($item->product_name ?? '-') !!}
+                                    {!! html_entity_decode($item['product_name'] ?? '-') !!}
                                     @if($isGift)
                                         <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
                                             🎁 Lucky Spin Gift
@@ -270,7 +231,6 @@
                             </td>
                         </tr>
                         @endforeach
-                        @endif
                     </tbody>
                 </table>
             </div>

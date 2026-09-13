@@ -70,14 +70,19 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($order->items as $item)
+                        @foreach($order->items_json ?? [] as $item)
+                        @php
+                            $itemName = is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-');
+                            $itemQty = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
+                            $itemPrice = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? 0));
+                        @endphp
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->product_name }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $itemName }}</div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item->quantity }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($item->price, 2) }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{{ number_format($item->price * $item->quantity, 2) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $itemQty }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{{ number_format($itemPrice, 2) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{{ number_format($itemPrice * $itemQty, 2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -90,17 +95,18 @@
                     @php
                         $regularSubtotal = 0;
                         $comboSubtotal = 0;
-                        if (isset($order->items) && is_iterable($order->items)) {
-                            foreach ($order->items as $item) {
-                                $pId = (int)($item->product_id ?? ($item['product_id'] ?? 0));
-                                $pName = (string)($item->product_name ?? ($item['product_name'] ?? ''));
-                                $isCombo = !empty($item->is_combo) || !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
-                                $quantity = $item->quantity ?? ($item['quantity'] ?? 0);
+                        if (isset($order->items_json) && is_iterable($order->items_json)) {
+                            foreach ($order->items_json as $item) {
+                                $itemArr = is_object($item) ? (array)$item : $item;
+                                $pId = (int)($itemArr['product_id'] ?? 0);
+                                $pName = (string)($itemArr['product_name'] ?? '');
+                                $isCombo = !empty($itemArr['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
+                                $quantity = (int)($itemArr['quantity'] ?? 0);
                                 if ($isCombo) {
-                                    $comboPrice = $item->rate ?? ($item->price ?? ($item['rate'] ?? ($item['price'] ?? 0)));
+                                    $comboPrice = (float)($itemArr['rate'] ?? $itemArr['price'] ?? 0);
                                     $comboSubtotal += $comboPrice * $quantity;
                                 } else {
-                                    $originalPrice = $item->original_price ?? ($item->rate ?? ($item->price ?? ($item['original_price'] ?? ($item['rate'] ?? ($item['price'] ?? 0)))));
+                                    $originalPrice = (float)($itemArr['original_price'] ?? $itemArr['rate'] ?? $itemArr['price'] ?? 0);
                                     $regularSubtotal += $originalPrice * $quantity;
                                 }
                             }
