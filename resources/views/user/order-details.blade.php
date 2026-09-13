@@ -166,6 +166,14 @@
                             <span>Net Rate Items</span>
                             <span>₹{{ number_format($comboSubtotal, 2) }}</span>
                         </div>
+                        <div class="flex justify-between items-center font-bold text-gray-900 border-t pt-1">
+                            <span>Total Amount</span>
+                            <span>₹{{ number_format($totalBeforePacking, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Add Packaging Cost (5%)</span>
+                            <span>₹{{ number_format($packing, 2) }}</span>
+                        </div>
                         @if($order->lucky_spin_prize)
                             <div class="flex justify-between items-center text-amber-800 font-medium">
                                 <span>🎡 Lucky Spin Prize</span>
@@ -178,14 +186,6 @@
                                 <span>-₹{{ number_format($spinDiscount, 2) }}</span>
                             </div>
                         @endif
-                        <div class="flex justify-between items-center font-bold text-gray-900 border-t pt-1">
-                            <span>Total Amount</span>
-                            <span>₹{{ number_format($totalBeforePacking, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center text-gray-700">
-                            <span>Add Packaging Cost (5%)</span>
-                            <span>₹{{ number_format($packing, 2) }}</span>
-                        </div>
                         <div class="flex justify-between items-center text-lg font-bold text-gray-900 border-t pt-2 mt-1">
                             <span>Net Payable Amount</span>
                             <span>₹{{ number_format($netPayable, 2) }}</span>

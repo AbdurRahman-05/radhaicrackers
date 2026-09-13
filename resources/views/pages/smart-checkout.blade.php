@@ -107,15 +107,15 @@
                     </div>
                 </div>
 
-                <!-- Revoked Lucky Spin Banner (when total drops below 5k) -->
+                <!-- Revoked / On-Hold Lucky Spin Banner (when total drops below 5k) -->
                 <div id="wheel-revoked-banner" class="hidden p-4 bg-gradient-to-r from-red-950/95 via-purple-950/90 to-red-950/95 border-b border-red-500/40 text-red-200 transition-all duration-300">
                     <div class="flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5">
                             <span class="text-2xl animate-pulse flex-shrink-0">⚠️</span>
                             <div>
-                                <h4 class="font-extrabold text-sm text-red-300">Lucky Spin Reward Removed</h4>
-                                <p class="text-xs text-red-200 mt-0.5">
-                                    Your order total dropped below ₹5,000. Free spin cracker/discount was automatically removed. Add <strong class="text-yellow-300">₹<span id="revoked-rem-amt">0.00</span></strong> more to spin again!
+                                <h4 class="font-extrabold text-sm text-red-300" id="revoked-banner-title">Lucky Spin Reward on Hold</h4>
+                                <p class="text-xs text-red-200 mt-0.5" id="revoked-banner-desc">
+                                    Your order total dropped below ₹5,000. Your won prize (<strong class="text-yellow-300" id="revoked-prize-name">Free Gift</strong>) is temporarily on hold. Add <strong class="text-yellow-300">₹<span id="revoked-rem-amt">0.00</span></strong> more to restore your prize!
                                 </p>
                             </div>
                         </div>
@@ -204,9 +204,9 @@
 
                             <!-- Glassmorphism Overlay when locked -->
                             <div id="wheel-locked-overlay" class="absolute inset-0 rounded-full bg-purple-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4 z-20">
-                                <span class="text-4xl mb-1">🔒</span>
-                                <span class="font-extrabold text-xs text-amber-300 uppercase tracking-wider">Locked</span>
-                                <span class="text-[10px] text-purple-200 mt-0.5">Normal Crackers Above ₹5,000</span>
+                                <span class="text-4xl mb-1" id="wheel-overlay-icon">🔒</span>
+                                <span class="font-extrabold text-xs text-amber-300 uppercase tracking-wider" id="wheel-overlay-title">Locked</span>
+                                <span class="text-[10px] text-purple-200 mt-0.5" id="wheel-overlay-subtitle">Normal Crackers Above ₹5,000</span>
                             </div>
                         </div>
 
@@ -331,6 +331,8 @@
                         </div>
                     </div>
                     
+                    <input type="hidden" name="lucky_spin_prize" id="order-lucky-spin-prize">
+                    <input type="hidden" name="lucky_spin_discount" id="order-lucky-spin-discount">
                 </form>
             </div>
         </div>
@@ -394,16 +396,6 @@
                         <span id="combo-subtotal">₹0.00</span>
                     </div>
 
-                    <!-- Lucky Spin rows if any -->
-                    <div id="lucky-spin-discount-row" class="hidden flex justify-between text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
-                        <span>🎡 Lucky Spin (5% Disc):</span>
-                        <span id="lucky-spin-discount">-₹0.00</span>
-                    </div>
-                    <div id="lucky-spin-gift-row" class="hidden flex justify-between items-center text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
-                        <span>🎡 Free Lucky Gift:</span>
-                        <span id="lucky-spin-gift-name" class="text-xs bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold"></span>
-                    </div>
-
                     <!-- 9. Total Amount (Net Total) -->
                     <div class="flex justify-between text-gray-900 font-extrabold border-t border-gray-300 pt-2 text-sm bg-gray-50/80 px-2 py-1 rounded">
                         <span>Total Amount:</span>
@@ -414,6 +406,16 @@
                     <div class="flex justify-between items-center text-orange-700 font-medium" id="packing-charge-row">
                         <span id="packing-charge-label">Add Packaging Cost (5%):</span>
                         <span id="packing-charge" class="font-bold">₹0.00</span>
+                    </div>
+
+                    <!-- Lucky Spin rows if any (applied after packaging) -->
+                    <div id="lucky-spin-discount-row" class="hidden flex justify-between text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
+                        <span>🎡 Lucky Spin (5% Disc):</span>
+                        <span id="lucky-spin-discount">-₹0.00</span>
+                    </div>
+                    <div id="lucky-spin-gift-row" class="hidden flex justify-between items-center text-amber-800 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                        <span>🎡 Free Lucky Gift:</span>
+                        <span id="lucky-spin-gift-name" class="text-xs bg-amber-200/80 text-amber-950 px-2 py-0.5 rounded-full font-bold"></span>
                     </div>
 
                     <hr class="border-gray-300 my-1">
@@ -507,11 +509,25 @@ class SmartCheckout {
         this.luckySpinPrize = null;
         this.luckySpinDiscount = 0;
         this.hasSpunWheel = false;
+        this.savedSpinResult = null;
         this.isSpinning = false;
         this.currentWheelRotation = 0;
         this.wheelCanvas = null;
         this.wheelCtx = null;
         this.loadedWheelImages = {};
+
+        // Restore previously spun prize for this purchase session (persists across items changes / reloads)
+        try {
+            const rawSpin = sessionStorage.getItem('lucky_spin_result') || localStorage.getItem('lucky_spin_result');
+            if (rawSpin) {
+                const parsedSpin = JSON.parse(rawSpin);
+                if (parsedSpin && parsedSpin.prize) {
+                    this.hasSpunWheel = true;
+                    this.savedSpinResult = parsedSpin;
+                    this.luckySpinPrize = parsedSpin.prize;
+                }
+            }
+        } catch(e) {}
 
         // 5 Wheel Prizes:
         // 1. Better Luck Next Time
@@ -812,13 +828,6 @@ class SmartCheckout {
         
         let finalTotal = totalBeforePacking + packingCharge;
 
-        // Apply lucky spin discount if active
-        if (this.luckySpinDiscount > 0) {
-            finalTotal -= this.luckySpinDiscount;
-        }
-
-        this.finalTotal = Math.max(0, Math.round(finalTotal));
-
         // Qualifying amount for Lucky Wheel threshold:
         // STRICT RULE: Lucky Wheel is ONLY for normal purchases above ₹5,000 (like old style).
         // Combos have separate all-inclusive net offer pricing and DO NOT count towards unlocking the Lucky Wheel.
@@ -830,50 +839,75 @@ class SmartCheckout {
         const isEligible = this.qualifyingAmount >= 5000;
 
         if (!isEligible) {
-            // If total amount is less than 5000, automatically remove lucky spin gift & discount!
-            const hadLuckyGift = this.cartItems.some(item => item.is_lucky_spin_gift);
-            const hadLuckyReward = hadLuckyGift || this.hasSpunWheel || !!this.luckySpinPrize || this.luckySpinDiscount > 0;
+            // Cart is under ₹5,000:
+            // Temporarily SUSPEND the lucky spin reward (gift or 5% discount)
+            // CRITICAL: DO NOT reset this.hasSpunWheel and DO NOT delete this.savedSpinResult!
+            // The customer must NOT be allowed to spin again if they add items back!
+            const hadActiveGift = this.cartItems.some(item => item.is_lucky_spin_gift);
+            const hadActiveDiscount = this.luckySpinDiscount > 0;
 
-            if (hadLuckyReward) {
-                // 1. Remove lucky spin gift items from cartItems
+            if (hadActiveGift) {
                 this.cartItems = this.cartItems.filter(item => !item.is_lucky_spin_gift);
                 localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+            }
 
-                // 2. Reset spin states
-                this.hasSpunWheel = false;
-                this.luckySpinPrize = null;
-                this.luckySpinDiscount = 0;
+            this.luckySpinDiscount = 0;
 
-                // 3. Clear session storage
-                try {
-                    sessionStorage.removeItem('lucky_spin_result');
-                } catch(e) {}
+            // Clear hidden inputs while under 5k so backend doesn't bill it
+            const hiddenPrize = document.getElementById('order-lucky-spin-prize');
+            const hiddenDisc = document.getElementById('order-lucky-spin-discount');
+            if (hiddenPrize) hiddenPrize.value = '';
+            if (hiddenDisc) hiddenDisc.value = '0';
 
-                // 4. Clear hidden inputs
+            // Hide summary rows while on hold
+            const spinDiscRow = document.getElementById('lucky-spin-discount-row');
+            if (spinDiscRow) spinDiscRow.classList.add('hidden');
+            const giftRow = document.getElementById('lucky-spin-gift-row');
+            if (giftRow) giftRow.classList.add('hidden');
+
+            if (this.hasSpunWheel && (hadActiveGift || hadActiveDiscount)) {
+                this.showSpinSuspendedAlert();
+            }
+        } else {
+            // isEligible (>= ₹5,000):
+            // If the user already spun previously, RESTORE their original won prize!
+            // No second spin chance is given!
+            if (this.hasSpunWheel && this.savedSpinResult) {
+                this.luckySpinPrize = this.savedSpinResult.prize;
+
+                if (this.savedSpinResult.type === 'discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%'))) {
+                    this.luckySpinDiscount = Math.round(finalTotal * 0.05 * 100) / 100;
+                    finalTotal -= this.luckySpinDiscount;
+                } else if (this.savedSpinResult.type === 'product') {
+                    this.luckySpinDiscount = 0;
+                    // Ensure the won free gift item is present in cartItems
+                    const exists = this.cartItems.some(it => it.is_lucky_spin_gift);
+                    if (!exists) {
+                        this.cartItems.push({
+                            product_id: this.savedSpinResult.productId || 1903,
+                            product_name: `🎁 ${this.savedSpinResult.fullName || this.savedSpinResult.prize} (Free Gift)`,
+                            content: '1 Gift Pcs',
+                            rate: 0,
+                            original_price: this.savedSpinResult.originalPrice || 0,
+                            quantity: 1,
+                            total: 0,
+                            is_lucky_spin_gift: true,
+                            is_free_gift: true
+                        });
+                        localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+                    }
+                } else {
+                    this.luckySpinDiscount = 0;
+                }
+
+                // Restore hidden inputs
                 const hiddenPrize = document.getElementById('order-lucky-spin-prize');
                 const hiddenDisc = document.getElementById('order-lucky-spin-discount');
-                if (hiddenPrize) hiddenPrize.value = '';
-                if (hiddenDisc) hiddenDisc.value = '0';
-
-                // 5. Hide summary rows
-                const spinDiscRow = document.getElementById('lucky-spin-discount-row');
-                if (spinDiscRow) spinDiscRow.classList.add('hidden');
-                const giftRow = document.getElementById('lucky-spin-gift-row');
-                if (giftRow) giftRow.classList.add('hidden');
-
-                // 6. Notify user
-                this.showSpinRevokedAlert();
+                if (hiddenPrize) hiddenPrize.value = this.luckySpinPrize || '';
+                if (hiddenDisc) hiddenDisc.value = this.luckySpinDiscount || 0;
             }
         }
 
-        // Apply 5% Lucky Spin discount ONLY if eligible and won
-        if (isEligible && (this.luckySpinPrize === '5% Discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%')))) {
-            this.luckySpinDiscount = Math.round(this.qualifyingAmount * 0.05 * 100) / 100;
-            finalTotal -= this.luckySpinDiscount;
-        } else {
-            this.luckySpinDiscount = 0;
-        }
-        
         this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
         
         this.updateDisplay();
@@ -979,10 +1013,12 @@ class SmartCheckout {
         const cartSubtotalEl = document.getElementById('cart-subtotal');
         if (cartSubtotalEl) cartSubtotalEl.textContent = `₹${((this.regularSubtotal || 0) + (this.comboSubtotal || 0)).toFixed(2)}`;
 
+        const isEligible = (typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : 0) >= 5000;
+
         // Lucky Spin rows in summary
         const spinDiscRow = document.getElementById('lucky-spin-discount-row');
         const spinDiscVal = document.getElementById('lucky-spin-discount');
-        if (this.luckySpinDiscount > 0 && spinDiscRow && spinDiscVal) {
+        if (isEligible && this.luckySpinDiscount > 0 && spinDiscRow && spinDiscVal) {
             spinDiscRow.classList.remove('hidden');
             spinDiscVal.textContent = `-₹${this.luckySpinDiscount.toFixed(2)}`;
         } else if (spinDiscRow) {
@@ -991,7 +1027,7 @@ class SmartCheckout {
 
         const giftRow = document.getElementById('lucky-spin-gift-row');
         const giftNameEl = document.getElementById('lucky-spin-gift-name');
-        if (this.luckySpinPrize && this.luckySpinPrize !== '5% Discount' && !this.luckySpinPrize.includes('Better Luck') && giftRow && giftNameEl) {
+        if (isEligible && this.hasSpunWheel && this.luckySpinPrize && this.luckySpinPrize !== '5% Discount' && !this.luckySpinPrize.includes('Better Luck') && giftRow && giftNameEl) {
             giftRow.classList.remove('hidden');
             giftNameEl.textContent = this.luckySpinPrize;
         } else if (giftRow) {
@@ -1001,8 +1037,8 @@ class SmartCheckout {
         // Sync hidden form inputs
         const hiddenPrize = document.getElementById('order-lucky-spin-prize');
         const hiddenDisc = document.getElementById('order-lucky-spin-discount');
-        if (hiddenPrize) hiddenPrize.value = this.luckySpinPrize || '';
-        if (hiddenDisc) hiddenDisc.value = this.luckySpinDiscount || 0;
+        if (hiddenPrize) hiddenPrize.value = (isEligible && this.hasSpunWheel) ? (this.luckySpinPrize || '') : '';
+        if (hiddenDisc) hiddenDisc.value = (isEligible && this.hasSpunWheel) ? (this.luckySpinDiscount || 0) : 0;
 
         this.updateLuckyWheelState();
         this.validateForm();
@@ -1014,31 +1050,19 @@ class SmartCheckout {
         if (!this.wheelCanvas) return;
         this.wheelCtx = this.wheelCanvas.getContext('2d');
 
-        // Only restore saved spin result if qualifying normal purchase amount is >= 5000
-        const qualAmount = typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : 0;
-        if (qualAmount >= 5000) {
-            const saved = sessionStorage.getItem('lucky_spin_result');
+        // Check if user has already spun the wheel for this purchase session
+        try {
+            const saved = sessionStorage.getItem('lucky_spin_result') || localStorage.getItem('lucky_spin_result');
             if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed && parsed.prize) {
-                        this.hasSpunWheel = true;
-                        this.luckySpinPrize = parsed.prize;
-                        this.luckySpinDiscount = parsed.discount || 0;
-                    }
-                } catch(e) {}
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.prize) {
+                    this.hasSpunWheel = true;
+                    this.savedSpinResult = parsed;
+                    this.luckySpinPrize = parsed.prize;
+                    this.luckySpinDiscount = parsed.discount || 0;
+                }
             }
-        } else {
-            // Drop below 5k on load: ensure clean state
-            try { sessionStorage.removeItem('lucky_spin_result'); } catch(e) {}
-            this.hasSpunWheel = false;
-            this.luckySpinPrize = null;
-            this.luckySpinDiscount = 0;
-            if (this.cartItems.some(it => it.is_lucky_spin_gift)) {
-                this.cartItems = this.cartItems.filter(it => !it.is_lucky_spin_gift);
-                localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
-            }
-        }
+        } catch(e) {}
 
         // Preload prize images
         this.wheelPrizes.forEach(prize => {
@@ -1200,14 +1224,13 @@ class SmartCheckout {
         ctx.stroke();
     }
 
-    updateLuckyWheelState() {
-        const qualAmount = typeof this.qualifyingAmount === 'number' ? this.qualifyingAmount : 0;
-        const isEligible = qualAmount >= 5000;
-
-        const lockedBanner = document.getElementById('wheel-locked-banner');
+          const lockedBanner = document.getElementById('wheel-locked-banner');
         const unlockedBanner = document.getElementById('wheel-unlocked-banner');
         const wonBanner = document.getElementById('wheel-won-banner');
         const overlay = document.getElementById('wheel-locked-overlay');
+        const overlayIcon = document.getElementById('wheel-overlay-icon');
+        const overlayTitle = document.getElementById('wheel-overlay-title');
+        const overlaySubtitle = document.getElementById('wheel-overlay-subtitle');
         const actionBtn = document.getElementById('wheel-action-btn');
         const actionBtnText = document.getElementById('wheel-action-btn-text');
         const centerBtnLabel = document.getElementById('center-btn-label');
@@ -1226,25 +1249,41 @@ class SmartCheckout {
         if (barEl) barEl.style.width = `${pct}%`;
 
         if (!isEligible) {
-            // Locked (Under ₹5,000)
+            // Locked / On-Hold (Under ₹5,000)
             if (lockedBanner) lockedBanner.classList.remove('hidden');
             if (unlockedBanner) unlockedBanner.classList.add('hidden');
             if (wonBanner) wonBanner.classList.add('hidden');
             if (overlay) overlay.classList.remove('hidden');
-            if (statusDot) {
-                statusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+
+            if (this.hasSpunWheel) {
+                // Customer ALREADY spun: prize is ON HOLD
+                if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+                if (statusText) statusText.textContent = `Prize on Hold (${this.luckySpinPrize})`;
+                if (actionBtn) actionBtn.disabled = true;
+                if (actionBtnText) actionBtnText.textContent = `PRIZE ON HOLD (Add ₹${remaining.toFixed(2)} to restore)`;
+                if (centerBtnLabel) centerBtnLabel.textContent = 'ON HOLD';
+
+                if (overlayIcon) overlayIcon.textContent = '⏳';
+                if (overlayTitle) overlayTitle.textContent = 'Prize On Hold';
+                if (overlaySubtitle) overlaySubtitle.textContent = `Add ₹${remaining.toFixed(2)} to restore ${this.luckySpinPrize}`;
+            } else {
+                // Customer never spun: locked
+                if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+                if (statusText) statusText.textContent = 'Locked (Under ₹5,000)';
+                if (actionBtn) actionBtn.disabled = true;
+                if (actionBtnText) actionBtnText.textContent = `LOCKED (Add ₹${remaining.toFixed(2)})`;
+                if (centerBtnLabel) centerBtnLabel.textContent = 'LOCKED';
+
+                if (overlayIcon) overlayIcon.textContent = '🔒';
+                if (overlayTitle) overlayTitle.textContent = 'Locked';
+                if (overlaySubtitle) overlaySubtitle.textContent = 'Normal Crackers Above ₹5,000';
             }
-            if (statusText) statusText.textContent = 'Locked (Under ₹5,000)';
-            if (actionBtn) actionBtn.disabled = true;
-            if (actionBtnText) actionBtnText.textContent = `LOCKED (Add ₹${remaining.toFixed(2)})`;
-            if (centerBtnLabel) centerBtnLabel.textContent = 'LOCKED';
 
             if (!this.isSpinning) {
-                this.currentWheelAngle = 0;
                 this.drawLuckyWheel();
             }
         } else if (this.hasSpunWheel) {
-            // Already Spun & Eligible (>= ₹5,000)
+            // Already Spun & Eligible (>= ₹5,000): Won Prize Active & Restored!
             if (lockedBanner) lockedBanner.classList.add('hidden');
             if (unlockedBanner) unlockedBanner.classList.add('hidden');
             if (wonBanner) wonBanner.classList.remove('hidden');
@@ -1252,9 +1291,9 @@ class SmartCheckout {
             if (statusDot) {
                 statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
             }
-            if (statusText) statusText.textContent = 'Prize Claimed ✓';
+            if (statusText) statusText.textContent = 'Prize Claimed ✓ (1/1 Spun)';
             if (actionBtn) actionBtn.disabled = true;
-            if (actionBtnText) actionBtnText.textContent = `WON: ${this.luckySpinPrize}`;
+            if (actionBtnText) actionBtnText.textContent = `WON: ${this.luckySpinPrize} ✓ (Claimed)`;
             if (centerBtnLabel) centerBtnLabel.textContent = 'CLAIMED';
 
             const prizeNameText = document.getElementById('won-prize-name-text');
@@ -1262,15 +1301,15 @@ class SmartCheckout {
             if (prizeNameText) prizeNameText.textContent = this.luckySpinPrize;
             if (prizeDescText) {
                 if (this.luckySpinPrize === '5% Discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%'))) {
-                    prizeDescText.textContent = `Extra 5% discount (₹${this.luckySpinDiscount.toFixed(2)}) applied to your final bill!`;
-                } else if (this.luckySpinPrize.includes('Better Luck')) {
-                    prizeDescText.textContent = `Better luck next time! Happy Diwali wishes from Radhe Crackers!`;
+                    prizeDescText.textContent = `Extra 5% discount (₹${this.luckySpinDiscount.toFixed(2)}) automatically applied to your bill! (1 Spin per purchase used)`;
+                } else if (this.luckySpinPrize && this.luckySpinPrize.includes('Better Luck')) {
+                    prizeDescText.textContent = `Happy Diwali wishes from Radhe Crackers! (1 Spin per purchase used)`;
                 } else {
-                    prizeDescText.textContent = `FREE cracker gift item added to your package!`;
+                    prizeDescText.textContent = `FREE cracker gift (${this.luckySpinPrize}) automatically added to your package at ₹0.00! (1 Spin per purchase used)`;
                 }
             }
         } else {
-            // Unlocked and Ready (>= ₹5,000)
+            // Unlocked and Ready (>= ₹5,000, not spun yet)
             if (lockedBanner) lockedBanner.classList.add('hidden');
             if (unlockedBanner) unlockedBanner.classList.remove('hidden');
             if (wonBanner) wonBanner.classList.add('hidden');
@@ -1288,11 +1327,12 @@ class SmartCheckout {
     spinWheel() {
         const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
         if (qualAmount < 5000) {
-            alert('The Lucky Wheel unlocks exclusively for orders above ₹5,000! Please add more crackers to your cart.');
+            this.showFloatingToast('The Lucky Wheel unlocks exclusively for orders above ₹5,000! Please add more crackers to your cart.', 'warning');
             return;
         }
         if (this.hasSpunWheel) {
-            alert(`You have already spun the wheel and won: ${this.luckySpinPrize}!`);
+            const pName = this.luckySpinPrize || (this.savedSpinResult ? this.savedSpinResult.prize : 'Prize');
+            this.showFloatingToast(`You have already claimed your 1 free spin for this purchase: ${pName}!`, 'info');
             return;
         }
         if (this.isSpinning) return;
@@ -1354,12 +1394,23 @@ class SmartCheckout {
                 // Play win sound
                 this.playWinSound();
 
-                // Save to session
-                sessionStorage.setItem('lucky_spin_result', JSON.stringify({
+                const spinData = {
                     prize: prize.name,
                     prize_id: prize.id,
-                    type: prize.type
-                }));
+                    type: prize.type,
+                    fullName: prize.fullName || prize.name,
+                    productId: prize.productId || null,
+                    originalPrice: prize.originalPrice || 0,
+                    worthText: prize.worthText || '',
+                    image: prize.image || null
+                };
+                this.savedSpinResult = spinData;
+
+                // Save to both session & local storage
+                try {
+                    sessionStorage.setItem('lucky_spin_result', JSON.stringify(spinData));
+                    localStorage.setItem('lucky_spin_result', JSON.stringify(spinData));
+                } catch(e) {}
 
                 // Handle reward
                 if (prize.type === 'discount') {
@@ -1623,13 +1674,16 @@ class SmartCheckout {
         this.calculateTotals();
     }
 
-    showSpinRevokedAlert() {
+    showSpinSuspendedAlert() {
         const revokedBanner = document.getElementById('wheel-revoked-banner');
         const remAmtEl = document.getElementById('revoked-rem-amt');
+        const prizeNameEl = document.getElementById('revoked-prize-name');
         const qualAmount = this.qualifyingAmount || this.finalTotal || 0;
         const diff = Math.max(0, 5000 - qualAmount).toFixed(2);
+        const pName = this.luckySpinPrize || (this.savedSpinResult ? this.savedSpinResult.prize : 'Free Gift');
         
         if (remAmtEl) remAmtEl.textContent = diff;
+        if (prizeNameEl) prizeNameEl.textContent = pName;
         if (revokedBanner) {
             revokedBanner.classList.remove('hidden');
             if (this.revokedBannerTimeout) clearTimeout(this.revokedBannerTimeout);
@@ -1638,7 +1692,11 @@ class SmartCheckout {
             }, 8000);
         }
 
-        this.showFloatingToast(`⚠️ Cart dropped below ₹5,000. Free spin item removed. Add ₹${diff} more to unlock again!`, 'warning');
+        this.showFloatingToast(`⚠️ Cart dropped below ₹5,000. Your won prize (${pName}) is on hold. Add ₹${diff} more to restore it!`, 'warning');
+    }
+
+    showSpinRevokedAlert() {
+        this.showSpinSuspendedAlert();
     }
 
     showFloatingToast(message, type = 'info') {
@@ -1701,15 +1759,21 @@ class SmartCheckout {
         // Clear coupon data from session storage when order is submitted
         sessionStorage.removeItem('appliedCoupon');
         
+        // Sync hidden fields in customer form
+        const hiddenPrize = document.getElementById('order-lucky-spin-prize');
+        const hiddenDisc = document.getElementById('order-lucky-spin-discount');
+        if (hiddenPrize) hiddenPrize.value = this.luckySpinPrize || '';
+        if (hiddenDisc) hiddenDisc.value = this.luckySpinDiscount || 0;
+
         // Prepare form data
         const formData = new FormData(form);
-        formData.append('items', JSON.stringify(this.cartItems));
-        formData.append('coupon_code', this.couponData ? this.couponData.code : '');
-        formData.append('coupon_discount', this.couponData ? this.couponData.discount_amount : 0);
-        formData.append('lucky_spin_prize', this.luckySpinPrize || '');
-        formData.append('lucky_spin_discount', this.luckySpinDiscount || 0);
-        formData.append('total', this.finalTotal);
-        formData.append('clear_cart', 'true');
+        formData.set('items', JSON.stringify(this.cartItems));
+        formData.set('coupon_code', this.couponData ? this.couponData.code : '');
+        formData.set('coupon_discount', this.couponData ? this.couponData.discount_amount : 0);
+        formData.set('lucky_spin_prize', this.luckySpinPrize || '');
+        formData.set('lucky_spin_discount', this.luckySpinDiscount || 0);
+        formData.set('total', this.finalTotal);
+        formData.set('clear_cart', 'true');
         
         try {
             // Get fresh CSRF token
@@ -1765,6 +1829,7 @@ class SmartCheckout {
                 this.clearPreviousSessionData();
                 localStorage.removeItem('cartItems');
                 sessionStorage.removeItem('lucky_spin_result');
+                localStorage.removeItem('lucky_spin_result');
                 
                 // Show success message
                 this.showSuccessMessage('Order placed successfully! PDF Bill has been sent to your WhatsApp.');

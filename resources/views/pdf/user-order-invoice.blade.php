@@ -580,14 +580,15 @@
                         <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
                     @endif
                     <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
-                    @if($order->lucky_spin_prize)
-                        <tr><td class="label">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $order->lucky_spin_prize }}</td></tr>
-                    @endif
-                    @if($luckySpinDiscount > 0)
-                        <tr><td class="label">Lucky Spin Disc (5%)</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
-                    @endif
                     <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
                     <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    @if($order->lucky_spin_prize)
+                        @if($luckySpinDiscount > 0)
+                            <tr><td class="label" style="color:#059669;font-weight:bold;">Lucky Spin Disc (5%) [{{ $order->lucky_spin_prize }}]</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
+                        @else
+                            <tr><td class="label" style="color:#B45309;font-weight:bold;">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $order->lucky_spin_prize }} (FREE)</td></tr>
+                        @endif
+                    @endif
                     @if($order->has_gst && $gstAmount > 0)
                         <tr><td class="label">GST (18%)</td><td class="value">₹{{ number_format($gstAmount, 2) }}</td></tr>
                     @endif

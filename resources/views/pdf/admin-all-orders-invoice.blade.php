@@ -459,9 +459,12 @@
                         $productId = is_array($item) ? ($item['product_id'] ?? $item['stock_id'] ?? null) : ($item->product_id ?? $item->stock_id ?? null);
                         $catalogSno = $catalogSnoMap[$productId] ?? '-';
                         $originalPrice = is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0);
-                        $quantity =is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
-                        $line = $originalPrice * $quantity;
-                        $subtotal += $line;
+                        $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
+                        $isLuckyGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
+                        $line = $isLuckyGift ? 0 : ($originalPrice * $quantity);
+                        if (!$isLuckyGift) {
+                            $subtotal += $line;
+                        }
 
                         $productDesc = is_array($item) ? ($item['description'] ?? $item['content'] ?? null) : ($item->description ?? $item->content ?? null);
                         if (!$productDesc && $productId) {
@@ -470,18 +473,20 @@
                     @endphp
                     <tr>
                         <td class="sno">{{ $itemSno++ }}</td>
-                        <td class="code" style="font-weight: bold;">{{ $catalogSno }}</td>
+                        <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : '' }}">{{ $isLuckyGift ? '🎁 GIFT' : $catalogSno }}</td>
                         <td class="product">
-                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; color: #111827;">
+                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : 'color: #111827;' }}">
                                 {!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}
                             </div>
-                            @if($productDesc)
+                            @if($isLuckyGift)
+                                <div style="font-size: 8.5px; color: #D97706; font-weight: bold; padding-top: 3px; line-height: 1.2;">🎉 Lucky Spinning Wheel Free Gift</div>
+                            @elseif($productDesc)
                                 <div style="font-size: 8px; color: #4B5563; font-weight: normal; padding-top: 2px; line-height: 1.2;">{{ $productDesc }}</div>
                             @endif
                         </td>
                         <td class="mrp">{{ number_format($originalPrice, 2) }}</td>
                         <td class="qty">{{ $quantity }}</td>
-                        <td class="total">{{ number_format($line, 2) }}</td>
+                        <td class="total" style="{{ $isLuckyGift ? 'font-weight: bold; color: #059669;' : '' }}">{{ $isLuckyGift ? 'FREE (0.00)' : number_format($line, 2) }}</td>
                     </tr>
                 @endforeach
             @endforeach
@@ -558,14 +563,15 @@
                         <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
                     @endif
                     <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
-                    @if($order->lucky_spin_prize)
-                        <tr><td class="label">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $order->lucky_spin_prize }}</td></tr>
-                    @endif
-                    @if($luckySpinDiscount > 0)
-                        <tr><td class="label">Lucky Spin Disc (5%)</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
-                    @endif
                     <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
                     <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    @if($order->lucky_spin_prize)
+                        @if($luckySpinDiscount > 0)
+                            <tr><td class="label" style="color:#059669;font-weight:bold;">Lucky Spin Disc (5%) [{{ $order->lucky_spin_prize }}]</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
+                        @else
+                            <tr><td class="label" style="color:#B45309;font-weight:bold;">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $order->lucky_spin_prize }} (FREE)</td></tr>
+                        @endif
+                    @endif
                     @if($order->has_gst && $gstAmount > 0)
                         <tr><td class="label">GST (18%)</td><td class="value">₹{{ number_format($gstAmount, 2) }}</td></tr>
                     @endif

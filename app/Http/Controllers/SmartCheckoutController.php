@@ -202,7 +202,7 @@ class SmartCheckoutController extends Controller
             // Check if eligible for lucky spin:
             // STRICT RULE: Lucky Wheel is ONLY unlocked for normal purchase above ₹5,000 (combos do not count)
             $normalPurchaseTotal = max(0, ($afterDiscount15 + $packingCharge) - $couponDiscount);
-            $isLuckySpinEligible = ($normalPurchaseTotal >= 5000);
+            $isLuckySpinEligible = ($normalPurchaseTotal >= 4995 || round($normalPurchaseTotal) >= 5000);
 
             if (!$isLuckySpinEligible) {
                 // If normal purchase is less than 5000, remove lucky spin gifts and reset discount
@@ -212,9 +212,10 @@ class SmartCheckoutController extends Controller
                 $luckySpinPrize = null;
                 $luckySpinDiscount = 0;
             } elseif (!empty($luckySpinPrize)) {
-                if ($luckySpinPrize === '5% Discount' || str_contains(strtolower($luckySpinPrize), '5%')) {
-                    $luckySpinDiscount = round($finalTotal * 0.05, 2);
-                    $finalTotal = max(0, $finalTotal - $luckySpinDiscount);
+                if ($luckySpinPrize === '5% Discount' || str_contains(strtolower($luckySpinPrize), '5%') || str_contains(strtolower($luckySpinPrize), 'discount')) {
+                    $baseForDiscount = $totalBeforePacking + $packingCharge;
+                    $luckySpinDiscount = round($baseForDiscount * 0.05, 2);
+                    $finalTotal = max(0, round($baseForDiscount - $luckySpinDiscount));
                 } elseif (str_contains(strtolower($luckySpinPrize), '25 raider')) {
                     // Check if already injected
                     $hasGift = false;

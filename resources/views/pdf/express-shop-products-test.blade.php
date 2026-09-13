@@ -331,19 +331,27 @@
                     @php
                         $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
                         $catalogSno = $catalogSnoMap[$productId] ?? '-';
+                        $isGift = !empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']);
                         $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
                         $quantity = $item['quantity'] ?? 0;
-                        $line = $originalPrice * $quantity;
-                        $subtotal += $line;
+                        $line = $isGift ? 0 : ($originalPrice * $quantity);
+                        if (!$isGift) {
+                            $subtotal += $line;
+                        }
                     @endphp
                     <tr>
                         <td>{{ $catalogSno }}</td>
                         <!-- <td>{{ $item['product_id'] ?? '-' }}</td> -->
-                        <td>{!! isset($item['product_name']) ? str_replace('&quot;', '"', $item['product_name']) : '-' !!}</td>
+                        <td>
+                            {!! isset($item['product_name']) ? str_replace('&quot;', '"', $item['product_name']) : '-' !!}
+                            @if($isGift)
+                                <span style="color: #d97706; font-weight: bold; font-size: 10px;"> [FREE GIFT]</span>
+                            @endif
+                        </td>
                         <td>{{ $item['description'] ?? '-' }}</td>
-                        <td>{{ number_format($originalPrice, 2) }}</td>
+                        <td>{{ $isGift ? 'FREE' : number_format($originalPrice, 2) }}</td>
                         <td>{{ $quantity }}</td>
-                        <td class="total">{{ number_format($line, 2) }}</td>
+                        <td class="total">{{ $isGift ? 'FREE (0.00)' : number_format($line, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -359,6 +367,8 @@
             $comboSubtotal = 0;
             if (isset($order->items) && is_iterable($order->items)) {
                 foreach ($order->items as $item) {
+                    $isGift = !empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']);
+                    if ($isGift) continue;
                     $pId = (int)($item['product_id'] ?? 0);
                     $pName = (string)($item['product_name'] ?? '');
                     $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
@@ -380,7 +390,9 @@
             $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
             $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
             $packing = round($totalBeforePacking * 0.05, 2);
-            $finalAmount = round($totalBeforePacking + $packing);
+            $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
+            $luckySpinPrize = $order->lucky_spin_prize ?? null;
+            $finalAmount = max(0, round($totalBeforePacking + $packing - $luckySpinDiscount));
         @endphp
 
         <table class="summary-table">
@@ -397,6 +409,13 @@
             <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
             <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
             <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+            @if(!empty($luckySpinPrize))
+                @if($luckySpinDiscount > 0)
+                    <tr><td class="label" style="color:#059669;font-weight:bold;">Lucky Spin Disc (5%) [{{ $luckySpinPrize }}]</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
+                @else
+                    <tr><td class="label" style="color:#B45309;font-weight:bold;">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $luckySpinPrize }} (FREE)</td></tr>
+                @endif
+            @endif
             <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Payable Amount</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
         </table>
         
