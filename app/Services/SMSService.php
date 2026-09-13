@@ -251,6 +251,7 @@ class SMSService
         } else {
             if ($context === 'otp' && !empty($otp)) {
                 try {
+                    $otpStr = (string)$otp;
                     $curl = curl_init();
                     curl_setopt_array($curl, [
                         CURLOPT_URL => "https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages",
@@ -271,29 +272,49 @@ class SMSService
                                 'components' => [
                                     [
                                         'type' => 'body',
-                                        'parameters' => [['type' => 'text', 'text' => $otp]]
+                                        'parameters' => [['type' => 'text', 'text' => $otpStr]]
                                     ],
                                     [
                                         'type' => 'button',
                                         'sub_type' => 'url',
-                                        'index' => '0',
-                                        'parameters' => [['type' => 'text', 'text' => $otp]]
+                                        'index' => 0,
+                                        'parameters' => [['type' => 'text', 'text' => $otpStr]]
                                     ]
                                 ]
                             ]
                         ]),
                         CURLOPT_HTTPHEADER => [
-                            "Accept: */*",
+                            "Accept: application/json",
                             "Authorization: Bearer dJEFvrN8T-RhN7XprIFXUcgBNOCfG-ru9rDjhVLAT0P3jO_b2YGd9SEz23thnAok",
                             "Content-Type: application/json",
                         ],
                     ]);
                     $response = curl_exec($curl);
+                    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
                     $err = curl_error($curl);
                     curl_close($curl);
-                    return !$err;
+
+                    $resData = json_decode($response, true);
+                    $isSuccess = (!$err && $httpCode >= 200 && $httpCode < 300 && !empty($resData['messages']));
+
+                    if ($isSuccess) {
+                        Log::info('WhatsApp OTP successfully dispatched', [
+                            'phone' => $phone,
+                            'http_code' => $httpCode,
+                            'msg_id' => $resData['messages'][0]['id'] ?? null
+                        ]);
+                    } else {
+                        Log::error('WhatsApp OTP dispatch failed', [
+                            'phone' => $phone,
+                            'http_code' => $httpCode,
+                            'response' => $response,
+                            'error' => $err
+                        ]);
+                    }
+
+                    return $isSuccess;
                 } catch (\Exception $e) {
-                    Log::error('LionSMS Exception', ['error' => $e->getMessage()]);
+                    Log::error('WhatsApp OTP Exception', ['error' => $e->getMessage()]);
                     return false;
                 }
             }

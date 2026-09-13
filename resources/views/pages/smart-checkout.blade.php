@@ -822,8 +822,8 @@ class SmartCheckout {
         const totalBeforePacking = Math.round((afterCouponDiscount + comboSubtotal) * 100) / 100;
         this.totalBeforePacking = totalBeforePacking;
 
-        // 4. Add Packaging Cost (5%) on Total Amount
-        const packingCharge = Math.round(totalBeforePacking * 0.05 * 100) / 100;
+        // 4. Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
+        const packingCharge = (afterCouponDiscount > 0) ? Math.round(afterCouponDiscount * 0.05 * 100) / 100 : 0;
         this.packingCharge = packingCharge;
         
         let finalTotal = totalBeforePacking + packingCharge;
@@ -1005,7 +1005,19 @@ class SmartCheckout {
         if (totalBeforePackingEl) totalBeforePackingEl.textContent = `₹${(this.totalBeforePacking || 0).toFixed(2)}`;
 
         const packingEl = document.getElementById('packing-charge');
-        if (packingEl) packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
+        const packingLabel = document.getElementById('packing-charge-label');
+        if (packingEl) {
+            if (this.regularSubtotal === 0 && this.comboSubtotal > 0) {
+                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost:';
+                packingEl.innerHTML = '<span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full text-xs">Free for Combos (₹0.00)</span>';
+            } else if (this.comboSubtotal > 0) {
+                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost (5% on regular items):';
+                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
+            } else {
+                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost (5%):';
+                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
+            }
+        }
 
         const finalTotalEl = document.getElementById('final-total');
         if (finalTotalEl) finalTotalEl.textContent = `₹${this.finalTotal.toLocaleString('en-IN')}`;

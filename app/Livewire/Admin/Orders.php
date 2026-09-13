@@ -680,7 +680,7 @@ class Orders extends Component
 
         $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2)); // 1. After Coupon Discount
         $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2); // 2. Net Rate Items + 3. Total Amount
-        $packingCharge = round($totalBeforePacking * 0.05, 2); // 4. Add Packaging Cost (5%)
+        $packingCharge = ($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0; // 4. Add Packaging Cost (5% on regular items only, NO packing for combos)
 
         $luckySpinDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {

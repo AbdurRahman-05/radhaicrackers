@@ -112,7 +112,7 @@
                         $couponDiscount = (float)($order->coupon_discount ?? 0);
                         $afterCoupon = max(0, round($afterSpecial15 - $couponDiscount, 2));
                         $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
-                        $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 ? (float)$order->packing_charge_5_percent : round($totalBeforePacking * 0.05, 2);
+                        $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0);
                         $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
                         $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 ? (float)$order->total_amount : (isset($order->total) && (float)$order->total > 0 ? (float)$order->total : max(0, round($totalBeforePacking + $packing - $spinDiscount)));
 

@@ -189,8 +189,8 @@ class SmartCheckoutController extends Controller
             // 3. Total Amount = After Coupon Discount + Net Rate Items
             $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
 
-            // 4. Add Packaging Cost (5%) on Total Amount
-            $packingCharge = round($totalBeforePacking * 0.05, 2);
+            // 4. Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
+            $packingCharge = ($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0;
 
             // 5. Net Payable Amount
             $finalTotal = round($totalBeforePacking + $packingCharge);

@@ -37,16 +37,30 @@ class OTPLoginController extends Controller
             'is_verified' => false,
         ]);
 
-        if($channel === 'sms') {
+        $sent = false;
+        $sentMessage = 'OTP sent successfully.';
+
+        if ($channel === 'sms') {
             $sent = $smsService->sendOtp($phone, $otp);
-        } else if($channel === 'whatsapp') {
-            $sent = $smsService->sendWhatsApp($phone, $otp, $context='otp', []);
+            $sentMessage = 'OTP sent to your mobile number via SMS.';
+        } else if ($channel === 'whatsapp') {
+            $sent = $smsService->sendWhatsApp($phone, $otp, 'otp', []);
+            if ($sent) {
+                $sentMessage = 'OTP sent to your WhatsApp number.';
+            } else {
+                // Auto-fallback to SMS if WhatsApp dispatch fails
+                $fallbackSent = $smsService->sendOtp($phone, $otp);
+                if ($fallbackSent) {
+                    $sent = true;
+                    $sentMessage = 'WhatsApp delivery was temporarily unavailable. OTP has been sent via SMS to your mobile.';
+                }
+            }
         }
 
         if ($sent) {
-            return back()->with('success', 'OTP sent successfully.')->withInput();
+            return back()->with('success', $sentMessage)->withInput();
         } else {
-            return back()->withErrors(['phone' => 'Failed to send OTP.']);
+            return back()->withErrors(['phone' => 'Failed to send OTP via ' . strtoupper($channel) . '. Please try another channel or try again in a few moments.'])->withInput();
         }
     }
 
