@@ -443,9 +443,9 @@ class Orders extends Component
         $this->editPaidAt = $order->paid_at ? $order->paid_at->format('Y-m-d\TH:i') : '';
         $this->editNotes = $order->notes ?? '';
         $this->editReceiveAmount = $order->receive_amount ?? '';
-        $this->editCustomerName = $order->customer_name ?? '';
-        $this->editCustomerMobile = $order->customer_mobile ?? '';
-        $this->editCustomerEmail = $order->customer_email ?? '';
+        $this->editCustomerName = $order->customer_name ?: ($order->user->name ?? '');
+        $this->editCustomerMobile = $order->customer_mobile ?: ($order->user->phone ?? '');
+        $this->editCustomerEmail = $order->customer_email ?: ($order->user->email ?? '');
         $this->editCustomerState = $order->customer_state ?? '';
         $this->editCustomerDistrict = $order->customer_district ?? '';
         $this->editCustomerCity = $order->customer_city ?? '';

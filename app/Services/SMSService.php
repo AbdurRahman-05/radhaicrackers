@@ -180,8 +180,8 @@ class SMSService
                                     'type' => 'body',
                                     'parameters' => [
                                         ['type' => 'text', 'text' => $name],
-                                        ['type' => 'text', 'text' => $order_value],
-                                        ['type' => 'text', 'text' => $param3]
+                                        ['type' => 'text', 'text' => "#{$order_id}"],
+                                        ['type' => 'text', 'text' => "{$order_value} "]
                                     ]
                                 ]
                             ]
