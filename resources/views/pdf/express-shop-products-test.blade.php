@@ -394,10 +394,10 @@
             @endif
             <tr><td class="label">Coupon Discount</td><td class="value">{{ $couponDiscount > 0 ? '-₹' . number_format($couponDiscount, 2) : '0000' }}</td></tr>
             <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
-            <tr><td class="label">Net rate Items / Combo</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
-            <tr><td class="label"><strong>T. Amt</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
-            <tr><td class="label">Add packing 5%</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
-            <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Amt / Payable Amt</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
+            <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
+            <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
+            <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+            <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Payable Amount</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
         </table>
         
         <div style="margin-top: 15px; font-size: 11px; color: #444; text-align: left; padding: 6px 10px; border-left: 3px solid #1E093B; background-color: #f9fafb; font-style: italic; page-break-inside: avoid;">

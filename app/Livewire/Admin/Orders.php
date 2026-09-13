@@ -678,9 +678,9 @@ class Orders extends Component
             $couponDiscount = (float)$this->editingOrder->coupon_discount;
         }
 
-        $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
-        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2); // T. Amt
-        $packingCharge = round($totalBeforePacking * 0.05, 2); // Add packing 5%
+        $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2)); // 1. After Coupon Discount
+        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2); // 2. Net Rate Items + 3. Total Amount
+        $packingCharge = round($totalBeforePacking * 0.05, 2); // 4. Add Packaging Cost (5%)
 
         $luckySpinDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {

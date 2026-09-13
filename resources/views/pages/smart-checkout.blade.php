@@ -388,9 +388,9 @@
                         <span id="after-coupon-discount" class="font-semibold text-gray-800">₹0.00</span>
                     </div>
 
-                    <!-- 8. Net rate Items / Combo -->
+                    <!-- 8. Net Rate Items -->
                     <div id="combo-subtotal-row" class="flex justify-between text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200 font-bold">
-                        <span>Net rate Items / Combo:</span>
+                        <span>Net Rate Items:</span>
                         <span id="combo-subtotal">₹0.00</span>
                     </div>
 
@@ -404,23 +404,23 @@
                         <span id="lucky-spin-gift-name" class="text-xs bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold"></span>
                     </div>
 
-                    <!-- 9. T. Amt (Total Amount before packing) -->
-                    <div class="flex justify-between text-gray-900 font-bold border-t border-gray-300 pt-2 text-sm">
-                        <span>T. Amt:</span>
-                        <span id="total-before-packing">₹0.00</span>
+                    <!-- 9. Total Amount (Net Total) -->
+                    <div class="flex justify-between text-gray-900 font-extrabold border-t border-gray-300 pt-2 text-sm bg-gray-50/80 px-2 py-1 rounded">
+                        <span>Total Amount:</span>
+                        <span id="total-before-packing" class="text-gray-900 font-bold text-sm">₹0.00</span>
                     </div>
 
-                    <!-- 10. Add packing 5% -->
+                    <!-- 10. Add Packaging Cost -->
                     <div class="flex justify-between items-center text-orange-700 font-medium" id="packing-charge-row">
-                        <span id="packing-charge-label">Add packing 5%:</span>
+                        <span id="packing-charge-label">Add Packaging Cost (5%):</span>
                         <span id="packing-charge" class="font-bold">₹0.00</span>
                     </div>
 
                     <hr class="border-gray-300 my-1">
 
-                    <!-- 11. Net Amt / Payable Amt -->
+                    <!-- 11. Net Payable Amount -->
                     <div class="flex justify-between items-center text-base sm:text-lg font-black text-gray-900 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
-                        <span>Net Amt / Payable Amt:</span>
+                        <span>Net Payable Amount:</span>
                         <span id="final-total" class="text-[#1E093B] text-xl sm:text-2xl">₹0.00</span>
                     </div>
                 </div>
@@ -800,11 +800,13 @@ class SmartCheckout {
         const afterCouponDiscount = Math.max(0, Math.round((afterDiscount15 - couponDiscount) * 100) / 100);
         this.afterCouponDiscount = afterCouponDiscount;
 
-        // T. Amt = After Coupon Discount + Net rate Items / Combo
+        // 1. After Coupon Discount
+        // 2. Net Rate Items (comboSubtotal)
+        // 3. Total Amount = After Coupon Discount + Net Rate Items
         const totalBeforePacking = Math.round((afterCouponDiscount + comboSubtotal) * 100) / 100;
         this.totalBeforePacking = totalBeforePacking;
 
-        // Add packing 5% on T. Amt
+        // 4. Add Packaging Cost (5%) on Total Amount
         const packingCharge = Math.round(totalBeforePacking * 0.05 * 100) / 100;
         this.packingCharge = packingCharge;
         
@@ -962,11 +964,7 @@ class SmartCheckout {
         if (comboSubtotalEl) comboSubtotalEl.textContent = `₹${(this.comboSubtotal || 0).toFixed(2)}`;
         const comboRowEl = document.getElementById('combo-subtotal-row');
         if (comboRowEl) {
-            if ((this.comboSubtotal || 0) > 0) {
-                comboRowEl.classList.remove('hidden');
-            } else {
-                comboRowEl.classList.add('hidden');
-            }
+            comboRowEl.classList.remove('hidden');
         }
 
         const totalBeforePackingEl = document.getElementById('total-before-packing');

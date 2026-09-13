@@ -739,24 +739,22 @@
                                 <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_coupon'], 2) }}</span>
                             </div>
                             @endif
-                            @if($calculatedTotals['combo_subtotal'] > 0)
                             <div class="flex justify-between text-purple-700 font-medium">
-                                <span>Net rate Items / Combo:</span>
+                                <span>Net Rate Items:</span>
                                 <span>₹{{ number_format($calculatedTotals['combo_subtotal'], 2) }}</span>
                             </div>
-                            @endif
                             @if(isset($calculatedTotals['lucky_spin_discount']) && $calculatedTotals['lucky_spin_discount'] > 0)
                             <div class="flex justify-between text-emerald-600 font-medium">
                                 <span>🎡 Lucky Spin Disc (5%):</span>
                                 <span>-₹{{ number_format($calculatedTotals['lucky_spin_discount'], 2) }}</span>
                             </div>
                             @endif
-                            <div class="flex justify-between text-gray-900 font-semibold border-t border-gray-200 pt-1">
-                                <span>T. Amt:</span>
+                            <div class="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1">
+                                <span>Total Amount:</span>
                                 <span>₹{{ number_format($calculatedTotals['total_before_packing'], 2) }}</span>
                             </div>
                             <div class="flex justify-between text-orange-600 font-medium">
-                                <span>Add packing 5%:</span>
+                                <span>Add Packaging Cost (5%):</span>
                                 <span>+₹{{ number_format($calculatedTotals['packing_charge_5_percent'], 2) }}</span>
                             </div>
                             @if($calculatedTotals['gst_amount'] > 0)
@@ -766,7 +764,7 @@
                             </div>
                             @endif
                             <div class="flex justify-between text-sm font-extrabold text-gray-900 border-t border-gray-200 pt-1.5 mt-1">
-                                <span>Net Amt / Payable Amt:</span>
+                                <span>Net Payable Amount:</span>
                                 <span class="text-orange-600 text-base">₹{{ number_format($calculatedTotals['total'], 2) }}</span>
                             </div>
                         </div>

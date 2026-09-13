@@ -138,9 +138,7 @@
                         <div><strong>Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif:</strong> -₹{{ number_format($couponDiscount, 2) }}</div>
                         <div><strong>After Coupon Discount:</strong> ₹{{ number_format($afterCoupon, 2) }}</div>
                     @endif
-                    @if($comboSubtotal > 0)
-                        <div><strong>Net rate Items / Combo:</strong> ₹{{ number_format($comboSubtotal, 2) }}</div>
-                    @endif
+                    <div><strong>Net Rate Items:</strong> ₹{{ number_format($comboSubtotal, 2) }}</div>
                     @if($order->lucky_spin_prize)
                         <div class="mt-1 p-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between">
                             <span class="font-bold text-amber-900">🎡 Lucky Spin Prize:</span>
@@ -150,9 +148,9 @@
                     @if($spinDiscount > 0)
                         <div class="text-emerald-700 font-bold"><strong>🎡 Lucky Spin Disc (5%):</strong> -₹{{ number_format($spinDiscount, 2) }}</div>
                     @endif
-                    <div><strong>T. Amt:</strong> ₹{{ number_format($totalBeforePacking, 2) }}</div>
-                    <div><strong>Add packing 5%:</strong> ₹{{ number_format($packing, 2) }}</div>
-                    <div class="text-base font-bold text-gray-900 border-t pt-1"><strong>Net Amt / Payable Amt:</strong> ₹{{ number_format($netPayable, 2) }}</div>
+                    <div><strong>Total Amount:</strong> ₹{{ number_format($totalBeforePacking, 2) }}</div>
+                    <div><strong>Add Packaging Cost (5%):</strong> ₹{{ number_format($packing, 2) }}</div>
+                    <div class="text-base font-bold text-gray-900 border-t pt-1"><strong>Net Payable Amount:</strong> ₹{{ number_format($netPayable, 2) }}</div>
                     <div><strong>Received Amt:</strong> ₹{{ number_format($receivedAmount, 2) }}</div>
                     @if($balanceDue > 0)
                         <div class="text-red-600 font-bold"><strong>Balance Due:</strong> ₹{{ number_format($balanceDue, 2) }}</div>

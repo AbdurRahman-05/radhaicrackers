@@ -182,15 +182,17 @@ class SmartCheckoutController extends Controller
                 }
             }
 
+            // 1. After Coupon Discount
             $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
 
-            // T. Amt = After Coupon Discount + Net rate Items / Combo
+            // 2. Net Rate Items ($comboSubtotal)
+            // 3. Total Amount = After Coupon Discount + Net Rate Items
             $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
 
-            // Add packing 5% on T. Amt
+            // 4. Add Packaging Cost (5%) on Total Amount
             $packingCharge = round($totalBeforePacking * 0.05, 2);
 
-            // Net Amt / Payable Amt
+            // 5. Net Payable Amount
             $finalTotal = round($totalBeforePacking + $packingCharge);
 
             // Process Lucky Spinning Wheel Prize (strictly for NORMAL purchases >= ₹5,000)

@@ -557,22 +557,20 @@
                         <tr><td class="label">Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
                         <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
                     @endif
-                    @if($comboSubtotal > 0)
-                        <tr><td class="label">Net rate Items / Combo</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
-                    @endif
+                    <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
                     @if($order->lucky_spin_prize)
                         <tr><td class="label">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $order->lucky_spin_prize }}</td></tr>
                     @endif
                     @if($luckySpinDiscount > 0)
                         <tr><td class="label">Lucky Spin Disc (5%)</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
                     @endif
-                    <tr><td class="label"><strong>T. Amt</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
-                    <tr><td class="label">Add packing 5%</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
+                    <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
                     @if($order->has_gst && $gstAmount > 0)
                         <tr><td class="label">GST (18%)</td><td class="value">₹{{ number_format($gstAmount, 2) }}</td></tr>
                     @endif
                     <tr>
-                        <td class="label" style="background:#1E093B;color:#fff;font-size:11px;"><strong>Net Amt / Payable Amt</strong></td>
+                        <td class="label" style="background:#1E093B;color:#fff;font-size:11px;"><strong>Net Payable Amount</strong></td>
                         <td class="value" style="background:#1E093B;color:#fff;font-size:11px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td>
                     </tr>
                     <tr>
