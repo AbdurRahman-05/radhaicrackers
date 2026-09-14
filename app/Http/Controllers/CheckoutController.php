@@ -68,6 +68,21 @@ class CheckoutController extends Controller
         $orderData['final_amount_after_coupon'] = $finalAmountAfterCoupon;
         $orderData['user_id'] = auth()->id() ?? 1; // Assign to current user or default user
         
+        // Safety check: Filter orderData to only columns that actually exist in the orders table
+        try {
+            $existingOrderColumns = \Illuminate\Support\Facades\Schema::getColumnListing('orders');
+            if (!empty($existingOrderColumns)) {
+                $orderData = array_intersect_key($orderData, array_flip($existingOrderColumns));
+            }
+        } catch (\Throwable $colEx) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_discount')) {
+                unset($orderData['lucky_spin_discount']);
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_prize')) {
+                unset($orderData['lucky_spin_prize']);
+            }
+        }
+
         // Create order with all items stored in items_json
         $order = Order::create($orderData);
 

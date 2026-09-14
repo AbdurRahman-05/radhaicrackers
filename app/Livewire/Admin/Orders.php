@@ -892,6 +892,37 @@ class Orders extends Component
                 'final_amount' => $totals['total'],
             ];
 
+            // Try ensuring missing columns exist in the database table if possible
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_discount')) {
+                    \Illuminate\Support\Facades\Schema::table('orders', function (\Illuminate\Database\Schema\Blueprint $table) {
+                        if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_prize')) {
+                            $table->string('lucky_spin_prize')->nullable();
+                        }
+                        if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_discount')) {
+                            $table->decimal('lucky_spin_discount', 10, 2)->default(0);
+                        }
+                    });
+                }
+            } catch (\Throwable $migrationEx) {
+                // Silently ignore if DB user doesn't have ALTER permissions
+            }
+
+            // Safety check: Filter updateData to only columns that actually exist in the orders table
+            try {
+                $existingOrderColumns = \Illuminate\Support\Facades\Schema::getColumnListing('orders');
+                if (!empty($existingOrderColumns)) {
+                    $updateData = array_intersect_key($updateData, array_flip($existingOrderColumns));
+                }
+            } catch (\Throwable $colEx) {
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_discount')) {
+                    unset($updateData['lucky_spin_discount']);
+                }
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'lucky_spin_prize')) {
+                    unset($updateData['lucky_spin_prize']);
+                }
+            }
+
             $order->update($updateData);
 
             // Sync OrderItem database table records
