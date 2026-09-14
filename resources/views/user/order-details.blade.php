@@ -81,10 +81,17 @@
                                 $isCombo = is_array($item) ? (!empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO')) : (!empty($item->is_combo) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO'));
                                 $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                                 if ($isCombo) {
-                                    $cRate = is_array($item) ? ($item['rate'] ?? ($item['price'] ?? 0)) : ($item->rate ?? ($item->price ?? 0));
+                                    $cRate = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? $item->rate ?? 0));
+                                    $pNameUpper = strtoupper($pName);
+                                    if ($cRate <= 0 || ($cRate > 10000 && str_contains($pNameUpper, '3K'))) {
+                                        if (str_contains($pNameUpper, '3K')) $cRate = 3000;
+                                        elseif (str_contains($pNameUpper, '5K')) $cRate = 5000;
+                                        elseif (str_contains($pNameUpper, '8K')) $cRate = 8000;
+                                        elseif (str_contains($pNameUpper, '10K')) $cRate = 10000;
+                                    }
                                     $comboSubtotal += $cRate * $quantity;
                                 } else {
-                                    $rRate = is_array($item) ? ($item['original_price'] ?? ($item['rate'] ?? ($item['price'] ?? 0))) : ($item->original_price ?? ($item->rate ?? ($item->price ?? 0)));
+                                    $rRate = (float)(is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0));
                                     $regularSubtotal += $rRate * $quantity;
                                 }
                             }
@@ -95,13 +102,28 @@
                             @php
                                 $itemName = is_array($item) ? ($item['product_name'] ?? '-') : $item->product_name;
                                 $itemQty = is_array($item) ? ($item['quantity'] ?? 0) : $item->quantity;
+                                $pId = (int)(is_array($item) ? ($item['product_id'] ?? 0) : ($item->product_id ?? 0));
+                                $pName = (string)(is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? ''));
+                                $isCombo = is_array($item) ? (!empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO')) : (!empty($item->is_combo) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO'));
                                 $itemPrice = is_array($item) ? ($item['rate'] ?? ($item['price'] ?? 0)) : $item->price;
-                                $itemTotal = is_array($item) ? ($item['total'] ?? ($item['subtotal'] ?? 0)) : $item->subtotal;
+                                if ($isCombo) {
+                                    $pNameUpper = strtoupper($pName);
+                                    if ($itemPrice <= 0 || ($itemPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                                        if (str_contains($pNameUpper, '3K')) $itemPrice = 3000;
+                                        elseif (str_contains($pNameUpper, '5K')) $itemPrice = 5000;
+                                        elseif (str_contains($pNameUpper, '8K')) $itemPrice = 8000;
+                                        elseif (str_contains($pNameUpper, '10K')) $itemPrice = 10000;
+                                    }
+                                }
+                                $itemTotal = $itemPrice * $itemQty;
                             @endphp
                             <div class="flex justify-between items-center border-b border-gray-200 pb-4 last:border-b-0">
                                 <div>
                                     <h3 class="font-medium text-gray-900">
                                         {!! html_entity_decode($itemName) !!}
+                                        @if($isCombo)
+                                            <span class="ml-1.5 text-xs bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">COMBO</span>
+                                        @endif
                                     </h3>
                                     <p class="text-sm text-gray-600">Quantity: {{ $itemQty }}</p>
                                 </div>
@@ -118,12 +140,25 @@
                             $afterDiscount70 = isset($order->amount_after_70_discount) && (float)$order->amount_after_70_discount > 0 ? (float)$order->amount_after_70_discount : round($regularSubtotal - $discount70, 2);
                             $specialDiscount15 = isset($order->special_discount_15_percent) && (float)$order->special_discount_15_percent > 0 ? (float)$order->special_discount_15_percent : round($afterDiscount70 * 0.15, 2);
                             $afterSpecial15 = isset($order->amount_after_15_discount) && (float)$order->amount_after_15_discount > 0 ? (float)$order->amount_after_15_discount : round($afterDiscount70 - $specialDiscount15, 2);
-                            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterSpecial15 > 0) ? round($afterSpecial15 * 0.05, 2) : 0);
+                            
+                            // 5% Packaging Cost on regular items AND combos
+                            $taxableGoods = $afterSpecial15 + $comboSubtotal;
+                            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($taxableGoods * 0.05, 2)) < 5
+                                ? (float)$order->packing_charge_5_percent
+                                : (($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0);
+                            $regularPacking = ($afterSpecial15 > 0) ? round($afterSpecial15 * 0.05, 2) : 0;
+                            $comboPacking = round($packing - $regularPacking, 2);
+
                             $couponDiscount = (float)($order->coupon_discount ?? 0);
-                            $afterCoupon = max(0, round($afterSpecial15 + $packing - $couponDiscount, 2));
+                            $afterCoupon = max(0, round($afterSpecial15 + $regularPacking - $couponDiscount, 2));
                             $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
                             $netBeforeCombos = max(0, round($afterCoupon - $spinDiscount, 2));
-                            $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 ? (float)$order->total_amount : (isset($order->total) && (float)$order->total > 0 ? (float)$order->total : max(0, round($netBeforeCombos + $comboSubtotal)));
+                            $calculatedNetPayable = max(0, round($netBeforeCombos + $comboSubtotal + $comboPacking));
+                            $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 && abs((float)$order->total_amount - $calculatedNetPayable) <= 2
+                                ? (float)$order->total_amount
+                                : (isset($order->total) && (float)$order->total > 0 && abs((float)$order->total - $calculatedNetPayable) <= 2
+                                    ? (float)$order->total
+                                    : $calculatedNetPayable);
 
                             $receivedAmount = (isset($order->receive_amount) && is_numeric($order->receive_amount)) ? (float)$order->receive_amount : 0;
                             if ($receivedAmount == 0 && $order->status === 'confirmed' && (($order->payment_status ?? '') === 'paid' || ($order->payment->status ?? '') === 'paid')) {

@@ -829,12 +829,15 @@ class SmartCheckout {
         this.discount15 = discount15;
         this.afterDiscount15 = afterDiscount15;
 
-        // 5% Packaging Cost on regular items (MRP after 70% and 15% discount)
-        const packingCharge = (afterDiscount15 > 0) ? Math.round(afterDiscount15 * 0.05 * 100) / 100 : 0;
+        // 5% Packaging Cost on regular items AND combos
+        const taxableGoods = afterDiscount15 + comboSubtotal;
+        const packingCharge = (taxableGoods > 0) ? Math.round(taxableGoods * 0.05 * 100) / 100 : 0;
+        const regularPacking = (afterDiscount15 > 0) ? Math.round(afterDiscount15 * 0.05 * 100) / 100 : 0;
+        const comboPacking = Math.round((packingCharge - regularPacking) * 100) / 100;
         this.packingCharge = packingCharge;
 
         // Total regular items with packaging
-        const regularWithPacking = Math.round((afterDiscount15 + packingCharge) * 100) / 100;
+        const regularWithPacking = Math.round((afterDiscount15 + regularPacking) * 100) / 100;
 
         // Apply coupon discount under packaging cost
         let couponDiscount = 0;
@@ -925,8 +928,8 @@ class SmartCheckout {
             }
         }
 
-        // Net Rate Items (combos) added in the LAST to make net payable:
-        let finalTotal = normalPurchaseTotal + comboSubtotal;
+        // Net Rate Items (combos) with combo packing added in the LAST to make net payable:
+        let finalTotal = normalPurchaseTotal + comboSubtotal + comboPacking;
         this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
         
         this.updateDisplay();
@@ -1063,16 +1066,8 @@ class SmartCheckout {
         const packingEl = document.getElementById('packing-charge');
         const packingLabel = document.getElementById('packing-charge-label');
         if (packingEl) {
-            if (this.regularSubtotal === 0 && this.comboSubtotal > 0) {
-                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost:';
-                packingEl.innerHTML = '<span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full text-xs">Free for Combos (₹0.00)</span>';
-            } else if (this.comboSubtotal > 0) {
-                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost (5% on regular items):';
-                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
-            } else {
-                if (packingLabel) packingLabel.textContent = 'Add Packaging Cost (5%):';
-                packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
-            }
+            if (packingLabel) packingLabel.textContent = 'Add Packaging Cost (5%):';
+            packingEl.textContent = `₹${(this.packingCharge || 0).toFixed(2)}`;
         }
 
         const finalTotalEl = document.getElementById('final-total');

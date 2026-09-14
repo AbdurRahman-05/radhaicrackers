@@ -531,12 +531,31 @@ class Orders extends Component
                 $id = is_array($item) ? ($item['id'] ?? null) : ($item->id ?? null);
                 $isLuckySpinGift = is_array($item) ? (!empty($item['is_lucky_spin_gift'])) : (!empty($item->is_lucky_spin_gift));
 
+                $isCombo = (is_array($item) && !empty($item['is_combo'])) 
+                    || (is_object($item) && !empty($item->is_combo)) 
+                    || ($productId >= 999000 && $productId <= 999999) 
+                    || str_contains(strtoupper($productName ?? ''), 'COMBO');
+
                 $stock = $productId ? $stocksMap->get($productId) : null;
-                $origPrice = (!empty($stock->original_price) && (float)$stock->original_price > 0)
-                    ? (float)$stock->original_price
-                    : ((!empty($item['original_price']) && (float)$item['original_price'] > 0)
-                        ? (float)$item['original_price']
-                        : ($price > 0 ? round($price / 0.255, 2) : 0));
+
+                if ($isCombo) {
+                    $comboPrice = $price;
+                    // Detect if combo price was corrupted (e.g. 11764.71 instead of 3000)
+                    if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains(strtoupper($productName ?? ''), '3K'))) {
+                        if (str_contains(strtoupper($productName ?? ''), '3K')) $comboPrice = 3000;
+                        elseif (str_contains(strtoupper($productName ?? ''), '5K')) $comboPrice = 5000;
+                        elseif (str_contains(strtoupper($productName ?? ''), '8K')) $comboPrice = 8000;
+                        elseif (str_contains(strtoupper($productName ?? ''), '10K')) $comboPrice = 10000;
+                    }
+                    $price = $comboPrice;
+                    $origPrice = $comboPrice;
+                } else {
+                    $origPrice = (!empty($stock->original_price) && (float)$stock->original_price > 0)
+                        ? (float)$stock->original_price
+                        : ((!empty($item['original_price']) && (float)$item['original_price'] > 0)
+                            ? (float)$item['original_price']
+                            : ($price > 0 ? round($price / 0.255, 2) : 0));
+                }
 
                 $this->editItems[] = [
                     'id' => $id,
@@ -546,11 +565,12 @@ class Orders extends Component
                     'rate' => $price,
                     'price' => $price,
                     'original_price' => $origPrice,
-                    'discount_percentage' => (float)($stock->discount_percentage ?? 70),
-                    'special_discount_percentage' => (float)($stock->special_discount_percentage ?? 15),
+                    'discount_percentage' => $isCombo ? 0 : (float)($stock->discount_percentage ?? 70),
+                    'special_discount_percentage' => $isCombo ? 0 : (float)($stock->special_discount_percentage ?? 15),
                     'quantity' => max(1, $qty),
                     'total' => $price * max(1, $qty),
                     'is_lucky_spin_gift' => $isLuckySpinGift,
+                    'is_combo' => $isCombo,
                 ];
             }
         }
@@ -692,6 +712,7 @@ class Orders extends Component
             'quantity' => $qty,
             'total' => $rate * $qty,
             'is_lucky_spin_gift' => false,
+            'is_combo' => false,
         ];
         $this->editItems = array_values($this->editItems);
         $this->editingOrderItems = $this->editItems;
@@ -723,7 +744,13 @@ class Orders extends Component
             $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
 
             if ($isCombo) {
-                $comboPrice = (float)($item['price'] ?? $item['rate'] ?? $item['original_price'] ?? 0);
+                $comboPrice = (float)($item['price'] ?? $item['rate'] ?? 0);
+                if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains(strtoupper($pName), '3K'))) {
+                    if (str_contains(strtoupper($pName), '3K')) $comboPrice = 3000;
+                    elseif (str_contains(strtoupper($pName), '5K')) $comboPrice = 5000;
+                    elseif (str_contains(strtoupper($pName), '8K')) $comboPrice = 8000;
+                    elseif (str_contains(strtoupper($pName), '10K')) $comboPrice = 10000;
+                }
                 $comboSubtotal += $comboPrice * $qty;
             } else {
                 $rate = (float)($item['rate'] ?? $item['price'] ?? 0);
@@ -741,9 +768,12 @@ class Orders extends Component
         $discount15 = round($afterDiscount70 * 0.15, 2);
         $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
-        // Add Packaging Cost (5% on regular items)
-        $packingCharge = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
-        $regularWithPacking = round($afterDiscount15 + $packingCharge, 2);
+        // Add Packaging Cost (5% on regular items AND combos)
+        $taxableGoods = $afterDiscount15 + $comboSubtotal;
+        $packingCharge = ($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0;
+        $regularPacking = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
+        $comboPacking = round($packingCharge - $regularPacking, 2);
+        $regularWithPacking = round($afterDiscount15 + $regularPacking, 2);
         
         $couponDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->coupon_discount) {
@@ -758,8 +788,8 @@ class Orders extends Component
             $luckySpinDiscount = (float)$this->editingOrder->lucky_spin_discount;
         }
 
-        // Net Rate Items (combos) added in the LAST:
-        $taxableAmount = max(0, round($afterCoupon - $luckySpinDiscount + $comboSubtotal, 2));
+        // Net Rate Items (combos) with combo packing added in the LAST:
+        $taxableAmount = max(0, round($afterCoupon - $luckySpinDiscount + $comboSubtotal + $comboPacking, 2));
         $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
         $finalTotal = round($taxableAmount + $gstAmount);
 
@@ -824,12 +854,26 @@ class Orders extends Component
                 $isGift = !empty($item['is_lucky_spin_gift']);
                 $rate = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
                 $qty = max(1, (int)($item['quantity'] ?? 1));
-                $origPrice = (!empty($item['original_price']) && (float)$item['original_price'] > $rate)
-                    ? (float)$item['original_price']
-                    : ($rate > 0 ? round($rate / 0.255, 2) : 0);
-
                 $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
                 $productName = $item['product_name'] ?? 'Product';
+
+                $isCombo = !empty($item['is_combo']) 
+                    || ($productId >= 999000 && $productId <= 999999) 
+                    || str_contains(strtoupper($productName), 'COMBO');
+
+                if ($isCombo) {
+                    if ($rate <= 0 || ($rate > 10000 && str_contains(strtoupper($productName), '3K'))) {
+                        if (str_contains(strtoupper($productName), '3K')) $rate = 3000;
+                        elseif (str_contains(strtoupper($productName), '5K')) $rate = 5000;
+                        elseif (str_contains(strtoupper($productName), '8K')) $rate = 8000;
+                        elseif (str_contains(strtoupper($productName), '10K')) $rate = 10000;
+                    }
+                    $origPrice = $rate;
+                } else {
+                    $origPrice = (!empty($item['original_price']) && (float)$item['original_price'] > $rate)
+                        ? (float)$item['original_price']
+                        : ($rate > 0 ? round($rate / 0.255, 2) : 0);
+                }
 
                 $newItemsJson[] = [
                     'id' => $item['id'] ?? null,
@@ -840,12 +884,13 @@ class Orders extends Component
                     'rate' => $rate,
                     'price' => $rate,
                     'original_price' => $origPrice,
-                    'discount_percentage' => $item['discount_percentage'] ?? 70,
-                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 15,
+                    'discount_percentage' => $isCombo ? 0 : ($item['discount_percentage'] ?? 70),
+                    'special_discount_percentage' => $isCombo ? 0 : ($item['special_discount_percentage'] ?? 15),
                     'quantity' => $qty,
                     'total' => $rate * $qty,
                     'subtotal' => $rate * $qty,
-                    'is_lucky_spin_gift' => $isGift
+                    'is_lucky_spin_gift' => $isGift,
+                    'is_combo' => $isCombo,
                 ];
             }
 

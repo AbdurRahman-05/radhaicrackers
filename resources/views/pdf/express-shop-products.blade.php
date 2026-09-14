@@ -265,24 +265,41 @@
                         $productId = $item['product_id'] ?? $item['stock_id'] ?? null;
                         $catalogSno = $catalogSnoMap[$productId] ?? '-';
                         $isGift = !empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']);
-                        // Use original price if available, otherwise use current price
+                        $isCombo = !empty($item['is_combo']) || ($productId >= 999000 && $productId <= 999999) || (str_contains(strtoupper($item['product_name'] ?? ''), 'COMBO'));
                         $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
                         $quantity = $item['quantity'] ?? 0;
-                        $line = $isGift ? 0 : ($originalPrice * $quantity);
-                        if (!$isGift) {
-                            $subtotal += $line;
+
+                        if ($isCombo) {
+                            $comboPrice = (float)($item['price'] ?? $item['rate'] ?? 0);
+                            $pNameUpper = strtoupper($item['product_name'] ?? '');
+                            if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                                if (str_contains($pNameUpper, '3K')) $comboPrice = 3000;
+                                elseif (str_contains($pNameUpper, '5K')) $comboPrice = 5000;
+                                elseif (str_contains($pNameUpper, '8K')) $comboPrice = 8000;
+                                elseif (str_contains($pNameUpper, '10K')) $comboPrice = 10000;
+                            }
+                            $displayPrice = $comboPrice;
+                            $line = $comboPrice * $quantity;
+                        } else {
+                            $displayPrice = $originalPrice;
+                            $line = $isGift ? 0 : ($originalPrice * $quantity);
+                            if (!$isGift) {
+                                $subtotal += $line;
+                            }
                         }
                     @endphp
                     <tr>
-                        <td>{{ $catalogSno }}</td>
+                        <td>{{ $isCombo ? 'COMBO' : $catalogSno }}</td>
                         <td>{{ $item['product_id'] ?? '-' }}</td>
                         <td>
                             {{ $item['product_name'] ?? '-' }}
                             @if($isGift)
                                 <span style="color: #d97706; font-weight: bold; font-size: 10px;"> [FREE GIFT]</span>
+                            @elseif($isCombo)
+                                <span style="color: #b67121; font-weight: bold; font-size: 10px;"> [COMBO]</span>
                             @endif
                         </td>
-                        <td>{{ $isGift ? 'FREE' : number_format($originalPrice, 2) }}</td>
+                        <td>{{ $isGift ? 'FREE' : number_format($displayPrice, 2) }}</td>
                         <td>{{ $quantity }}</td>
                         <td class="total">{{ $isGift ? 'FREE (0.00)' : number_format($line, 2) }}</td>
                     </tr>
@@ -311,7 +328,14 @@
                     $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
                     $quantity = $item['quantity'] ?? 0;
                     if ($isCombo) {
-                        $comboPrice = $item['rate'] ?? $item['price'] ?? $item['original_price'] ?? 0;
+                        $comboPrice = (float)($item['price'] ?? $item['rate'] ?? 0);
+                        $pNameUpper = strtoupper($pName);
+                        if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                            if (str_contains($pNameUpper, '3K')) $comboPrice = 3000;
+                            elseif (str_contains($pNameUpper, '5K')) $comboPrice = 5000;
+                            elseif (str_contains($pNameUpper, '8K')) $comboPrice = 8000;
+                            elseif (str_contains($pNameUpper, '10K')) $comboPrice = 10000;
+                        }
                         $comboSubtotal += $comboPrice * $quantity;
                     } else {
                         $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
@@ -323,13 +347,21 @@
             $afterDiscount = round($regularSubtotal - $discount70, 2);
             $specialDiscount = round($afterDiscount * 0.15, 2);
             $afterSpecial = round($afterDiscount - $specialDiscount, 2);
-            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0);
+            
+            // Add Packaging Cost (5% on regular items AND combos)
+            $taxableGoods = $afterSpecial + $comboSubtotal;
+            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($taxableGoods * 0.05, 2)) < 5
+                ? (float)$order->packing_charge_5_percent
+                : (($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0);
+            $regularPacking = ($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0;
+            $comboPacking = round($packing - $regularPacking, 2);
+
             $couponDiscount = (float)($order->coupon_discount ?? 0);
-            $afterCoupon = max(0, round($afterSpecial + $packing - $couponDiscount, 2));
+            $afterCoupon = max(0, round($afterSpecial + $regularPacking - $couponDiscount, 2));
             $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
             $luckySpinPrize = $order->lucky_spin_prize ?? null;
             $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
-            $finalAmount = max(0, round($netBeforeCombos + $comboSubtotal));
+            $finalAmount = max(0, round($netBeforeCombos + $comboSubtotal + $comboPacking));
         @endphp
 
         <table class="summary-table" style="page-break-inside: avoid;">

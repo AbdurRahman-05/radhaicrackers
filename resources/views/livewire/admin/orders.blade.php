@@ -607,18 +607,33 @@
                                     @foreach($currentModalItems as $index => $item)
                                     @php
                                         $productId = $item['product_id'] ?? null;
-                                        $catalogSno = $currentSnoMap[$productId] ?? ($productId ?? '-');
+                                        $pName = (string)($item['product_name'] ?? '');
+                                        $isCombo = !empty($item['is_combo']) || ($productId >= 999000 && $productId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
+                                        $catalogSno = $isCombo ? 'COMBO' : ($currentSnoMap[$productId] ?? ($productId ?? '-'));
                                         $isGift = !empty($item['is_lucky_spin_gift']);
                                         $itemPrice = $isGift ? 0 : (float)($item['rate'] ?? $item['price'] ?? 0);
+                                        if ($isCombo) {
+                                            $pNameUpper = strtoupper($pName);
+                                            if ($itemPrice <= 0 || ($itemPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                                                if (str_contains($pNameUpper, '3K')) $itemPrice = 3000;
+                                                elseif (str_contains($pNameUpper, '5K')) $itemPrice = 5000;
+                                                elseif (str_contains($pNameUpper, '8K')) $itemPrice = 8000;
+                                                elseif (str_contains($pNameUpper, '10K')) $itemPrice = 10000;
+                                            }
+                                        }
                                         $itemQty = (int)($item['quantity'] ?? 0);
                                     @endphp
-                                    <tr wire:key="edit-order-item-{{ $productId }}-{{ $index }}" class="{{ $isGift ? 'bg-amber-50/40' : '' }}">
-                                        <td class="px-4 py-2 text-left text-gray-500 font-medium">{{ $catalogSno }}</td>
+                                    <tr wire:key="edit-order-item-{{ $productId }}-{{ $index }}" class="{{ $isGift ? 'bg-amber-50/40' : ($isCombo ? 'bg-amber-50/20' : '') }}">
+                                        <td class="px-4 py-2 text-left font-bold {{ $isCombo ? 'text-amber-800' : 'text-gray-500 font-medium' }}">{{ $catalogSno }}</td>
                                         <td class="px-4 py-2 font-medium text-gray-900">
                                             {!! html_entity_decode($item['product_name'] ?? '-') !!}
                                             @if($isGift)
                                                 <span class="ml-1.5 px-1.5 py-0.5 bg-amber-200 text-amber-900 text-[10px] font-bold rounded-full border border-amber-300">
                                                     🎁 Lucky Spin Gift
+                                                </span>
+                                            @elseif($isCombo)
+                                                <span class="ml-1.5 px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full border border-amber-300">
+                                                    COMBO
                                                 </span>
                                             @endif
                                         </td>

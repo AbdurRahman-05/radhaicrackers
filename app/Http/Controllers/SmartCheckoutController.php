@@ -206,9 +206,12 @@ class SmartCheckoutController extends Controller
             $discount15 = round($afterDiscount70 * 0.15, 2);
             $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
-            // Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
-            $packingCharge = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
-            $regularWithPacking = round($afterDiscount15 + $packingCharge, 2);
+            // Add Packaging Cost (5%) - Applied to regular items AND combos!
+            $taxableGoods = $afterDiscount15 + $comboSubtotal;
+            $packingCharge = ($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0;
+            $regularPacking = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
+            $comboPacking = round($packingCharge - $regularPacking, 2);
+            $regularWithPacking = round($afterDiscount15 + $regularPacking, 2);
 
             // Calculate coupon discount under packaging cost
             $couponDiscount = 0;
@@ -321,8 +324,8 @@ class SmartCheckoutController extends Controller
                 }
             }
 
-            // Net Rate Items (combos) added in the LAST to make net payable!
-            $finalTotal = max(0, round($normalPurchaseTotal + $comboSubtotal));
+            // Net Rate Items (combos) with combo packing added in the LAST to make net payable!
+            $finalTotal = max(0, round($normalPurchaseTotal + $comboSubtotal + $comboPacking));
             $mailTotal = $finalTotal;
 
             // Prepare order data

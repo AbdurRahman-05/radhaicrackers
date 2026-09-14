@@ -493,9 +493,25 @@
                         $originalPrice = is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0);
                         $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                         $isLuckyGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
-                        $line = $isLuckyGift ? 0 : ($originalPrice * $quantity);
-                        if (!$isLuckyGift) {
-                            $subtotal += $line;
+                        $isCombo = (is_array($item) && !empty($item['is_combo'])) || (is_object($item) && !empty($item->is_combo)) || ($productId >= 999000 && $productId <= 999999) || (str_contains(strtoupper(is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? '')), 'COMBO'));
+                        
+                        if ($isCombo) {
+                            $comboPrice = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? $item->rate ?? 0));
+                            $pNameUpper = strtoupper(is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? ''));
+                            if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                                if (str_contains($pNameUpper, '3K')) $comboPrice = 3000;
+                                elseif (str_contains($pNameUpper, '5K')) $comboPrice = 5000;
+                                elseif (str_contains($pNameUpper, '8K')) $comboPrice = 8000;
+                                elseif (str_contains($pNameUpper, '10K')) $comboPrice = 10000;
+                            }
+                            $displayPrice = $comboPrice;
+                            $line = $comboPrice * $quantity;
+                        } else {
+                            $displayPrice = $originalPrice;
+                            $line = $isLuckyGift ? 0 : ($originalPrice * $quantity);
+                            if (!$isLuckyGift) {
+                                $subtotal += $line;
+                            }
                         }
 
                         $productDesc = is_array($item) ? ($item['description'] ?? $item['content'] ?? null) : ($item->description ?? $item->content ?? null);
@@ -505,18 +521,20 @@
                     @endphp
                     <tr>
                         <td class="sno">{{ $itemSno++ }}</td>
-                        <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : '' }}">{{ $isLuckyGift ? '🎁 GIFT' : $catalogSno }}</td>
+                        <td class="code" style="font-weight: bold; {{ $isLuckyGift ? 'color: #D97706;' : ($isCombo ? 'color: #B67121;' : '') }}">{{ $isLuckyGift ? '🎁 GIFT' : ($isCombo ? 'COMBO' : $catalogSno) }}</td>
                         <td class="product">
-                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : 'color: #111827;' }}">
+                            <div style="font-weight: bold; font-size: 10px; line-height: 1.35; {{ $isLuckyGift ? 'color: #5B21B6;' : ($isCombo ? 'color: #B67121;' : 'color: #111827;') }}">
                                 {!! html_entity_decode(is_array($item) ? ($item['product_name'] ?? '-') : ($item->product_name ?? '-')) !!}
                             </div>
                             @if($isLuckyGift)
                                 <div style="font-size: 8.5px; color: #D97706; font-weight: bold; padding-top: 3px; line-height: 1.2;">Lucky Spinning Wheel Free Gift</div>
+                            @elseif($isCombo)
+                                <div style="font-size: 8px; color: #B67121; font-weight: bold; padding-top: 2px; line-height: 1.2;">Pre-Discounted Diwali Value Combo Pack (Net Price)</div>
                             @elseif($productDesc)
                                 <div style="font-size: 8px; color: #4B5563; font-weight: normal; padding-top: 2px; line-height: 1.2;">{{ $productDesc }}</div>
                             @endif
                         </td>
-                        <td class="mrp">{{ number_format($originalPrice, 2) }}</td>
+                        <td class="mrp">{{ number_format($displayPrice, 2) }}</td>
                         <td class="qty">{{ $quantity }}</td>
                         <td class="total" style="{{ $isLuckyGift ? 'font-weight: bold; color: #059669;' : '' }}">{{ $isLuckyGift ? 'FREE (0.00)' : number_format($line, 2) }}</td>
                     </tr>
@@ -546,15 +564,24 @@
                     $comboSubtotal = 0;
                     if (isset($order->items_json) && is_iterable($order->items_json)) {
                         foreach ($order->items_json as $item) {
-                            $pId = (int)($item['product_id'] ?? 0);
-                            $pName = (string)($item['product_name'] ?? '');
+                            $isGift = (is_array($item) && (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']))) || (is_object($item) && (!empty($item->is_lucky_spin_gift) || !empty($item->is_free_gift))) || (is_array($item) && isset($item['rate']) && $item['rate'] == 0 && isset($item['price']) && $item['price'] == 0);
+                            if ($isGift) continue;
+                            $pId = (int)(is_array($item) ? ($item['product_id'] ?? 0) : ($item->product_id ?? 0));
+                            $pName = (string)(is_array($item) ? ($item['product_name'] ?? '') : ($item->product_name ?? ''));
                             $isCombo = !empty($item['is_combo']) || ($pId >= 999000 && $pId <= 999999) || str_contains(strtoupper($pName), 'COMBO');
-                            $quantity = $item['quantity'] ?? 0;
+                            $quantity = is_array($item) ? ($item['quantity'] ?? 0) : ($item->quantity ?? 0);
                             if ($isCombo) {
-                                $comboPrice = $item['rate'] ?? $item['price'] ?? $item['original_price'] ?? 0;
+                                $comboPrice = (float)(is_array($item) ? ($item['price'] ?? $item['rate'] ?? 0) : ($item->price ?? $item->rate ?? 0));
+                                $pNameUpper = strtoupper($pName);
+                                if ($comboPrice <= 0 || ($comboPrice > 10000 && str_contains($pNameUpper, '3K'))) {
+                                    if (str_contains($pNameUpper, '3K')) $comboPrice = 3000;
+                                    elseif (str_contains($pNameUpper, '5K')) $comboPrice = 5000;
+                                    elseif (str_contains($pNameUpper, '8K')) $comboPrice = 8000;
+                                    elseif (str_contains($pNameUpper, '10K')) $comboPrice = 10000;
+                                }
                                 $comboSubtotal += $comboPrice * $quantity;
                             } else {
-                                $originalPrice = $item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0;
+                                $originalPrice = is_array($item) ? ($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0) : ($item->original_price ?? $item->rate ?? $item->price ?? 0);
                                 $regularSubtotal += $originalPrice * $quantity;
                             }
                         }
@@ -563,21 +590,29 @@
                     $afterDiscount = round($regularSubtotal - $discount70, 2);
                     $specialDiscount = round($afterDiscount * 0.15, 2);
                     $afterSpecial = round($afterDiscount - $specialDiscount, 2);
-                    $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0);
+                    
+                    // Add Packaging Cost (5% on regular items AND combos)
+                    $taxableGoods = $afterSpecial + $comboSubtotal;
+                    $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($taxableGoods * 0.05, 2)) < 5
+                        ? (float)$order->packing_charge_5_percent
+                        : (($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0);
+                    $regularPacking = ($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0;
+                    $comboPacking = round($packing - $regularPacking, 2);
+
                     $couponDiscount = (float)($order->coupon_discount ?? 0);
-                    $afterCoupon = max(0, round($afterSpecial + $packing - $couponDiscount, 2));
+                    $afterCoupon = max(0, round($afterSpecial + $regularPacking - $couponDiscount, 2));
                     $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
                     $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
-                    $netAmount = $netBeforeCombos + $comboSubtotal;
+                    $netAmount = $netBeforeCombos + $comboSubtotal + $comboPacking;
                     $gstAmount = 0;
                     if ($order->has_gst) {
                         $gstAmount = round($netAmount * 0.18, 2);
                         $netAmount += $gstAmount;
                     }
                     $finalAmount = max(0, round($netAmount));
-                    if (!empty($order->total_amount) && (float)$order->total_amount > 0) {
+                    if (!empty($order->total_amount) && (float)$order->total_amount > 0 && abs((float)$order->total_amount - $finalAmount) <= 2) {
                         $finalAmount = (float)$order->total_amount;
-                    } elseif (!empty($order->total) && (float)$order->total > 0) {
+                    } elseif (!empty($order->total) && (float)$order->total > 0 && abs((float)$order->total - $finalAmount) <= 2) {
                         $finalAmount = (float)$order->total;
                     }
 
