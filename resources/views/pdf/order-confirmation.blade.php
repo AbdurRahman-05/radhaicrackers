@@ -3,9 +3,40 @@
 <head>
     <meta charset="utf-8">
     <title>Order Confirmation - Cracker Shop</title>
+    @php
+        $tamilFontPath = public_path('fonts/NotoSansTamil-Regular.ttf');
+        $tamilFontBase64 = file_exists($tamilFontPath) ? base64_encode(file_get_contents($tamilFontPath)) : '';
+    @endphp
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        @if($tamilFontBase64)
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @else
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @endif
+        body, th, td, div, span, p, h1, h2, h3 {
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
             margin: 0;
             padding: 20px;
             color: #333;
@@ -101,16 +132,16 @@
 </head>
 <body>
     <div class="header">
-        <h1>🎆 Cracker Shop</h1>
+        <h1>Radhe Crackers</h1>
         <p>Order Confirmation</p>
         <p>Order #{{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</p>
     </div>
 
     <div class="order-info">
         <div class="customer-info">
-            <h3>👤 Customer Information</h3>
-            <p><strong>Name:</strong> {{ $user->name }}</p>
-            <p><strong>Phone:</strong> {{ $user->phone }}</p>
+            <h3>Customer Information</h3>
+            <p><strong>Name:</strong> {{ $order->customer_name ?: ($user->name ?? '-') }}</p>
+            <p><strong>Phone:</strong> {{ $order->customer_mobile ?: ($user->phone ?? '-') }}</p>
             <p><strong>Order Date:</strong> {{ $order->created_at->format('F d, Y \a\t h:i A') }}</p>
             <p><strong>Order Status:</strong> 
                 <span class="status-badge status-pending">{{ ucfirst($order->status) }}</span>
@@ -118,7 +149,7 @@
         </div>
         
         <div class="order-details">
-            <h3>📋 Order Details</h3>
+            <h3>Order Details</h3>
             <p><strong>Order ID:</strong> #{{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</p>
             <p><strong>Total Amount:</strong> ₹{{ number_format($order->total, 2) }}</p>
             <p><strong>Payment Status:</strong> {{ ucfirst($order->payment_status ?? 'Pending') }}</p>
@@ -237,23 +268,23 @@
     </table>
 
     <div class="payment-info">
-        <h3>💰 Payment Information</h3>
+        <h3>Payment Information</h3>
         <p><strong>Payment Method:</strong> UPI Payment</p>
-        <p><strong>UPI ID:</strong> crackershop@upi</p>
+        <p><strong>UPI ID:</strong> radhecrackers@upi</p>
         <p><strong>Amount to Pay:</strong> ₹{{ number_format($order->total, 2) }}</p>
         <p><strong>Instructions:</strong> Please complete the payment and provide the UPI Transaction ID for verification.</p>
     </div>
 
     <div style="background-color: #fef3c7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-        <h3 style="margin: 0 0 10px 0; color: #92400e;">📞 Contact & Support</h3>
-        <p><strong>Phone:</strong> +91 98765 43210</p>
+        <h3 style="margin: 0 0 10px 0; color: #92400e;">Contact & Support</h3>
+        <p><strong>Phone:</strong> +91 88070 60809, +91 97510 48974</p>
         <p><strong>WhatsApp:</strong> Available 24/7 for support</p>
-        <p><strong>Email:</strong> info@crackershop.com</p>
+        <p><strong>Email:</strong> radhecrackers@gmail.com</p>
         <p><strong>Delivery:</strong> 1-2 business days after payment confirmation</p>
     </div>
 
     <div style="background-color: #f0f9ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-        <h3 style="margin: 0 0 10px 0; color: #1e40af;">🛡️ Safety Reminder</h3>
+        <h3 style="margin: 0 0 10px 0; color: #1e40af;">Safety Reminder</h3>
         <p>• All products meet safety standards</p>
         <p>• Follow usage instructions carefully</p>
         <p>• Keep away from children</p>
@@ -261,9 +292,9 @@
     </div>
 
     <div class="footer">
-        <p><strong>Cracker Shop</strong> - Your trusted source for quality fireworks and crackers</p>
-        <p>© {{ date('Y') }} Cracker Shop. All rights reserved.</p>
-        <p>Thank you for choosing Cracker Shop! 🎆</p>
+        <p><strong>Radhe Crackers</strong> - Your trusted source for quality fireworks and crackers</p>
+        <p>© {{ date('Y') }} Radhe Crackers. All rights reserved.</p>
+        <p>Thank you for choosing Radhe Crackers!</p>
     </div>
 </body>
 </html> 

@@ -24,8 +24,16 @@ class SendOtpRequest extends FormRequest
     public function rules()
     {
         return [
-            'phone' => ['required', 'regex:/^[6-9]\\d{9}$/'],
-            'name' => ['required', 'string', 'max:255', 'regex:/^[^0-9]+$/'],
+            'phone' => ['required', 'regex:/^[6-9]\d{9}$/'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\p{M}\s\.\-]+$/u'],
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'name.regex' => 'Please enter a valid name (numbers not allowed).',
+            'phone.regex' => 'Please enter a valid 10-digit mobile number.',
         ];
     }
 } 

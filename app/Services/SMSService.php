@@ -339,7 +339,7 @@ class SMSService
             }
 
             // Primary Admin numbers to receive lead notifications
-            $adminNumbers = ['919943930432', '918807060809', '919751048974'];
+            $adminNumbers = ['919943930432', '919751048974'];
             
             // Check dynamic database settings for whatsapp business number
             try {
@@ -350,7 +350,8 @@ class SMSService
                     if (strlen($cleanSettingPhone) === 10) {
                         $cleanSettingPhone = '91' . $cleanSettingPhone;
                     }
-                    if (strlen($cleanSettingPhone) === 12 && !in_array($cleanSettingPhone, $adminNumbers)) {
+                    // Exclude the sender's own number (8807060809) as Meta Cloud API disallows self-messaging
+                    if (strlen($cleanSettingPhone) === 12 && $cleanSettingPhone !== '918807060809' && !in_array($cleanSettingPhone, $adminNumbers)) {
                         $adminNumbers[] = $cleanSettingPhone;
                     }
                 }

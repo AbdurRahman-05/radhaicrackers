@@ -3,9 +3,40 @@
 <head>
     <meta charset="utf-8">
     <title>Stock Report</title>
+    @php
+        $tamilFontPath = public_path('fonts/NotoSansTamil-Regular.ttf');
+        $tamilFontBase64 = file_exists($tamilFontPath) ? base64_encode(file_get_contents($tamilFontPath)) : '';
+    @endphp
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        @if($tamilFontBase64)
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @else
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @endif
+        body, th, td, div, span, p, h1, h2, h3 {
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
             color: #333;

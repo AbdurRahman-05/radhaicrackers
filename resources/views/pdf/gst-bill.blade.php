@@ -3,19 +3,44 @@
 <head>
     <meta charset="utf-8">
     <title>GST BILL - {{ $gstBill->bill_number }}</title>
+    @php
+        $tamilFontPath = public_path('fonts/NotoSansTamil-Regular.ttf');
+        $tamilFontBase64 = file_exists($tamilFontPath) ? base64_encode(file_get_contents($tamilFontPath)) : '';
+    @endphp
     <style>
+        @if($tamilFontBase64)
         @font-face {
             font-family: 'Noto Sans Tamil';
             font-style: normal;
             font-weight: normal;
-            src: url('{{ public_path('fonts/NotoSansTamil-Regular.ttf') }}') format('truetype');
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
         }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @else
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @endif
         @page {
             size: A4 portrait;
             margin: 8mm;
         }
-        body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+        body, th, td {
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
             font-size: 11px;
             color: #000;
             margin: 0;

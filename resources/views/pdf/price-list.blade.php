@@ -2,14 +2,46 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    @php
+        $tamilFontPath = public_path('fonts/NotoSansTamil-Regular.ttf');
+        $tamilFontBase64 = file_exists($tamilFontPath) ? base64_encode(file_get_contents($tamilFontPath)) : '';
+    @endphp
     <style>
+        @if($tamilFontBase64)
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @else
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @endif
+
         @page {
             size: A4 portrait;
             margin: 8mm;
         }
 
         body, th, td, div, span, h1, h2, h3, p {
-            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif !important;
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, Helvetica, sans-serif !important;
         }
 
         body {

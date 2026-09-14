@@ -2,18 +2,50 @@
 <html lang="ta">
 <head>
     <meta charset="utf-8">
+    @php
+        $tamilFontPath = public_path('fonts/NotoSansTamil-Regular.ttf');
+        $tamilFontBase64 = file_exists($tamilFontPath) ? base64_encode(file_get_contents($tamilFontPath)) : '';
+    @endphp
     <style>
+        @if($tamilFontBase64)
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('data:font/truetype;charset=utf-8;base64,{{ $tamilFontBase64 }}') format('truetype');
+        }
+        @else
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: normal;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @font-face {
+            font-family: 'Noto Sans Tamil';
+            font-style: normal;
+            font-weight: bold;
+            src: url('{{ str_replace('\\', '/', public_path('fonts/NotoSansTamil-Regular.ttf')) }}') format('truetype');
+        }
+        @endif
+
         @page {
             size: auto;
             margin: 10mm;
         }
 
         body, th, td {
-            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, Helvetica, sans-serif;
         }
 
         .tamil-text {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
         }
 .header-box {
     /* border: 1px solid #000; */
@@ -76,7 +108,7 @@
 
 
         .company-title {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
             font-size: 26px;
             font-weight: bold;
             text-align: center;
@@ -107,7 +139,7 @@
             padding: 5px 6px;
             text-align: center;
             font-size: 10px;
-            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-family: 'Noto Sans Tamil', 'DejaVu Sans', Arial, sans-serif;
             vertical-align: middle;
             line-height: 1.3;
         }

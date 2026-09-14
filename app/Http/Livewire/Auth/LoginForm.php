@@ -19,25 +19,25 @@ class LoginForm extends Component
     public $devOtpExpires = ''; // For development mode
 
     protected $rules = [
-        'name' => 'required|string|max:255|regex:/^[^0-9]+$/',
+        'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}\s\.\-]+$/u',
         'phone' => 'required|string|regex:/^[0-9]{10}$/',
         'otp' => 'required|string|size:6',
     ];
 
     protected $messages = [
-        'name.regex' => 'Name cannot contain numbers.',
+        'name.regex' => 'Please enter a valid name (numbers not allowed).',
         'phone.regex' => 'Please enter a valid 10-digit phone number.',
     ];
 
     public function updatedName($value)
     {
-        $this->name = preg_replace('/[0-9]/', '', $value);
+        $this->name = preg_replace('/[0-9]/u', '', (string)$value);
     }
 
     public function sendOTP()
     {
         $this->validate([
-            'name' => 'required|string|max:255|regex:/^[^0-9]+$/',
+            'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}\s\.\-]+$/u',
             'phone' => 'required|string|regex:/^[0-9]{10}$/',
         ]);
 
