@@ -378,37 +378,25 @@
                         <span id="after-discount-15" class="font-semibold text-gray-800">₹0.00</span>
                     </div>
 
-                    <!-- 6. Coupon Discount -->
-                    <div class="flex justify-between text-purple-700 font-medium" id="coupon-discount-row">
-                        <span>Coupon Discount:</span>
-                        <span id="coupon-discount">-₹0.00</span>
-                    </div>
-
-                    <!-- 7. After Coupon Discount -->
-                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1" id="after-coupon-discount-row">
-                        <span>After Coupon Discount:</span>
-                        <span id="after-coupon-discount" class="font-semibold text-gray-800">₹0.00</span>
-                    </div>
-
-                    <!-- 8. Net Rate Items -->
-                    <div id="combo-subtotal-row" class="flex justify-between text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200 font-bold">
-                        <span>Net Rate Items:</span>
-                        <span id="combo-subtotal">₹0.00</span>
-                    </div>
-
-                    <!-- 9. Total Amount (Net Total) -->
-                    <div class="flex justify-between text-gray-900 font-extrabold border-t border-gray-300 pt-2 text-sm bg-gray-50/80 px-2 py-1 rounded">
-                        <span>Total Amount:</span>
-                        <span id="total-before-packing" class="text-gray-900 font-bold text-sm">₹0.00</span>
-                    </div>
-
-                    <!-- 10. Add Packaging Cost -->
+                    <!-- 6. Add Packaging Cost (5% on regular items) -->
                     <div class="flex justify-between items-center text-orange-700 font-medium" id="packing-charge-row">
                         <span id="packing-charge-label">Add Packaging Cost (5%):</span>
                         <span id="packing-charge" class="font-bold">₹0.00</span>
                     </div>
 
-                    <!-- Lucky Spin rows if any (applied after packaging) -->
+                    <!-- 7. Coupon Discount (under Packaging Cost) -->
+                    <div class="flex justify-between text-purple-700 font-medium hidden" id="coupon-discount-row">
+                        <span>Coupon Discount:</span>
+                        <span id="coupon-discount">-₹0.00</span>
+                    </div>
+
+                    <!-- 8. After Coupon Discount -->
+                    <div class="flex justify-between text-gray-700 border-t border-dashed border-gray-200 pt-1 hidden" id="after-coupon-discount-row">
+                        <span>After Coupon Discount:</span>
+                        <span id="after-coupon-discount" class="font-semibold text-gray-800">₹0.00</span>
+                    </div>
+
+                    <!-- Lucky Spin rows if any -->
                     <div id="lucky-spin-discount-row" class="hidden flex justify-between text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
                         <span>🎡 Lucky Spin (5% Disc):</span>
                         <span id="lucky-spin-discount">-₹0.00</span>
@@ -418,9 +406,15 @@
                         <span id="lucky-spin-gift-name" class="text-xs bg-amber-200/80 text-amber-950 px-2 py-0.5 rounded-full font-bold"></span>
                     </div>
 
+                    <!-- 9. Net Rate Items (Combos added in the LAST!) -->
+                    <div id="combo-subtotal-row" class="hidden flex justify-between text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200 font-bold">
+                        <span>Net Rate Items:</span>
+                        <span id="combo-subtotal">₹0.00</span>
+                    </div>
+
                     <hr class="border-gray-300 my-1">
 
-                    <!-- 11. Net Payable Amount -->
+                    <!-- 10. Net Payable Amount -->
                     <div class="flex justify-between items-center text-base sm:text-lg font-black text-gray-900 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
                         <span>Net Payable Amount:</span>
                         <span id="final-total" class="text-[#1E093B] text-xl sm:text-2xl">₹0.00</span>
@@ -835,33 +829,28 @@ class SmartCheckout {
         this.discount15 = discount15;
         this.afterDiscount15 = afterDiscount15;
 
-        // Apply coupon discount if available
+        // 5% Packaging Cost on regular items (MRP after 70% and 15% discount)
+        const packingCharge = (afterDiscount15 > 0) ? Math.round(afterDiscount15 * 0.05 * 100) / 100 : 0;
+        this.packingCharge = packingCharge;
+
+        // Total regular items with packaging
+        const regularWithPacking = Math.round((afterDiscount15 + packingCharge) * 100) / 100;
+
+        // Apply coupon discount under packaging cost
         let couponDiscount = 0;
         if (this.couponData) {
             couponDiscount = Number(this.couponData.discount_amount || 0);
         }
         this.couponDiscount = couponDiscount;
-        const afterCouponDiscount = Math.max(0, Math.round((afterDiscount15 - couponDiscount) * 100) / 100);
+        const afterCouponDiscount = Math.max(0, Math.round((regularWithPacking - couponDiscount) * 100) / 100);
         this.afterCouponDiscount = afterCouponDiscount;
 
-        // 1. After Coupon Discount
-        // 2. Net Rate Items (comboSubtotal)
-        // 3. Total Amount = After Coupon Discount + Net Rate Items
-        const totalBeforePacking = Math.round((afterCouponDiscount + comboSubtotal) * 100) / 100;
-        this.totalBeforePacking = totalBeforePacking;
-
-        // 4. Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
-        const packingCharge = (afterCouponDiscount > 0) ? Math.round(afterCouponDiscount * 0.05 * 100) / 100 : 0;
-        this.packingCharge = packingCharge;
-        
-        let finalTotal = totalBeforePacking + packingCharge;
+        let normalPurchaseTotal = afterCouponDiscount;
 
         // Qualifying amount for Lucky Wheel threshold:
         // STRICT RULE: Lucky Wheel is ONLY for normal purchases above ₹5,000 (like old style).
         // Combos have separate all-inclusive net offer pricing and DO NOT count towards unlocking the Lucky Wheel.
-        const normalPurchasePayable = afterDiscount15 + packingCharge;
-        const couponDisc = this.couponData ? (this.couponData.discount_amount || 0) : 0;
-        this.qualifyingAmount = Math.max(0, Math.round((normalPurchasePayable - couponDisc) * 100) / 100);
+        this.qualifyingAmount = normalPurchaseTotal;
 
         // Strict 5k threshold check ONLY for normal purchases
         const isEligible = this.qualifyingAmount >= 5000;
@@ -904,8 +893,8 @@ class SmartCheckout {
                 this.luckySpinPrize = this.savedSpinResult.prize;
 
                 if (this.savedSpinResult.type === 'discount' || (this.luckySpinPrize && this.luckySpinPrize.includes('5%'))) {
-                    this.luckySpinDiscount = Math.round(finalTotal * 0.05 * 100) / 100;
-                    finalTotal -= this.luckySpinDiscount;
+                    this.luckySpinDiscount = Math.round(normalPurchaseTotal * 0.05 * 100) / 100;
+                    normalPurchaseTotal = Math.max(0, Math.round((normalPurchaseTotal - this.luckySpinDiscount) * 100) / 100);
                 } else if (this.savedSpinResult.type === 'product') {
                     this.luckySpinDiscount = 0;
                     // Ensure the won free gift item is present in cartItems
@@ -936,6 +925,8 @@ class SmartCheckout {
             }
         }
 
+        // Net Rate Items (combos) added in the LAST to make net payable:
+        let finalTotal = normalPurchaseTotal + comboSubtotal;
         this.finalTotal = Math.max(0, Math.round(finalTotal * 100) / 100);
         
         this.updateDisplay();
@@ -1020,6 +1011,7 @@ class SmartCheckout {
             if (after70Row) after70Row.classList.add('hidden');
             if (d15Row) d15Row.classList.add('hidden');
             if (after15Row) after15Row.classList.add('hidden');
+            if (couponRow) couponRow.classList.add('hidden');
             if (afterCouponRow) afterCouponRow.classList.add('hidden');
             if (comboRowEl) comboRowEl.classList.add('hidden');
         } else {
@@ -1030,7 +1022,14 @@ class SmartCheckout {
             if (after70Row) after70Row.classList.remove('hidden');
             if (d15Row) d15Row.classList.remove('hidden');
             if (after15Row) after15Row.classList.remove('hidden');
-            if (afterCouponRow) afterCouponRow.classList.remove('hidden');
+            
+            if (this.couponDiscount > 0) {
+                if (couponRow) couponRow.classList.remove('hidden');
+                if (afterCouponRow) afterCouponRow.classList.remove('hidden');
+            } else {
+                if (couponRow) couponRow.classList.add('hidden');
+                if (afterCouponRow) afterCouponRow.classList.add('hidden');
+            }
             
             if (this.comboSubtotal > 0) {
                 if (comboRowEl) comboRowEl.classList.remove('hidden');

@@ -323,13 +323,13 @@
             $afterDiscount = round($regularSubtotal - $discount70, 2);
             $specialDiscount = round($afterDiscount * 0.15, 2);
             $afterSpecial = round($afterDiscount - $specialDiscount, 2);
+            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0);
             $couponDiscount = (float)($order->coupon_discount ?? 0);
-            $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
-            $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
-            $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0);
+            $afterCoupon = max(0, round($afterSpecial + $packing - $couponDiscount, 2));
             $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
             $luckySpinPrize = $order->lucky_spin_prize ?? null;
-            $finalAmount = max(0, round($totalBeforePacking + $packing - $luckySpinDiscount));
+            $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
+            $finalAmount = max(0, round($netBeforeCombos + $comboSubtotal));
         @endphp
 
         <table class="summary-table" style="page-break-inside: avoid;">
@@ -338,20 +338,23 @@
             <tr><td class="label">After Discount</td><td class="value">₹{{ number_format($afterDiscount, 2) }}</td></tr>
             <tr><td class="label">Spl Discount (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
             <tr><td class="label">After Spl. Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
+            <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
             @if(!empty($order->coupon_code))
                 <tr><td class="label">Coupon Code</td><td class="value">{{ $order->coupon_code }}</td></tr>
             @endif
-            <tr><td class="label">Coupon Discount</td><td class="value">{{ $couponDiscount > 0 ? '-₹' . number_format($couponDiscount, 2) : '0000' }}</td></tr>
-            <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
-            <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
-            <tr><td class="label"><strong>Total Amount</strong></td><td class="value"><strong>₹{{ number_format($totalBeforePacking, 2) }}</strong></td></tr>
-            <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+            @if($couponDiscount > 0)
+                <tr><td class="label">Coupon Discount</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
+                <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
+            @endif
             @if(!empty($luckySpinPrize))
                 @if($luckySpinDiscount > 0)
                     <tr><td class="label" style="color:#059669;font-weight:bold;">Lucky Spin Disc (5%) [{{ $luckySpinPrize }}]</td><td class="value" style="color:#059669;font-weight:bold;">-₹{{ number_format($luckySpinDiscount, 2) }}</td></tr>
                 @else
                     <tr><td class="label" style="color:#B45309;font-weight:bold;">Lucky Wheel Prize</td><td class="value" style="color:#B45309;font-weight:bold;">{{ $luckySpinPrize }} (FREE)</td></tr>
                 @endif
+            @endif
+            @if($comboSubtotal > 0)
+                <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
             @endif
             <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Payable Amount</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
         </table>

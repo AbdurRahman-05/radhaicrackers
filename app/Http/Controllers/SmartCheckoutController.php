@@ -206,7 +206,11 @@ class SmartCheckoutController extends Controller
             $discount15 = round($afterDiscount70 * 0.15, 2);
             $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
-            // Calculate coupon discount only if code is present
+            // Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
+            $packingCharge = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
+            $regularWithPacking = round($afterDiscount15 + $packingCharge, 2);
+
+            // Calculate coupon discount under packaging cost
             $couponDiscount = 0;
             $couponCode = $request->input('coupon_code');
             if (!empty($couponCode)) {
@@ -220,22 +224,12 @@ class SmartCheckoutController extends Controller
                     } elseif ($coupon->type === 'fixed' || $coupon->type === 'fixed_amount') {
                         $couponDiscount = (float)$coupon->value;
                     }
-                    $couponDiscount = min($couponDiscount, $afterDiscount15);
+                    $couponDiscount = min($couponDiscount, $regularWithPacking);
                 }
             }
 
-            // 1. After Coupon Discount
-            $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
-
-            // 2. Net Rate Items ($comboSubtotal)
-            // 3. Total Amount = After Coupon Discount + Net Rate Items
-            $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
-
-            // 4. Add Packaging Cost (5%) - Applied ONLY to regular items; NO packaging cost for combos!
-            $packingCharge = ($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0;
-
-            // 5. Net Payable Amount
-            $finalTotal = round($totalBeforePacking + $packingCharge);
+            // After Coupon Discount (under packaging cost)
+            $afterCoupon = max(0, round($regularWithPacking - $couponDiscount, 2));
 
             // Process Lucky Spinning Wheel Prize (strictly for NORMAL purchases >= ₹5,000)
             $luckySpinPrize = $request->input('lucky_spin_prize');
@@ -243,7 +237,7 @@ class SmartCheckoutController extends Controller
 
             // Check if eligible for lucky spin:
             // STRICT RULE: Lucky Wheel is ONLY unlocked for normal purchase above ₹5,000 (combos do not count)
-            $normalPurchaseTotal = max(0, ($afterDiscount15 + $packingCharge) - $couponDiscount);
+            $normalPurchaseTotal = $afterCoupon;
             $isLuckySpinEligible = ($normalPurchaseTotal >= 4995 || round($normalPurchaseTotal) >= 5000);
 
             if (!$isLuckySpinEligible) {
@@ -255,9 +249,8 @@ class SmartCheckoutController extends Controller
                 $luckySpinDiscount = 0;
             } elseif (!empty($luckySpinPrize)) {
                 if ($luckySpinPrize === '5% Discount' || str_contains(strtolower($luckySpinPrize), '5%') || str_contains(strtolower($luckySpinPrize), 'discount')) {
-                    $baseForDiscount = $totalBeforePacking + $packingCharge;
-                    $luckySpinDiscount = round($baseForDiscount * 0.05, 2);
-                    $finalTotal = max(0, round($baseForDiscount - $luckySpinDiscount));
+                    $luckySpinDiscount = round($normalPurchaseTotal * 0.05, 2);
+                    $normalPurchaseTotal = max(0, round($normalPurchaseTotal - $luckySpinDiscount, 2));
                 } elseif (str_contains(strtolower($luckySpinPrize), '25 raider')) {
                     // Check if already injected
                     $hasGift = false;
@@ -328,6 +321,8 @@ class SmartCheckoutController extends Controller
                 }
             }
 
+            // Net Rate Items (combos) added in the LAST to make net payable!
+            $finalTotal = max(0, round($normalPurchaseTotal + $comboSubtotal));
             $mailTotal = $finalTotal;
 
             // Prepare order data

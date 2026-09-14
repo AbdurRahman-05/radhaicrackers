@@ -740,22 +740,26 @@ class Orders extends Component
         $afterDiscount70 = round($regularSubtotal - $discount70, 2);
         $discount15 = round($afterDiscount70 * 0.15, 2);
         $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
+
+        // Add Packaging Cost (5% on regular items)
+        $packingCharge = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
+        $regularWithPacking = round($afterDiscount15 + $packingCharge, 2);
         
         $couponDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->coupon_discount) {
             $couponDiscount = (float)$this->editingOrder->coupon_discount;
         }
 
-        $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2)); // 1. After Coupon Discount
-        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2); // 2. Net Rate Items + 3. Total Amount
-        $packingCharge = ($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0; // 4. Add Packaging Cost (5% on regular items only, NO packing for combos)
+        // Coupon under packaging cost
+        $afterCoupon = max(0, round($regularWithPacking - $couponDiscount, 2));
 
         $luckySpinDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {
             $luckySpinDiscount = (float)$this->editingOrder->lucky_spin_discount;
         }
 
-        $taxableAmount = max(0, $totalBeforePacking + $packingCharge - $luckySpinDiscount);
+        // Net Rate Items (combos) added in the LAST:
+        $taxableAmount = max(0, round($afterCoupon - $luckySpinDiscount + $comboSubtotal, 2));
         $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
         $finalTotal = round($taxableAmount + $gstAmount);
 
@@ -766,11 +770,10 @@ class Orders extends Component
             'amount_after_70_discount' => $afterDiscount70,
             'special_discount_15_percent' => $discount15,
             'amount_after_15_discount' => $afterDiscount15,
+            'packing_charge_5_percent' => $packingCharge,
             'coupon_discount' => $couponDiscount,
             'amount_after_coupon' => $afterCoupon,
             'combo_subtotal' => $comboSubtotal,
-            'total_before_packing' => $totalBeforePacking,
-            'packing_charge_5_percent' => $packingCharge,
             'lucky_spin_discount' => $luckySpinDiscount,
             'gst_amount' => $gstAmount,
             'total' => $finalTotal,

@@ -741,6 +741,10 @@
                                 <span>After Spl. Discount:</span>
                                 <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_15_discount'], 2) }}</span>
                             </div>
+                            <div class="flex justify-between text-orange-600 font-medium">
+                                <span>Add Packaging Cost (5%):</span>
+                                <span>+₹{{ number_format($calculatedTotals['packing_charge_5_percent'], 2) }}</span>
+                            </div>
                             @if($calculatedTotals['coupon_discount'] > 0 || !empty($editingOrder->coupon_code))
                             <div class="flex justify-between text-green-600">
                                 <span>Coupon Discount @if(!empty($editingOrder->coupon_code))({{ $editingOrder->coupon_code }})@endif:</span>
@@ -751,24 +755,18 @@
                                 <span class="font-medium">₹{{ number_format($calculatedTotals['amount_after_coupon'], 2) }}</span>
                             </div>
                             @endif
-                            <div class="flex justify-between text-purple-700 font-medium">
-                                <span>Net Rate Items:</span>
-                                <span>₹{{ number_format($calculatedTotals['combo_subtotal'], 2) }}</span>
-                            </div>
                             @if(isset($calculatedTotals['lucky_spin_discount']) && $calculatedTotals['lucky_spin_discount'] > 0)
                             <div class="flex justify-between text-emerald-600 font-medium">
                                 <span>🎡 Lucky Spin Disc (5%):</span>
                                 <span>-₹{{ number_format($calculatedTotals['lucky_spin_discount'], 2) }}</span>
                             </div>
                             @endif
-                            <div class="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1">
-                                <span>Total Amount:</span>
-                                <span>₹{{ number_format($calculatedTotals['total_before_packing'], 2) }}</span>
+                            @if($calculatedTotals['combo_subtotal'] > 0)
+                            <div class="flex justify-between text-purple-700 font-medium">
+                                <span>Net Rate Items:</span>
+                                <span>₹{{ number_format($calculatedTotals['combo_subtotal'], 2) }}</span>
                             </div>
-                            <div class="flex justify-between text-orange-600 font-medium">
-                                <span>Add Packaging Cost (5%):</span>
-                                <span>+₹{{ number_format($calculatedTotals['packing_charge_5_percent'], 2) }}</span>
-                            </div>
+                            @endif
                             @if($calculatedTotals['gst_amount'] > 0)
                             <div class="flex justify-between text-blue-600 font-medium">
                                 <span>GST (18%):</span>

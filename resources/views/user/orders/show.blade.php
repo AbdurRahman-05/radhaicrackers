@@ -110,12 +110,12 @@
                         $afterDiscount = round($regularSubtotal - $discount70, 2);
                         $specialDiscount = round($afterDiscount * 0.15, 2);
                         $afterSpecial = round($afterDiscount - $specialDiscount, 2);
+                        $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0);
                         $couponDiscount = (float)($order->coupon_discount ?? 0);
-                        $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
-                        $totalBeforePacking = round($afterCoupon + $comboSubtotal, 2);
-                        $packing = isset($order->packing_charge_5_percent) ? (float)$order->packing_charge_5_percent : (($afterCoupon > 0) ? round($afterCoupon * 0.05, 2) : 0);
+                        $afterCoupon = max(0, round($afterSpecial + $packing - $couponDiscount, 2));
                         $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
-                        $netPayable = max(0, round($totalBeforePacking + $packing - $spinDiscount));
+                        $netBeforeCombos = max(0, round($afterCoupon - $spinDiscount, 2));
+                        $netPayable = max(0, round($netBeforeCombos + $comboSubtotal));
                         if (!empty($order->total_amount) && (float)$order->total_amount > 0) {
                             $netPayable = (float)$order->total_amount;
                         } elseif (!empty($order->total) && (float)$order->total > 0) {
@@ -134,13 +134,11 @@
                     <div><strong>After Discount:</strong> ₹{{ number_format($afterDiscount, 2) }}</div>
                     <div><strong>Spl Discount (15%):</strong> -₹{{ number_format($specialDiscount, 2) }}</div>
                     <div><strong>After Spl. Discount:</strong> ₹{{ number_format($afterSpecial, 2) }}</div>
+                    <div><strong>Add Packaging Cost (5%):</strong> ₹{{ number_format($packing, 2) }}</div>
                     @if($couponDiscount > 0 || !empty($order->coupon_code))
                         <div><strong>Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif:</strong> -₹{{ number_format($couponDiscount, 2) }}</div>
                         <div><strong>After Coupon Discount:</strong> ₹{{ number_format($afterCoupon, 2) }}</div>
                     @endif
-                    <div><strong>Net Rate Items:</strong> ₹{{ number_format($comboSubtotal, 2) }}</div>
-                    <div><strong>Total Amount:</strong> ₹{{ number_format($totalBeforePacking, 2) }}</div>
-                    <div><strong>Add Packaging Cost (5%):</strong> ₹{{ number_format($packing, 2) }}</div>
                     @if($order->lucky_spin_prize)
                         <div class="mt-1 p-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between">
                             <span class="font-bold text-amber-900">🎡 Lucky Spin Prize:</span>
@@ -149,6 +147,9 @@
                     @endif
                     @if($spinDiscount > 0)
                         <div class="text-emerald-700 font-bold"><strong>🎡 Lucky Spin Disc (5%):</strong> -₹{{ number_format($spinDiscount, 2) }}</div>
+                    @endif
+                    @if($comboSubtotal > 0)
+                        <div><strong>Net Rate Items:</strong> ₹{{ number_format($comboSubtotal, 2) }}</div>
                     @endif
                     <div class="text-base font-bold text-gray-900 border-t pt-1"><strong>Net Payable Amount:</strong> ₹{{ number_format($netPayable, 2) }}</div>
                     <div><strong>Received Amt:</strong> ₹{{ number_format($receivedAmount, 2) }}</div>
