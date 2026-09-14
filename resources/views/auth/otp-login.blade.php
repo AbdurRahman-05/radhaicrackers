@@ -20,19 +20,18 @@
         </div>
         <div class="mb-4">
             <label class="inline-flex items-center cursor-pointer">
-                <input type="radio" name="channel" value="whatsapp" {{ old('channel') === 'whatsapp' ? 'checked' : '' }} class="text-green-600 focus:ring-green-500">
+                <input type="radio" name="channel" value="whatsapp" {{ old('channel', 'whatsapp') === 'whatsapp' ? 'checked' : '' }} class="text-green-600 focus:ring-green-500">
                 <span class="ml-2 text-sm font-medium text-gray-700 flex items-center">
                     <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1.5"></span> WhatsApp
                 </span>
             </label>
             <label class="inline-flex items-center cursor-pointer ml-6">
-                <input type="radio" name="channel" value="sms" {{ old('channel', 'sms') === 'sms' ? 'checked' : '' }} class="text-blue-600 focus:ring-blue-500">
+                <input type="radio" name="channel" value="sms" {{ old('channel') === 'sms' ? 'checked' : '' }} class="text-blue-600 focus:ring-blue-500">
                 <span class="ml-2 text-sm font-medium text-gray-700 flex items-center">
                     <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span> SMS
                 </span>
             </label>
         </div>
-        <p class="text-xs text-orange-600 mb-4 mt-[-10px]">* Note: WhatsApp OTP is temporarily unavailable. Please use SMS.</p>
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded shadow transition-colors">Send OTP</button>
     </form>
 
