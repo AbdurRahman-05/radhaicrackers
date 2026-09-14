@@ -576,18 +576,19 @@
                             </span>
                         </div>
                         
-                        <!-- Modal Notifications for Add Item -->
-                        @if (session()->has('modal_success'))
-                            <div class="px-4 py-2 bg-green-50 border-b border-green-200 text-green-700 text-xs font-semibold flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                {{ session('modal_success') }}
-                            </div>
-                        @endif
-                        @if (session()->has('modal_error'))
-                            <div class="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs font-semibold flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                {{ session('modal_error') }}
-                            </div>
+                        <!-- Modal Notifications for Add/Remove Item -->
+                        @if (!empty($modalMessage))
+                            @if ($modalMessageType === 'success')
+                                <div class="px-4 py-2 bg-green-50 border-b border-green-200 text-green-700 text-xs font-semibold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    {{ $modalMessage }}
+                                </div>
+                            @else
+                                <div class="px-4 py-2 bg-red-50 border-b border-red-200 text-red-700 text-xs font-semibold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    {{ $modalMessage }}
+                                </div>
+                            @endif
                         @endif
 
                         <div class="overflow-x-auto max-h-56 overflow-y-auto">
@@ -659,9 +660,9 @@
                                 ➕ Add Product to Order
                             </h5>
                             
-                            @if (session()->has('add_item_error'))
+                            @if (!empty($modalMessage) && $modalMessageType === 'error')
                                 <div class="mb-2 px-2 py-1 bg-red-50 border border-red-200 text-red-700 text-[10px] font-semibold rounded">
-                                    {{ session('add_item_error') }}
+                                    {{ $modalMessage }}
                                 </div>
                             @endif
                             
@@ -672,6 +673,8 @@
                                         <input type="text" 
                                             wire:model.live.debounce.250ms="newItemSearch" 
                                             wire:focus="fetchSearchResults" 
+                                            wire:keydown.enter.prevent="addNewItem"
+                                            wire:keydown.escape="closeSearchDropdown"
                                             placeholder="Type name or code to search..." 
                                             class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white pr-6" />
                                         @if(!empty($newItemSearch) || $showSearchDropdown)
@@ -701,12 +704,13 @@
                                 
                                 <div class="w-full">
                                     <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Qty</label>
-                                    <input type="number" min="1" wire:model="newItemQty" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded text-center font-bold focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
+                                    <input type="number" min="1" wire:model="newItemQty" wire:keydown.enter.prevent="addNewItem" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded text-center font-bold focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white" />
                                 </div>
                                 
                                 <div>
-                                    <button type="button" wire:click="addNewItem" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 rounded transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                                        Add
+                                    <button type="button" wire:click="addNewItem" wire:loading.attr="disabled" wire:target="addNewItem" class="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold text-xs py-1.5 rounded transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                                        <span wire:loading.remove wire:target="addNewItem">➕ Add</span>
+                                        <span wire:loading wire:target="addNewItem">Adding...</span>
                                     </button>
                                 </div>
                             </div>

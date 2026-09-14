@@ -94,6 +94,13 @@ public function images()
 
         $filename = basename($cleanPath);
 
+        // Optimization: If target file already exists in public storage, avoid scanning and copying
+        $publicTarget = public_path('storage/' . $cleanPath);
+        $publicStockTarget = public_path('storage/stocks/' . $filename);
+        if ((file_exists($publicTarget) && !is_dir($publicTarget)) || (file_exists($publicStockTarget) && !is_dir($publicStockTarget))) {
+            return;
+        }
+
         $sources = [
             public_path('storage/' . $cleanPath),
             storage_path('app/public/' . $cleanPath),
@@ -273,11 +280,11 @@ public function images()
             $newCount = $countsMap[$stockId] ?? 0;
             static::where('id', $stockId)->update(['ordered_count' => $newCount]);
         } else {
-            $allStocks = static::all();
+            $allStocks = static::select(['id', 'ordered_count'])->get();
             foreach ($allStocks as $stock) {
-                $newCount = $countsMap[$stock->id] ?? 0;
-                if ($stock->ordered_count != $newCount) {
-                    $stock->update(['ordered_count' => $newCount]);
+                $newCount = (int)($countsMap[$stock->id] ?? 0);
+                if ((int)$stock->ordered_count !== $newCount) {
+                    static::where('id', $stock->id)->update(['ordered_count' => $newCount]);
                 }
             }
         }
