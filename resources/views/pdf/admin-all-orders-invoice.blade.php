@@ -600,10 +600,19 @@
                     $comboPacking = round($packing - $regularPacking, 2);
 
                     $couponDiscount = (float)($order->coupon_discount ?? 0);
-                    $afterCoupon = max(0, round($afterSpecial + $regularPacking - $couponDiscount, 2));
+                    $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
                     $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
                     $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
-                    $netAmount = $netBeforeCombos + $comboSubtotal + $comboPacking;
+
+                    // 9. Total Amount = (After Coupon / Spin) + Net Rate Items
+                    $totalAmount = round($netBeforeCombos + $comboSubtotal, 2);
+
+                    // 10. Add Package 5% = 5% on Total Amount
+                    $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($totalAmount * 0.05, 2)) < 5
+                        ? (float)$order->packing_charge_5_percent
+                        : (($totalAmount > 0) ? round($totalAmount * 0.05, 2) : 0);
+
+                    $netAmount = round($totalAmount + $packing, 2);
                     $gstAmount = 0;
                     if ($order->has_gst) {
                         $gstAmount = round($netAmount * 0.18, 2);
@@ -620,12 +629,11 @@
                     $balanceDue = max(0, $finalAmount - $receivedVal);
                 @endphp
                 <table class="summary-table">
-                    <tr><td class="label">SubTotal</td><td class="value">₹{{ number_format($regularSubtotal, 2) }}</td></tr>
-                    <tr><td class="label">Discount (70%)</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
+                    <tr><td class="label">Sub Total</td><td class="value">₹{{ number_format($regularSubtotal, 2) }}</td></tr>
+                    <tr><td class="label">Discount 70%</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
                     <tr><td class="label">After Discount</td><td class="value">₹{{ number_format($afterDiscount, 2) }}</td></tr>
-                    <tr><td class="label">Spl Discount (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
-                    <tr><td class="label">After Spl. Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
-                    <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
+                    <tr><td class="label">Spl Discount 15%</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
+                    <tr><td class="label">After Spl Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
                     @if($couponDiscount > 0 || !empty($order->coupon_code))
                         <tr><td class="label">Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
                         <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
@@ -640,6 +648,8 @@
                     @if($comboSubtotal > 0)
                         <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
                     @endif
+                    <tr><td class="label">Total Amount</td><td class="value">₹{{ number_format($totalAmount, 2) }}</td></tr>
+                    <tr><td class="label">Add Package 5%</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
                     @if($order->has_gst && $gstAmount > 0)
                         <tr><td class="label">GST (18%)</td><td class="value">₹{{ number_format($gstAmount, 2) }}</td></tr>
                     @endif

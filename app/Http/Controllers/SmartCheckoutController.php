@@ -200,20 +200,17 @@ class SmartCheckoutController extends Controller
             }
             unset($item);
 
-            // Apply wholesale discounts on regular items (MRP)
+            // 1. Sub Total = $regularSubtotal
+            // 2. Discount 70%
             $discount70 = round($regularSubtotal * 0.70, 2);
+            // 3. After Discount
             $afterDiscount70 = round($regularSubtotal - $discount70, 2);
+            // 4. Spl Discount 15%
             $discount15 = round($afterDiscount70 * 0.15, 2);
+            // 5. After Spl Discount
             $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
-            // Add Packaging Cost (5%) - Applied to regular items AND combos!
-            $taxableGoods = $afterDiscount15 + $comboSubtotal;
-            $packingCharge = ($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0;
-            $regularPacking = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
-            $comboPacking = round($packingCharge - $regularPacking, 2);
-            $regularWithPacking = round($afterDiscount15 + $regularPacking, 2);
-
-            // Calculate coupon discount under packaging cost
+            // 6. Coupon Discount (directly after 15% special discount)
             $couponDiscount = 0;
             $couponCode = $request->input('coupon_code');
             if (!empty($couponCode)) {
@@ -227,21 +224,20 @@ class SmartCheckoutController extends Controller
                     } elseif ($coupon->type === 'fixed' || $coupon->type === 'fixed_amount') {
                         $couponDiscount = (float)$coupon->value;
                     }
-                    $couponDiscount = min($couponDiscount, $regularWithPacking);
+                    $couponDiscount = min($couponDiscount, $afterDiscount15);
                 }
             }
 
-            // After Coupon Discount (under packaging cost)
-            $afterCoupon = max(0, round($regularWithPacking - $couponDiscount, 2));
+            // After Coupon Discount
+            $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
 
             // Process Lucky Spinning Wheel Prize (strictly for NORMAL purchases >= ₹5,000)
             $luckySpinPrize = $request->input('lucky_spin_prize');
             $luckySpinDiscount = 0;
 
-            // Check if eligible for lucky spin:
-            // STRICT RULE: Lucky Wheel is ONLY unlocked for normal purchase above ₹5,000 (combos do not count)
+            // Milestone is based on normal product purchase amount in cart (afterDiscount15 >= ₹5,000)
+            $isLuckySpinEligible = ($afterDiscount15 >= 4995 || round($afterDiscount15) >= 5000);
             $normalPurchaseTotal = $afterCoupon;
-            $isLuckySpinEligible = ($normalPurchaseTotal >= 4995 || round($normalPurchaseTotal) >= 5000);
 
             if (!$isLuckySpinEligible) {
                 // If normal purchase is less than 5000, remove lucky spin gifts and reset discount
@@ -324,8 +320,15 @@ class SmartCheckoutController extends Controller
                 }
             }
 
-            // Net Rate Items (combos) with combo packing added in the LAST to make net payable!
-            $finalTotal = max(0, round($normalPurchaseTotal + $comboSubtotal + $comboPacking));
+            // 8. Net Rate Items = $comboSubtotal
+            // 9. Total Amount = (After Coupon Discount / Spin) + Net Rate Items
+            $totalAmount = round($normalPurchaseTotal + $comboSubtotal, 2);
+
+            // 10. Add package 5% = 5% packaging on the Total Amount
+            $packingCharge = ($totalAmount > 0) ? round($totalAmount * 0.05, 2) : 0;
+
+            // 11. Net Payable Amount = Total Amount + 5% Package
+            $finalTotal = max(0, round($totalAmount + $packingCharge));
             $mailTotal = $finalTotal;
 
             // Prepare order data

@@ -123,18 +123,9 @@ class Order extends Model
 
     public static function getNextAvailableOrderId()
     {
-        $existingIds = static::pluck('id')->flip()->toArray();
-        if (empty($existingIds)) {
+        $maxId = (int) static::max('id');
+        if ($maxId < 1000) {
             return 1001;
-        }
-
-        $minId = min(array_keys($existingIds));
-        $maxId = max(array_keys($existingIds));
-
-        for ($i = $minId; $i <= $maxId; $i++) {
-            if (!isset($existingIds[$i])) {
-                return $i;
-            }
         }
 
         return $maxId + 1;

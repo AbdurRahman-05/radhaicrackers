@@ -348,34 +348,31 @@
             $specialDiscount = round($afterDiscount * 0.15, 2);
             $afterSpecial = round($afterDiscount - $specialDiscount, 2);
             
-            // Add Packaging Cost (5% on regular items AND combos)
-            $taxableGoods = $afterSpecial + $comboSubtotal;
-            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($taxableGoods * 0.05, 2)) < 5
-                ? (float)$order->packing_charge_5_percent
-                : (($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0);
-            $regularPacking = ($afterSpecial > 0) ? round($afterSpecial * 0.05, 2) : 0;
-            $comboPacking = round($packing - $regularPacking, 2);
-
             $couponDiscount = (float)($order->coupon_discount ?? 0);
-            $afterCoupon = max(0, round($afterSpecial + $regularPacking - $couponDiscount, 2));
+            $afterCoupon = max(0, round($afterSpecial - $couponDiscount, 2));
             $luckySpinDiscount = (float)($order->lucky_spin_discount ?? 0);
             $luckySpinPrize = $order->lucky_spin_prize ?? null;
             $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
-            $finalAmount = max(0, round($netBeforeCombos + $comboSubtotal + $comboPacking));
+
+            // 9. Total Amount = (After Coupon / Spin) + Net Rate Items
+            $totalAmount = round($netBeforeCombos + $comboSubtotal, 2);
+
+            // 10. Add Package 5% = 5% on Total Amount
+            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($totalAmount * 0.05, 2)) < 5
+                ? (float)$order->packing_charge_5_percent
+                : (($totalAmount > 0) ? round($totalAmount * 0.05, 2) : 0);
+
+            $finalAmount = max(0, round($totalAmount + $packing));
         @endphp
 
         <table class="summary-table" style="page-break-inside: avoid;">
-            <tr><td class="label">SubTotal</td><td class="value">₹{{ number_format($regularSubtotal, 2) }}</td></tr>
-            <tr><td class="label">Discount (70%)</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
+            <tr><td class="label">Sub Total</td><td class="value">₹{{ number_format($regularSubtotal, 2) }}</td></tr>
+            <tr><td class="label">Discount 70%</td><td class="value">-₹{{ number_format($discount70, 2) }}</td></tr>
             <tr><td class="label">After Discount</td><td class="value">₹{{ number_format($afterDiscount, 2) }}</td></tr>
-            <tr><td class="label">Spl Discount (15%)</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
-            <tr><td class="label">After Spl. Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
-            <tr><td class="label">Add Packaging Cost (5%)</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
-            @if(!empty($order->coupon_code))
-                <tr><td class="label">Coupon Code</td><td class="value">{{ $order->coupon_code }}</td></tr>
-            @endif
-            @if($couponDiscount > 0)
-                <tr><td class="label">Coupon Discount</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
+            <tr><td class="label">Spl Discount 15%</td><td class="value">-₹{{ number_format($specialDiscount, 2) }}</td></tr>
+            <tr><td class="label">After Spl Discount</td><td class="value">₹{{ number_format($afterSpecial, 2) }}</td></tr>
+            @if($couponDiscount > 0 || !empty($order->coupon_code))
+                <tr><td class="label">Coupon Discount @if(!empty($order->coupon_code))({{ $order->coupon_code }})@endif</td><td class="value">-₹{{ number_format($couponDiscount, 2) }}</td></tr>
                 <tr><td class="label">After Coupon Discount</td><td class="value">₹{{ number_format($afterCoupon, 2) }}</td></tr>
             @endif
             @if(!empty($luckySpinPrize))
@@ -388,6 +385,8 @@
             @if($comboSubtotal > 0)
                 <tr><td class="label">Net Rate Items</td><td class="value">₹{{ number_format($comboSubtotal, 2) }}</td></tr>
             @endif
+            <tr><td class="label">Total Amount</td><td class="value">₹{{ number_format($totalAmount, 2) }}</td></tr>
+            <tr><td class="label">Add Package 5%</td><td class="value">₹{{ number_format($packing, 2) }}</td></tr>
             <tr><td class="label" style="background:#1E093B;color:#fff;font-size:12px;"><strong>Net Payable Amount</strong></td><td class="value" style="background:#1E093B;color:#fff;font-size:12px;"><strong>₹{{ number_format($finalAmount, 2) }}</strong></td></tr>
         </table>
         

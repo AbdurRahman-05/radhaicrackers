@@ -29,12 +29,12 @@ class PDFController extends Controller
     public function downloadOrderPDF($id)
     {
         $order = \App\Models\Order::where('user_id', auth()->id())->findOrFail($id);
-        $pdfPath = $this->pdfService->getOrderPDF($order);
+        $pdfPath = $this->pdfService->generateOrderConfirmation($order);
 
-        if (!$pdfPath) {
-            $pdfPath = $this->pdfService->generateOrderConfirmation($order);
-        }
-
-        return response()->download(storage_path('app/public/' . $pdfPath));
+        return response()->download(storage_path('app/public/' . $pdfPath), 'order_' . $order->id . '.pdf', [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0'
+        ]);
     }
 } 

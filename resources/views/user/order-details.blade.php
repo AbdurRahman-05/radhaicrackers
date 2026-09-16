@@ -141,19 +141,20 @@
                             $specialDiscount15 = isset($order->special_discount_15_percent) && (float)$order->special_discount_15_percent > 0 ? (float)$order->special_discount_15_percent : round($afterDiscount70 * 0.15, 2);
                             $afterSpecial15 = isset($order->amount_after_15_discount) && (float)$order->amount_after_15_discount > 0 ? (float)$order->amount_after_15_discount : round($afterDiscount70 - $specialDiscount15, 2);
                             
-                            // 5% Packaging Cost on regular items AND combos
-                            $taxableGoods = $afterSpecial15 + $comboSubtotal;
-                            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($taxableGoods * 0.05, 2)) < 5
-                                ? (float)$order->packing_charge_5_percent
-                                : (($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0);
-                            $regularPacking = ($afterSpecial15 > 0) ? round($afterSpecial15 * 0.05, 2) : 0;
-                            $comboPacking = round($packing - $regularPacking, 2);
-
                             $couponDiscount = (float)($order->coupon_discount ?? 0);
-                            $afterCoupon = max(0, round($afterSpecial15 + $regularPacking - $couponDiscount, 2));
+                            $afterCoupon = max(0, round($afterSpecial15 - $couponDiscount, 2));
                             $spinDiscount = (float)($order->lucky_spin_discount ?? 0);
                             $netBeforeCombos = max(0, round($afterCoupon - $spinDiscount, 2));
-                            $calculatedNetPayable = max(0, round($netBeforeCombos + $comboSubtotal + $comboPacking));
+
+                            // 9. Total Amount = (After Coupon / Spin) + Net Rate Items
+                            $totalAmount = round($netBeforeCombos + $comboSubtotal, 2);
+
+                            // 10. Add Package 5% = 5% on Total Amount
+                            $packing = isset($order->packing_charge_5_percent) && (float)$order->packing_charge_5_percent > 0 && abs((float)$order->packing_charge_5_percent - round($totalAmount * 0.05, 2)) < 5
+                                ? (float)$order->packing_charge_5_percent
+                                : (($totalAmount > 0) ? round($totalAmount * 0.05, 2) : 0);
+
+                            $calculatedNetPayable = max(0, round($totalAmount + $packing));
                             $netPayable = isset($order->total_amount) && (float)$order->total_amount > 0 && abs((float)$order->total_amount - $calculatedNetPayable) <= 2
                                 ? (float)$order->total_amount
                                 : (isset($order->total) && (float)$order->total > 0 && abs((float)$order->total - $calculatedNetPayable) <= 2
@@ -168,11 +169,11 @@
                         @endphp
 
                         <div class="flex justify-between items-center text-gray-700">
-                            <span>SubTotal</span>
+                            <span>Sub Total</span>
                             <span>₹{{ number_format($regularSubtotal, 2) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-gray-700">
-                            <span>Discount (70%)</span>
+                            <span>Discount 70%</span>
                             <span>-₹{{ number_format($discount70, 2) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-gray-700">
@@ -180,16 +181,12 @@
                             <span>₹{{ number_format($afterDiscount70, 2) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-gray-700">
-                            <span>Spl Discount (15%)</span>
+                            <span>Spl Discount 15%</span>
                             <span>-₹{{ number_format($specialDiscount15, 2) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-gray-700">
-                            <span>After Spl. Discount</span>
+                            <span>After Spl Discount</span>
                             <span>₹{{ number_format($afterSpecial15, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center text-gray-700">
-                            <span>Add Packaging Cost (5%)</span>
-                            <span>₹{{ number_format($packing, 2) }}</span>
                         </div>
                         @if($couponDiscount > 0 || !empty($order->coupon_code))
                             <div class="flex justify-between items-center text-gray-700">
@@ -219,6 +216,14 @@
                                 <span>₹{{ number_format($comboSubtotal, 2) }}</span>
                             </div>
                         @endif
+                        <div class="flex justify-between items-center text-gray-900 font-bold border-t pt-1">
+                            <span>Total Amount</span>
+                            <span>₹{{ number_format($totalAmount, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-700">
+                            <span>Add Package 5%</span>
+                            <span>₹{{ number_format($packing, 2) }}</span>
+                        </div>
                         <div class="flex justify-between items-center text-lg font-bold text-gray-900 border-t pt-2 mt-1">
                             <span>Net Payable Amount</span>
                             <span>₹{{ number_format($netPayable, 2) }}</span>

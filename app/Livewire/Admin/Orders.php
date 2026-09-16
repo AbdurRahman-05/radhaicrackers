@@ -768,28 +768,30 @@ class Orders extends Component
         $discount15 = round($afterDiscount70 * 0.15, 2);
         $afterDiscount15 = round($afterDiscount70 - $discount15, 2);
 
-        // Add Packaging Cost (5% on regular items AND combos)
-        $taxableGoods = $afterDiscount15 + $comboSubtotal;
-        $packingCharge = ($taxableGoods > 0) ? round($taxableGoods * 0.05, 2) : 0;
-        $regularPacking = ($afterDiscount15 > 0) ? round($afterDiscount15 * 0.05, 2) : 0;
-        $comboPacking = round($packingCharge - $regularPacking, 2);
-        $regularWithPacking = round($afterDiscount15 + $regularPacking, 2);
-        
         $couponDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->coupon_discount) {
             $couponDiscount = (float)$this->editingOrder->coupon_discount;
         }
 
-        // Coupon under packaging cost
-        $afterCoupon = max(0, round($regularWithPacking - $couponDiscount, 2));
+        // Coupon applied directly on after special discount
+        $afterCoupon = max(0, round($afterDiscount15 - $couponDiscount, 2));
 
         $luckySpinDiscount = 0;
         if ($this->editingOrder && $this->editingOrder->lucky_spin_discount) {
             $luckySpinDiscount = (float)$this->editingOrder->lucky_spin_discount;
         }
 
-        // Net Rate Items (combos) with combo packing added in the LAST:
-        $taxableAmount = max(0, round($afterCoupon - $luckySpinDiscount + $comboSubtotal + $comboPacking, 2));
+        $netBeforeCombos = max(0, round($afterCoupon - $luckySpinDiscount, 2));
+
+        // 8. Net Rate Items = $comboSubtotal
+        // 9. Total Amount = (After Coupon / Spin) + Net Rate Items
+        $totalAmount = round($netBeforeCombos + $comboSubtotal, 2);
+
+        // 10. Add Package 5% = 5% on Total Amount
+        $packingCharge = ($totalAmount > 0) ? round($totalAmount * 0.05, 2) : 0;
+
+        // 11. Net Payable Amount = Total Amount + 5% Package
+        $taxableAmount = round($totalAmount + $packingCharge, 2);
         $gstAmount = $this->editHasGst ? round($taxableAmount * 0.18, 2) : 0;
         $finalTotal = round($taxableAmount + $gstAmount);
 
@@ -800,10 +802,11 @@ class Orders extends Component
             'amount_after_70_discount' => $afterDiscount70,
             'special_discount_15_percent' => $discount15,
             'amount_after_15_discount' => $afterDiscount15,
-            'packing_charge_5_percent' => $packingCharge,
             'coupon_discount' => $couponDiscount,
             'amount_after_coupon' => $afterCoupon,
             'combo_subtotal' => $comboSubtotal,
+            'total_amount' => $totalAmount,
+            'packing_charge_5_percent' => $packingCharge,
             'lucky_spin_discount' => $luckySpinDiscount,
             'gst_amount' => $gstAmount,
             'total' => $finalTotal,
@@ -1313,6 +1316,26 @@ class Orders extends Component
                     $order->items()->delete();
                 }
             } catch (\Exception $e) {}
+            try { 
+                if (method_exists($order, 'payment') && $order->payment()) {
+                    $order->payment()->delete();
+                }
+            } catch (\Exception $e) {}
+
+            // Clean up stored invoice/order PDFs from disk
+            try {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete("pdfs/orders/order-{$orderId}.pdf");
+                \Illuminate\Support\Facades\Storage::disk('public')->delete("pdfs/orders/order-" . str_pad($orderId, 4, '0', STR_PAD_LEFT) . ".pdf");
+                $invoiceFiles = \Illuminate\Support\Facades\Storage::disk('public')->files('invoices');
+                foreach ($invoiceFiles as $inv) {
+                    if (str_contains($inv, "bill_{$orderId}_")) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($inv);
+                    }
+                }
+            } catch (\Exception $fileEx) {}
+
+            // Clear cache tags/keys
+            \Illuminate\Support\Facades\Cache::forget("admin_wa_lead_sent_order_{$orderId}");
             
             $order->delete();
 

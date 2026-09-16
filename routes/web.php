@@ -71,7 +71,10 @@ Route::get('/public-pdf/{id}', function ($id) {
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
     return response($pdf->output(), 200, [
         'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="Radhe_Crackers_Order_#' . $id . '.pdf"'
+        'Content-Disposition' => 'inline; filename="Radhe_Crackers_Order_#' . $id . '.pdf"',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache',
+        'Expires' => '0',
     ]);
 })->name('public.pdf_invoice');
 

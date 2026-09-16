@@ -99,6 +99,7 @@ class SMSService
                     if (str_contains($pdfUrl, 'localhost') || str_contains($pdfUrl, '127.0.0.1')) {
                         $pdfUrl = "https://radhecrackers.com/public-pdf/{$order_id}";
                     }
+                    $pdfUrl .= (str_contains($pdfUrl, '?') ? '&' : '?') . 'v=' . time();
 
                     // Send Meta Approved Document Template (order_bill_pdf) - ONLY for 1st message
                     $docCurl = curl_init();
@@ -359,9 +360,18 @@ class SMSService
                 // Ignore DB error if table is unavailable
             }
 
+            // Idempotency: Prevent duplicate admin notifications for the same order
+            $cacheKey = "admin_wa_lead_sent_order_{$order_id}";
+            if (!empty($order_id) && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                Log::info("WhatsApp Admin Lead Message already dispatched for Order #{$order_id}, skipping duplicate execution.");
+                return true;
+            }
+
             $successCount = 0;
 
             foreach (array_unique($adminNumbers) as $adminPhone) {
+                $sentSuccessfully = false;
+
                 // 1. Send via Meta Integration API (Primary Endpoint)
                 try {
                     $curl = curl_init();
@@ -396,58 +406,79 @@ class SMSService
                         ],
                     ]);
                     $response = curl_exec($curl);
+                    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
                     $err = curl_error($curl);
                     curl_close($curl);
 
                     Log::info('WhatsApp Admin Lead Message Meta Response', [
                         'admin_phone' => $adminPhone,
                         'order_id' => $order_id,
+                        'http_code' => $httpCode,
                         'response' => $response,
                         'error' => $err
                     ]);
 
-                    if (!$err && !empty($response)) {
-                        $successCount++;
+                    if (!$err && $httpCode >= 200 && $httpCode < 300) {
+                        $metaData = json_decode($response, true);
+                        if (is_array($metaData) && !empty($metaData['messages'])) {
+                            $sentSuccessfully = true;
+                            $successCount++;
+                        }
                     }
                 } catch (\Exception $e) {
                     Log::error('WhatsApp Admin Lead Message Integration Exception', ['error' => $e->getMessage()]);
                 }
 
-                // 2. Also send via legacy v2 endpoint as backup
-                try {
-                    $curl2 = curl_init();
-                    curl_setopt_array($curl2, [
-                        CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_ENCODING => '',
-                        CURLOPT_MAXREDIRS => 10,
-                        CURLOPT_TIMEOUT => 10,
-                        CURLOPT_FOLLOWLOCATION => true,
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_CUSTOMREQUEST => 'POST',
-                        CURLOPT_POSTFIELDS => json_encode([
-                            'to' => $adminPhone,
-                            'phoneNoId' => '747598631767762',
-                            'type' => 'template',
-                            'name' => $template_name,
-                            'language' => 'en_US',
-                            'bodyParams' => [$order_id, $order_value, $contactDisplay]
-                        ]),
-                        CURLOPT_HTTPHEADER => [
-                            'Authorization: Bearer ca4869c05587ab6e2c2052011dfa8190296a1c1d08a357f7d4a5f6e89e9568b7',
-                            'Content-Type: application/json'
-                        ],
-                    ]);
-                    $response2 = curl_exec($curl2);
-                    curl_close($curl2);
+                // 2. Fallback to legacy v2 endpoint ONLY IF primary Meta endpoint failed
+                if (!$sentSuccessfully) {
+                    try {
+                        $curl2 = curl_init();
+                        curl_setopt_array($curl2, [
+                            CURLOPT_URL => 'https://waapi.automationclub.in/api/v2/whatsapp-business/messages',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => '',
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 10,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_CUSTOMREQUEST => 'POST',
+                            CURLOPT_POSTFIELDS => json_encode([
+                                'to' => $adminPhone,
+                                'phoneNoId' => '747598631767762',
+                                'type' => 'template',
+                                'name' => $template_name,
+                                'language' => 'en_US',
+                                'bodyParams' => [$order_id, $order_value, $contactDisplay]
+                            ]),
+                            CURLOPT_HTTPHEADER => [
+                                'Authorization: Bearer ca4869c05587ab6e2c2052011dfa8190296a1c1d08a357f7d4a5f6e89e9568b7',
+                                'Content-Type: application/json'
+                            ],
+                        ]);
+                        $response2 = curl_exec($curl2);
+                        $httpCode2 = curl_getinfo($curl2, CURLINFO_HTTP_CODE);
+                        $err2 = curl_error($curl2);
+                        curl_close($curl2);
 
-                    Log::info('WhatsApp Admin Lead Message v2 Response', [
-                        'admin_phone' => $adminPhone,
-                        'response' => $response2
-                    ]);
-                } catch (\Exception $e2) {
-                    Log::error('WhatsApp Admin Lead Message v2 Exception', ['error' => $e2->getMessage()]);
+                        $resData2 = json_decode($response2, true);
+                        if (!$err2 && $httpCode2 >= 200 && $httpCode2 < 300 && (!empty($resData2['id']) || !empty($resData2['messages']))) {
+                            $successCount++;
+                        }
+
+                        Log::info('WhatsApp Admin Lead Message v2 Backup Response', [
+                            'admin_phone' => $adminPhone,
+                            'http_code' => $httpCode2,
+                            'response' => $response2,
+                            'error' => $err2
+                        ]);
+                    } catch (\Exception $e2) {
+                        Log::error('WhatsApp Admin Lead Message v2 Backup Exception', ['error' => $e2->getMessage()]);
+                    }
                 }
+            }
+
+            if ($successCount > 0 && !empty($order_id)) {
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addHours(12));
             }
 
             return $successCount > 0;
