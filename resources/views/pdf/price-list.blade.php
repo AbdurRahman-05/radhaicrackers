@@ -189,9 +189,9 @@
             <td colspan="2" style="background: #fdfaf6; padding: 5px 10px; text-align: center; border: none;">
                 <table style="width: 100%; border: none; border-collapse: collapse;">
                     <tr>
-                        <td style="border: none; text-align: left; width: 38%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Contact:</strong> +91 88070 60809, +91 97510 48974</td>
-                        <td style="border: none; text-align: center; width: 34%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Email:</strong> radhecrackers@gmail.com</td>
-                        <td style="border: none; text-align: right; width: 28%; padding: 0; font-size: 9px; color: #1f2937;"><strong>Website:</strong> www.radhecrackers.com</td>
+                        <td style="border: none; text-align: left; width: 48%; padding: 0; font-size: 8.5px; color: #1f2937; white-space: nowrap;"><strong>Contact:</strong> +91 88078 60809, +91 88070 60809, +91 97510 48974</td>
+                        <td style="border: none; text-align: center; width: 27%; padding: 0; font-size: 8.5px; color: #1f2937; white-space: nowrap;"><strong>Email:</strong> radhecrackers@gmail.com</td>
+                        <td style="border: none; text-align: right; width: 25%; padding: 0; font-size: 8.5px; color: #1f2937; white-space: nowrap;"><strong>Website:</strong> www.radhecrackers.com</td>
                     </tr>
                 </table>
             </td>
