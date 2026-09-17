@@ -73,11 +73,11 @@ class HeroSlide extends Model
                     ],
                 ]);
             } else {
-                // Ensure any previously seeded combo banner is removed from hero slider table
+                // Ensure only the legacy default seeded combo slide is removed, never user-created slides
                 try {
                     DB::table('hero_slides')
-                        ->where('image', 'like', '%combo packs banner%')
-                        ->orWhere('link_url', 'like', '%/combos%')
+                        ->where('title', 'Mega Diwali Combo Packs')
+                        ->where('image', 'images/radhe_crackers_images_2026/combo packs banner.png')
                         ->delete();
                 } catch (\Throwable $ex) {
                     // Ignore if DB issue
@@ -96,7 +96,6 @@ class HeroSlide extends Model
         try {
             self::createTableIfNotExists();
             return static::where('is_active', true)
-                ->where('image', 'not like', '%combo%')
                 ->orderBy('sort_order', 'asc')
                 ->get();
         } catch (\Throwable $e) {

@@ -40,9 +40,9 @@
                 <div class="relative w-full h-48 md:h-64 rounded-xl overflow-hidden bg-gray-900 border border-gray-300 shadow-inner flex items-center justify-center">
                     <img id="previewImage" src="{{ asset('images/radhe_crackers_images_2026/home carosel 1.png') }}" alt="Preview" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4 text-white">
-                        <span id="previewTitle" class="text-xl md:text-3xl font-extrabold drop-shadow">Festival of Lights</span>
-                        <span id="previewSubtitle" class="text-xs md:text-sm mt-1 text-gray-200 max-w-md drop-shadow">Premium Sivakasi Crackers Direct to Your Doorstep</span>
-                        <span id="previewButton" class="mt-3 inline-block bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold px-4 py-1.5 rounded-full shadow">Order Now</span>
+                        <span id="previewTitle" class="text-xl md:text-3xl font-extrabold drop-shadow">{{ old('title', '') ?: 'Title Preview (Optional)' }}</span>
+                        <span id="previewSubtitle" class="text-xs md:text-sm mt-1 text-gray-200 max-w-md drop-shadow">{{ old('subtitle', '') ?: 'Subtitle preview goes here (Optional)' }}</span>
+                        <span id="previewButton" class="mt-3 inline-block bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-xs font-bold px-4 py-1.5 rounded-full shadow">{{ old('button_text', 'Order Now') }}</span>
                     </div>
                 </div>
             </div>
@@ -83,7 +83,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="title" class="block text-xs font-bold text-gray-700 uppercase mb-1">Slide Title (Optional)</label>
-                    <input type="text" name="title" id="titleInput" value="{{ old('title', 'Festival of Lights') }}" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500" placeholder="e.g., Festival of Lights Celebration">
+                    <input type="text" name="title" id="titleInput" value="{{ old('title', '') }}" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500" placeholder="e.g., Festival of Lights Celebration">
                 </div>
 
                 <div>
@@ -94,7 +94,7 @@
 
             <div>
                 <label for="subtitle" class="block text-xs font-bold text-gray-700 uppercase mb-1">Subtitle / Description (Optional)</label>
-                <input type="text" name="subtitle" id="subtitleInput" value="{{ old('subtitle', 'Premium Sivakasi Crackers Direct to Your Doorstep') }}" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500" placeholder="e.g., Best Quality Sivakasi Crackers Direct to Your Doorstep">
+                <input type="text" name="subtitle" id="subtitleInput" value="{{ old('subtitle', '') }}" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500" placeholder="e.g., Best Quality Sivakasi Crackers Direct to Your Doorstep">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -64,9 +64,32 @@
     <div class="relative w-full overflow-hidden" id="heroSliderContainer" style="aspect-ratio: 2160 / 728; max-height: 600px;">
         @foreach($heroSlides as $index => $slide)
             <div class="absolute inset-0 transition-opacity duration-1000 {{ $index === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none' }} hero-slide" id="banner{{ $index }}">
-                <a href="{{ $slide->link_url ?: route('express-shop') }}" class="block w-full h-full cursor-pointer" title="Radhe Crackers">
+                <a href="{{ $slide->link_url ?: route('express-shop') }}" class="block w-full h-full cursor-pointer" title="{{ $slide->title ?: 'Radhe Crackers' }}">
                     <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?: 'Radhe Crackers Banner' }}" class="w-full h-full object-cover object-center select-none">
                 </a>
+
+                @if(!empty(trim($slide->title ?? '')) || !empty(trim($slide->subtitle ?? '')))
+                    <div class="absolute inset-0 flex items-center justify-start p-4 sm:p-8 md:p-14 pointer-events-none z-10">
+                        <div class="max-w-xl text-left pointer-events-auto">
+                            @if(!empty(trim($slide->title ?? '')))
+                                <h2 class="text-xl sm:text-3xl md:text-5xl font-black text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] mb-1 sm:mb-2">
+                                    {{ $slide->title }}
+                                </h2>
+                            @endif
+                            @if(!empty(trim($slide->subtitle ?? '')))
+                                <p class="text-xs sm:text-sm md:text-lg text-amber-200 font-semibold drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] mb-2 sm:mb-4 max-w-lg leading-snug">
+                                    {{ $slide->subtitle }}
+                                </p>
+                            @endif
+                            @if(!empty($slide->link_url) && !empty(trim($slide->button_text ?? '')))
+                                <a href="{{ $slide->link_url }}" class="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold text-[11px] sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-full shadow-xl hover:scale-105 transition-all">
+                                    <span>{{ $slide->button_text ?: 'Order Now' }}</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
         @endforeach
 
