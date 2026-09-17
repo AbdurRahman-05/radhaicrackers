@@ -60,52 +60,38 @@
         ]);
     }
 @endphp
-<div class="relative bg-gray-900">
-    <div class="relative h-72 sm:h-96 md:h-[500px] overflow-hidden" id="heroSliderContainer">
+<div class="relative bg-gray-950">
+    <div class="relative w-full overflow-hidden" id="heroSliderContainer" style="aspect-ratio: 2160 / 728; max-height: 600px;">
         @foreach($heroSlides as $index => $slide)
             <div class="absolute inset-0 transition-opacity duration-1000 {{ $index === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none' }} hero-slide" id="banner{{ $index }}">
-                <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?: 'Radhe Crackers Banner' }}" class="w-full h-full object-cover">
-                @if($slide->title || $slide->subtitle)
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end md:items-center justify-start md:justify-center p-6 md:p-12">
-                        <div class="max-w-2xl text-left md:text-center text-white">
-                            @if($slide->title)
-                                <h1 class="text-2xl sm:text-4xl md:text-5xl font-black drop-shadow-lg tracking-tight mb-2">{{ $slide->title }}</h1>
-                            @endif
-                            @if($slide->subtitle)
-                                <p class="text-xs sm:text-base md:text-lg text-amber-200 drop-shadow mb-4 font-medium">{{ $slide->subtitle }}</p>
-                            @endif
-                            @if($slide->link_url)
-                                <a href="{{ $slide->link_url }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-full shadow-lg hover:scale-105 transition-all">
-                                    <span>{{ $slide->button_text ?: 'Order Now' }}</span>
-                                    <span>&rarr;</span>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                @endif
+                <a href="{{ $slide->link_url ?: route('express-shop') }}" class="block w-full h-full cursor-pointer" title="Radhe Crackers">
+                    <img src="{{ $slide->image_url }}" alt="{{ $slide->title ?: 'Radhe Crackers Banner' }}" class="w-full h-full object-cover object-center select-none">
+                </a>
             </div>
         @endforeach
 
         @if($heroSlides->count() > 1)
-            <!-- Banner Navigation Dots -->
-            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2.5 z-20">
-                @foreach($heroSlides as $index => $slide)
-                    <button onclick="showBanner({{ $index }})" 
-                            aria-label="Go to slide {{ $index + 1 }}"
-                            class="w-3 h-3 rounded-full transition-all duration-300 {{ $index === 0 ? 'bg-amber-400 w-8' : 'bg-white/60 hover:bg-white' }} hero-nav" 
-                            id="nav{{ $index }}"></button>
-                @endforeach
-            </div>
-
-            <!-- Left / Right arrows -->
-            <button onclick="prevBanner()" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition z-20 text-lg" aria-label="Previous Slide">
+            <!-- Left / Right navigation arrows -->
+            <button onclick="prevBanner()" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-amber-600/90 text-white flex items-center justify-center transition-all z-20 text-sm sm:text-base shadow-lg backdrop-blur-sm opacity-60 hover:opacity-100 hover:scale-110" aria-label="Previous Slide">
                 &#10094;
             </button>
-            <button onclick="nextBanner()" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition z-20 text-lg" aria-label="Next Slide">
+            <button onclick="nextBanner()" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-amber-600/90 text-white flex items-center justify-center transition-all z-20 text-sm sm:text-base shadow-lg backdrop-blur-sm opacity-60 hover:opacity-100 hover:scale-110" aria-label="Next Slide">
                 &#10095;
             </button>
         @endif
     </div>
+
+    @if($heroSlides->count() > 1)
+        <!-- Sleek Banner Navigation Dots Bar (Never overlaps the uploaded banner) -->
+        <div class="flex items-center justify-center gap-2 py-1.5 bg-[#170529] border-b border-amber-500/20 shadow-inner">
+            @foreach($heroSlides as $index => $slide)
+                <button onclick="showBanner({{ $index }})" 
+                        aria-label="Go to slide {{ $index + 1 }}"
+                        class="h-2 rounded-full transition-all duration-300 {{ $index === 0 ? 'bg-amber-400 w-7' : 'bg-white/40 hover:bg-white/80 w-2' }} hero-nav" 
+                        id="nav{{ $index }}"></button>
+            @endforeach
+        </div>
+    @endif
 </div>
 
 
@@ -360,11 +346,11 @@ function showBanner(index) {
 
     document.querySelectorAll('.hero-nav').forEach((nav, i) => {
         if (i === currentBannerIdx) {
-            nav.classList.remove('bg-white/60', 'w-3');
-            nav.classList.add('bg-amber-400', 'w-8');
+            nav.classList.remove('bg-white/40', 'w-2', 'bg-white/60', 'w-3');
+            nav.classList.add('bg-amber-400', 'w-7');
         } else {
-            nav.classList.add('bg-white/60', 'w-3');
-            nav.classList.remove('bg-amber-400', 'w-8');
+            nav.classList.add('bg-white/40', 'w-2');
+            nav.classList.remove('bg-amber-400', 'w-7', 'w-8');
         }
     });
 }
