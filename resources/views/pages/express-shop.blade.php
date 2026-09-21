@@ -589,6 +589,7 @@ function saveCartToLocalStorage() {
         .map(product => ({
             product_id: product.id,
             product_name: product.name,
+            description: product.description || '',
             content: product.content || '',
             rate: product.price,
             original_price: product.original_price,
@@ -812,7 +813,9 @@ function generateEstimate() {
             special_discount_percentage: item.special_discount_percentage || (isCombo ? 0 : 15),
             quantity: qty,
             total: isCombo ? (unitPrice * qty) : (origPrice * qty),
-            is_combo: isCombo
+            is_combo: isCombo,
+            is_lucky_spin_gift: !!(item.is_lucky_spin_gift),
+            is_free_gift: !!(item.is_free_gift)
         };
     });
 

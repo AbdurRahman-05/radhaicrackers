@@ -221,7 +221,11 @@
                         ->keyBy('stock_id');
 
                     // Convert to collection and sort
-                    $sortedItems = collect($order->items_json ?? [])->sort(function($a, $b) use ($sortedStocks) {
+                    $rawItems = $order->items_json ?? $order->items ?? [];
+                    if (is_string($rawItems)) {
+                        $rawItems = json_decode($rawItems, true) ?: [];
+                    }
+                    $sortedItems = collect($rawItems)->sort(function($a, $b) use ($sortedStocks) {
                         $idA = is_array($a) ? ($a['product_id'] ?? $a['stock_id'] ?? null) : ($a->product_id ?? $a->stock_id ?? null);
                         $idB = is_array($b) ? ($b['product_id'] ?? $b['stock_id'] ?? null) : ($b->product_id ?? $b->stock_id ?? null);
                         
@@ -289,7 +293,7 @@
                         }
                     @endphp
                     <tr>
-                        <td>{{ $isCombo ? 'COMBO' : $catalogSno }}</td>
+                        <td>{{ $isCombo ? 'COMBO' : ($catalogSno !== '-' ? $catalogSno : $loop->iteration) }}</td>
                         <td>{{ $item['product_id'] ?? '-' }}</td>
                         <td>
                             {{ $item['product_name'] ?? '-' }}
@@ -319,8 +323,12 @@
         @php
             $regularSubtotal = 0;
             $comboSubtotal = 0;
-            if (isset($order->items_json) && is_iterable($order->items_json)) {
-                foreach ($order->items_json as $item) {
+            $summaryItems = $order->items_json ?? $order->items ?? [];
+            if (is_string($summaryItems)) {
+                $summaryItems = json_decode($summaryItems, true) ?: [];
+            }
+            if (is_iterable($summaryItems)) {
+                foreach ($summaryItems as $item) {
                     $isGift = !empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift']);
                     if ($isGift) continue;
                     $pId = (int)($item['product_id'] ?? 0);

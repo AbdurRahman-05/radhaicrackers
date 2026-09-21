@@ -70,26 +70,7 @@ class ExpressShopController extends Controller
 
     public function generateEstimatePdf(Request $request)
     {
-        $items = $request->input('items'); // array of products
-        $customer = $request->input('customer'); // optional: customer details
-
-        // Prepare a fake order object for the PDF blade
-        $order = (object)[
-            'id' => rand(10000, 99999),
-            'created_at' => now(),
-            'customer_name' => $customer['name'] ?? 'Guest',
-            'customer_mobile' => $customer['mobile'] ?? '',
-            'customer_email' => $customer['email'] ?? '',
-            'customer_city' => $customer['city'] ?? '',
-            'customer_state' => $customer['state'] ?? '',
-            'pin_code' => $customer['pin_code'] ?? '',
-            'items_json' => $items,
-            'coupon_code' => null,
-            'coupon_discount' => null,
-        ];
-
-        $pdf = Pdf::loadView('pdf.express-shop-products', compact('order'));
-        return $pdf->download('estimate.pdf');
+        return $this->estimatePdf($request);
     }
 
     /**
@@ -109,20 +90,60 @@ class ExpressShopController extends Controller
             
             \Log::info('PDF items:', ['items' => $items]);
 
+            // Collect stock IDs to query additional stock details if needed
+            $productIds = [];
+            foreach ($items as $item) {
+                $pid = $item['product_id'] ?? $item['stock_id'] ?? $item['id'] ?? null;
+                if ($pid && is_numeric($pid) && (int)$pid < 999000) {
+                    $productIds[] = (int)$pid;
+                }
+            }
+            $stocks = !empty($productIds)
+                ? \App\Models\Stock::whereIn('id', $productIds)->get()->keyBy('id')
+                : collect();
+
             // Process items to ensure they have the correct structure for PDF
             $processedItems = [];
             foreach ($items as $item) {
+                if (is_object($item)) {
+                    $item = (array)$item;
+                }
+                $pid = $item['product_id'] ?? $item['stock_id'] ?? $item['id'] ?? '';
+                $stock = is_numeric($pid) ? $stocks->get((int)$pid) : null;
+
+                $productName = !empty($item['product_name'])
+                    ? $item['product_name']
+                    : (!empty($item['name']) ? $item['name'] : ($stock ? $stock->item_name : 'Product'));
+
+                $desc = !empty($item['description'])
+                    ? $item['description']
+                    : ($stock && !empty($stock->description) ? $stock->description : '');
+
+                $rate = isset($item['rate']) ? (float)$item['rate'] : (isset($item['price']) ? (float)$item['price'] : ($stock ? (float)$stock->price : 0));
+
+                $origPrice = isset($item['original_price']) && (float)$item['original_price'] > 0
+                    ? (float)$item['original_price']
+                    : ($stock && (float)$stock->original_price > 0 ? (float)$stock->original_price : $rate);
+
+                $qty = isset($item['quantity']) ? (int)$item['quantity'] : (isset($item['qty']) ? (int)$item['qty'] : 1);
+                $isCombo = !empty($item['is_combo']) || ($pid >= 999000 && $pid <= 999999) || (str_contains(strtoupper($productName), 'COMBO'));
+
                 $processedItems[] = [
-                    'product_id' => $item['product_id'] ?? '',
-                    'product_name' => $item['product_name'] ?? '',
-                    'description' => $item['description'] ?? '',
+                    'product_id' => $pid,
+                    'stock_id' => $pid,
+                    'product_name' => $productName,
+                    'description' => $desc,
                     'content' => $item['content'] ?? '',
-                    'rate' => $item['rate'] ?? 0,
-                    'original_price' => $item['original_price'] ?? $item['rate'] ?? 0,
-                    'discount_percentage' => $item['discount_percentage'] ?? 0,
-                    'special_discount_percentage' => $item['special_discount_percentage'] ?? 0,
-                    'quantity' => $item['quantity'] ?? 0,
-                    'total' => $item['total'] ?? 0,
+                    'rate' => $rate,
+                    'price' => $rate,
+                    'original_price' => $origPrice,
+                    'discount_percentage' => $item['discount_percentage'] ?? ($stock ? $stock->discount_percentage : ($isCombo ? 0 : 70)),
+                    'special_discount_percentage' => $item['special_discount_percentage'] ?? ($stock ? $stock->special_discount_percentage : ($isCombo ? 0 : 15)),
+                    'quantity' => $qty,
+                    'total' => $item['total'] ?? ($isCombo ? ($rate * $qty) : ($origPrice * $qty)),
+                    'is_combo' => $isCombo,
+                    'is_lucky_spin_gift' => !empty($item['is_lucky_spin_gift']),
+                    'is_free_gift' => !empty($item['is_free_gift']),
                 ];
             }
 
@@ -136,23 +157,13 @@ class ExpressShopController extends Controller
                 'customer_state' => $customer['state'] ?? '',
                 'pin_code' => $customer['pin_code'] ?? '',
                 'items' => $processedItems,
+                'items_json' => $processedItems,
                 'coupon_code' => $request->input('coupon_code'),
                 'coupon_discount' => $request->input('coupon_discount', 0),
             ];
 
-            // Estimate required height: header + (row count * row height) + summary + margin
-            $rowHeight = 28; // points, adjust as needed
-            $headerHeight = 250; // points, adjust as needed
-            $summaryHeight = 220; // points, adjust as needed
-            $margin = 40; // points
-            $numRows = count($processedItems);
-            $contentHeight = $headerHeight + ($numRows * $rowHeight) + $summaryHeight + $margin;
-            // Minimum height to avoid too small page
-            $minHeight = 842; // A4 height in points
-            $finalHeight = max($contentHeight, $minHeight);
-
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.express-shop-products-test', compact('order'))
-                ->setPaper('A4','portrait'); // A4 width, dynamic height
+                ->setPaper('A4', 'portrait');
             return $pdf->download('estimate.pdf');
         } catch (\Throwable $e) {
             \Log::error('PDF Generation Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
