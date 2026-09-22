@@ -495,7 +495,24 @@ function saveCart(cart) {
     localStorage.setItem('cartItems', JSON.stringify(cart));
 }
 
-// Update quantity for a product
+// Get effective unit price for a product/cart item
+function getCartItemEffectivePrice(item) {
+    const pId = item.product_id || item.id;
+    const product = (typeof products !== 'undefined' && products) ? products[pId] : null;
+    if (product) {
+        let finalPrice = product.price;
+        if (product.discount_percentage > 0) {
+            finalPrice = product.original_price * (1 - product.discount_percentage / 100);
+        }
+        if (product.special_discount_percentage > 0) {
+            finalPrice = finalPrice * (1 - product.special_discount_percentage / 100);
+        }
+        return finalPrice;
+    }
+    return Number(item.rate || item.price || item.original_price || 0);
+}
+
+// Update quantity for a product from product card
 function updateQuantity(productId, change) {
     let cart = getCart();
     let product = products[productId];
@@ -507,9 +524,12 @@ function updateQuantity(productId, change) {
     let newQuantity = (cartItem ? cartItem.quantity : 0) + change;
     newQuantity = Math.max(0, newQuantity);
 
+    const finalPrice = getCartItemEffectivePrice({ product_id: productId });
+
     if (cartItem) {
         cartItem.quantity = newQuantity;
-        cartItem.total = product.price * newQuantity;
+        cartItem.rate = finalPrice;
+        cartItem.total = finalPrice * newQuantity;
         cartItem.original_price = product.original_price;
         if (newQuantity === 0) {
             cart = cart.filter(item => item.product_id !== productId);
@@ -519,26 +539,122 @@ function updateQuantity(productId, change) {
             product_id: productId,
             product_name: product.name,
             content: product.content || '',
-            rate: product.price,
+            rate: finalPrice,
             original_price: product.original_price,
             quantity: newQuantity,
-            total: product.price * newQuantity
+            total: finalPrice * newQuantity
         });
     }
     saveCart(cart);
     updateCartSummary();
-    // Update UI for this page
     setQtyUI(productId, newQuantity);
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
 }
 
-// Remove item from cart
+// Remove item from cart (from product card)
 function removeItem(productId) {
     let cart = getCart();
     cart = cart.filter(item => item.product_id !== productId);
     saveCart(cart);
     updateCartSummary();
-    // Update UI for this page
     setQtyUI(productId, 0);
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
+}
+
+// Update quantity from inside the Estimate Cart drawer
+function updateCartItemQuantity(index, change) {
+    let cart = getCart();
+    if (index < 0 || index >= cart.length) return;
+    
+    let item = cart[index];
+    if (item.is_lucky_spin_gift || item.is_free_gift) return;
+
+    let newQuantity = Math.max(0, (parseInt(item.quantity) || 0) + change);
+    const productId = item.product_id;
+
+    if (newQuantity === 0) {
+        cart.splice(index, 1);
+        saveCart(cart);
+        if (productId) {
+            setQtyUI(productId, 0);
+        }
+    } else {
+        item.quantity = newQuantity;
+        const finalPrice = getCartItemEffectivePrice(item);
+        item.rate = finalPrice;
+        item.total = finalPrice * newQuantity;
+        saveCart(cart);
+        if (productId) {
+            setQtyUI(productId, newQuantity);
+        }
+    }
+
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
+
+    updateCartSummary();
+}
+
+// Set manual quantity from inside the Estimate Cart drawer
+function setCartItemQuantity(index, value) {
+    let cart = getCart();
+    if (index < 0 || index >= cart.length) return;
+
+    let item = cart[index];
+    if (item.is_lucky_spin_gift || item.is_free_gift) return;
+
+    let quantity = parseInt(value);
+    if (isNaN(quantity) || quantity < 0) quantity = 0;
+    
+    const productId = item.product_id;
+
+    if (quantity === 0) {
+        cart.splice(index, 1);
+        saveCart(cart);
+        if (productId) {
+            setQtyUI(productId, 0);
+        }
+    } else {
+        item.quantity = quantity;
+        const finalPrice = getCartItemEffectivePrice(item);
+        item.rate = finalPrice;
+        item.total = finalPrice * quantity;
+        saveCart(cart);
+        if (productId) {
+            setQtyUI(productId, quantity);
+        }
+    }
+
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
+
+    updateCartSummary();
+}
+
+// Remove item by cart drawer index
+function removeCartItemByIndex(index) {
+    let cart = getCart();
+    if (index < 0 || index >= cart.length) return;
+
+    const productId = cart[index].product_id;
+    cart.splice(index, 1);
+    saveCart(cart);
+
+    if (productId) {
+        setQtyUI(productId, 0);
+    }
+
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
+
+    updateCartSummary();
 }
 
 // Update cart summary
@@ -546,7 +662,7 @@ function updateCartSummary() {
     const cart = getCart();
     
     // Total count of items
-    const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const itemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
     
     // Calculate subtotal (excluding free gifts)
     let regularSubtotal = 0;
@@ -557,19 +673,8 @@ function updateCartSummary() {
         if (item.is_combo) {
             comboSubtotal += qty * Number(item.price || item.rate || 0);
         } else {
-            const product = products[item.product_id];
-            if (product) {
-                let finalPrice = product.price;
-                if (product.discount_percentage > 0) {
-                    finalPrice = product.original_price * (1 - product.discount_percentage / 100);
-                }
-                if (product.special_discount_percentage > 0) {
-                    finalPrice = finalPrice * (1 - product.special_discount_percentage / 100);
-                }
-                regularSubtotal += (qty * finalPrice);
-            } else {
-                regularSubtotal += (qty * Number(item.rate || item.price || 0));
-            }
+            const finalPrice = getCartItemEffectivePrice(item);
+            regularSubtotal += (qty * finalPrice);
         }
     });
     
@@ -597,6 +702,10 @@ function updateCartSummary() {
 
     if (itemsCount === 0) {
         if (wrapper) wrapper.style.display = 'none';
+        const panel = document.getElementById('cart-summary-panel');
+        if (panel) panel.classList.add('hidden');
+        const badge = document.getElementById('cart-badge-trigger');
+        if (badge) badge.classList.remove('hidden');
         return;
     }
 
@@ -620,32 +729,76 @@ function updateCartSummary() {
     }
     if (totalEl) totalEl.textContent = `₹${finalTotal.toFixed(2)}`;
 
-    // Populate scrollable items list
+    // Populate scrollable items list with +/- controls
     if (listContainer) {
         let html = '';
-        cart.forEach(item => {
+        cart.forEach((item, index) => {
             const product = products[item.product_id];
-            if (product) {
-                let finalPrice = product.price;
-                if (product.discount_percentage > 0) {
-                    finalPrice = product.original_price * (1 - product.discount_percentage / 100);
-                }
-                if (product.special_discount_percentage > 0) {
-                    finalPrice = finalPrice * (1 - product.special_discount_percentage / 100);
-                }
-                const lineTotal = item.quantity * finalPrice;
-                html += `
-                    <div class="flex items-center justify-between py-2 text-xs sm:text-sm">
-                        <div class="flex-1 pr-2 text-left">
-                            <span class="font-semibold text-gray-900 block text-left">${product.name}</span>
-                            <span class="text-gray-500">${item.quantity} pcs × ₹${finalPrice.toFixed(2)}</span>
+            let name = item.product_name || item.name || 'Product';
+            if (product && product.name) {
+                name = product.name;
+            }
+            const finalPrice = getCartItemEffectivePrice(item);
+            const isGift = !!(item.is_lucky_spin_gift || item.is_free_gift);
+            const isCombo = !!(item.is_combo || (item.product_id >= 999000 && item.product_id <= 999999) || (typeof name === 'string' && name.toUpperCase().includes('COMBO')));
+            const lineTotal = isGift ? 0 : (item.quantity * finalPrice);
+
+            html += `
+                <div class="py-2.5 text-xs sm:text-sm">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1 pr-1 text-left">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-semibold text-gray-900 leading-tight block text-left">${name}</span>
+                                ${isGift ? '<span class="px-1.5 py-0.2 bg-amber-400 text-purple-950 font-black text-[9px] uppercase rounded-full">FREE GIFT</span>' : ''}
+                                ${isCombo ? '<span class="px-1.5 py-0.2 bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] uppercase rounded-full">Combo Pack</span>' : ''}
+                            </div>
                         </div>
-                        <div class="text-right font-bold text-gray-900 flex-shrink-0">
-                            ₹${lineTotal.toFixed(2)}
+                        <div class="text-right font-extrabold ${isGift ? 'text-emerald-600' : 'text-gray-900'} flex-shrink-0 text-xs sm:text-sm">
+                            ${isGift ? 'FREE' : '₹' + lineTotal.toFixed(2)}
                         </div>
                     </div>
-                `;
-            }
+                    <div class="flex items-center justify-between mt-1.5 pt-1">
+                        <span class="text-gray-500 text-[11px] sm:text-xs">
+                            ${isGift ? 'Diwali Spin Prize 🎁' : `${item.quantity} pcs × ₹${finalPrice.toFixed(2)}`}
+                        </span>
+                        ${isGift ? `
+                            <span class="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Claimed</span>
+                        ` : `
+                            <div class="flex items-center space-x-1 sm:space-x-1.5">
+                                <button type="button" 
+                                        onclick="updateCartItemQuantity(${index}, -1)" 
+                                        class="w-6 h-6 sm:w-7 sm:h-7 text-white rounded-full flex items-center justify-center font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer select-none" 
+                                        style="background-color:rgb(182, 113, 33);"
+                                        title="Decrease quantity">
+                                    -
+                                </button>
+                                <input type="number" 
+                                       min="0" 
+                                       value="${item.quantity}" 
+                                       onchange="setCartItemQuantity(${index}, this.value)" 
+                                       onkeydown="if(event.key==='Enter'){this.blur();}" 
+                                       class="w-10 sm:w-11 h-6 sm:h-7 text-center bg-gray-50 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-500 text-xs font-bold text-gray-900 p-0 shadow-inner" 
+                                       style="-moz-appearance: textfield; appearance: textfield; font-size: 13px;">
+                                <button type="button" 
+                                        onclick="updateCartItemQuantity(${index}, 1)" 
+                                        class="w-6 h-6 sm:w-7 sm:h-7 text-white rounded-full flex items-center justify-center font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer select-none" 
+                                        style="background-color:rgb(182, 113, 33);"
+                                        title="Increase quantity">
+                                    +
+                                </button>
+                                <button type="button" 
+                                        onclick="removeCartItemByIndex(${index})" 
+                                        class="ml-1 text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer" 
+                                        title="Remove item">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
         });
         listContainer.innerHTML = html;
     }
@@ -711,10 +864,12 @@ function setManualQuantity(productId, value) {
         return;
     }
     
+    const finalPrice = getCartItemEffectivePrice({ product_id: productId });
     let cartItem = cart.find(item => item.product_id === productId);
     if (cartItem) {
         cartItem.quantity = quantity;
-        cartItem.total = product.price * quantity;
+        cartItem.rate = finalPrice;
+        cartItem.total = finalPrice * quantity;
         cartItem.original_price = product.original_price;
         if (quantity === 0) {
             cart = cart.filter(item => item.product_id !== productId);
@@ -724,16 +879,19 @@ function setManualQuantity(productId, value) {
             product_id: productId,
             product_name: product.name,
             content: product.content || '',
-            rate: product.price,
+            rate: finalPrice,
             original_price: product.original_price,
             quantity: quantity,
-            total: product.price * quantity
+            total: finalPrice * quantity
         });
     }
     
     saveCart(cart);
     updateCartSummary();
     setQtyUI(productId, quantity);
+    if (typeof syncModalQuantity === 'function' && typeof currentModalProductId !== 'undefined' && currentModalProductId == productId) {
+        syncModalQuantity();
+    }
 }
 
 // Proceed to checkout

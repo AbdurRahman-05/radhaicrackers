@@ -987,11 +987,20 @@ class SmartCheckout {
                             ${isGift ? `Qty: ${qty} (Value: ₹${originalPrice.toFixed(2)})` : (isCombo ? `Qty: ${qty} × ₹${unitPrice.toFixed(2)} (Direct Net Offer)` : `Qty: ${qty} × ₹${originalPrice.toFixed(2)}`)}
                         </p>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right flex flex-col items-end gap-1">
                         <p class="font-extrabold ${isGift ? 'text-emerald-600' : 'text-purple-950'} text-sm sm:text-base">
                             ${isGift ? 'FREE' : `₹${total.toFixed(2)}`}
                         </p>
-                        ${!isGift ? `<button type="button" onclick="smartCheckout.removeItem(${index})" class="text-red-600 text-xs font-bold hover:text-red-800 transition-colors">Remove</button>` : `<span class="text-xs text-amber-700 font-bold">Spin Prize</span>`}
+                        ${!isGift ? `
+                            <div class="flex items-center space-x-1 mt-1">
+                                <button type="button" onclick="smartCheckout.updateQuantity(${index}, -1)" class="w-6 h-6 text-white rounded-full flex items-center justify-center font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer" style="background-color:rgb(182, 113, 33);" title="Decrease quantity">-</button>
+                                <span class="w-6 text-center text-xs font-bold text-gray-800">${qty}</span>
+                                <button type="button" onclick="smartCheckout.updateQuantity(${index}, 1)" class="w-6 h-6 text-white rounded-full flex items-center justify-center font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer" style="background-color:rgb(182, 113, 33);" title="Increase quantity">+</button>
+                                <button type="button" onclick="smartCheckout.removeItem(${index})" class="ml-1 text-red-600 hover:text-red-800 p-0.5 transition-colors cursor-pointer" title="Remove item">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        ` : `<span class="text-xs text-amber-700 font-bold">Spin Prize</span>`}
                     </div>
                 </div>
             `;
@@ -1737,6 +1746,24 @@ class SmartCheckout {
         setTimeout(() => {
             statusDiv.classList.add('hidden');
         }, 5000);
+    }
+    
+    updateQuantity(index, change) {
+        if (!this.cartItems[index] || this.cartItems[index].is_lucky_spin_gift || this.cartItems[index].is_free_gift) {
+            return;
+        }
+        const currentQty = parseInt(this.cartItems[index].quantity || this.cartItems[index].qty || 1);
+        const newQty = currentQty + change;
+        if (newQty <= 0) {
+            this.removeItem(index);
+        } else {
+            this.cartItems[index].quantity = newQty;
+            this.cartItems[index].qty = newQty;
+            const unitPrice = Number(this.cartItems[index].price || this.cartItems[index].rate || this.cartItems[index].original_price || 0);
+            this.cartItems[index].total = unitPrice * newQty;
+            localStorage.setItem('cartItems', JSON.stringify(this.cartItems));
+            this.calculateTotals();
+        }
     }
     
     removeItem(index) {

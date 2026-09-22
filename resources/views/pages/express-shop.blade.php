@@ -611,14 +611,84 @@ function removeItem(productId) {
 }
 
 function removeComboFromExpressCart(index) {
+    removeCartItemByIndex(index);
+}
+
+// Update quantity from inside the Estimate Cart drawer
+function updateCartItemQuantity(index, change) {
     let cart = getCart();
-    if (index >= 0 && index < cart.length) {
+    if (index < 0 || index >= cart.length) return;
+    
+    let item = cart[index];
+    if (item.is_lucky_spin_gift || item.is_free_gift) return;
+
+    const pId = parseInt(item.product_id || item.id || 0);
+    const newQty = Math.max(0, (parseInt(item.quantity) || 0) + change);
+
+    if (pId in products) {
+        products[pId].quantity = newQty;
+        saveCartToLocalStorage();
+    } else {
+        if (newQty <= 0) {
+            cart.splice(index, 1);
+        } else {
+            item.quantity = newQty;
+            item.total = Number(item.price || item.rate || 0) * newQty;
+        }
+        localStorage.setItem('cartItems', JSON.stringify(cart));
+    }
+    syncPageWithCart();
+    updateCartTotal();
+    updateCheckoutButton();
+}
+
+// Set manual quantity from inside the Estimate Cart drawer
+function setCartItemQuantity(index, value) {
+    let cart = getCart();
+    if (index < 0 || index >= cart.length) return;
+
+    let item = cart[index];
+    if (item.is_lucky_spin_gift || item.is_free_gift) return;
+
+    const pId = parseInt(item.product_id || item.id || 0);
+    let newQty = parseInt(value);
+    if (isNaN(newQty) || newQty < 0) newQty = 0;
+
+    if (pId in products) {
+        products[pId].quantity = newQty;
+        saveCartToLocalStorage();
+    } else {
+        if (newQty <= 0) {
+            cart.splice(index, 1);
+        } else {
+            item.quantity = newQty;
+            item.total = Number(item.price || item.rate || 0) * newQty;
+        }
+        localStorage.setItem('cartItems', JSON.stringify(cart));
+    }
+    syncPageWithCart();
+    updateCartTotal();
+    updateCheckoutButton();
+}
+
+// Remove item by cart drawer index
+function removeCartItemByIndex(index) {
+    let cart = getCart();
+    if (index < 0 || index >= cart.length) return;
+
+    let item = cart[index];
+    const pId = parseInt(item.product_id || item.id || 0);
+
+    if (pId in products) {
+        products[pId].quantity = 0;
+        saveCartToLocalStorage();
+    } else {
         cart.splice(index, 1);
         localStorage.setItem('cartItems', JSON.stringify(cart));
-        syncPageWithCart();
-        updateCartTotal();
-        updateCheckoutButton();
     }
+    syncPageWithCart();
+    updateCartTotal();
+    updateCheckoutButton();
 }
 
 function calculateCartTotals() {
@@ -705,6 +775,10 @@ function updateCheckoutButton() {
             renderCartSummary(totals);
         } else {
             wrapper.style.display = 'none';
+            const panel = document.getElementById('cart-summary-panel');
+            if (panel) panel.classList.add('hidden');
+            const badge = document.getElementById('cart-badge-trigger');
+            if (badge) badge.classList.remove('hidden');
         }
     }
 }
@@ -735,22 +809,65 @@ function renderCartSummary(totals) {
         cart.forEach((item, index) => {
             const qty = parseInt(item.quantity || 1);
             const pId = parseInt(item.product_id || item.id || 0);
+            const isGift = !!(item.is_lucky_spin_gift || item.is_free_gift);
             const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof item.product_name === 'string' && item.product_name.toUpperCase().includes('COMBO')));
             const price = Number(item.price || item.rate || 0);
-            const lineTotal = qty * price;
+            const lineTotal = isGift ? 0 : (qty * price);
+            const name = item.product_name || item.name || 'Product';
 
             html += `
-                <div class="flex items-center justify-between py-2 text-xs sm:text-sm gap-2">
-                    <div class="flex-1 pr-2 text-left">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="font-semibold text-gray-900">${item.product_name || item.name}</span>
-                            ${isCombo ? '<span class="text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded-full">Combo Pack</span>' : ''}
+                <div class="py-2.5 text-xs sm:text-sm">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1 pr-1 text-left">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-semibold text-gray-900 leading-tight block text-left">${name}</span>
+                                ${isGift ? '<span class="px-1.5 py-0.2 bg-amber-400 text-purple-950 font-black text-[9px] uppercase rounded-full">FREE GIFT</span>' : ''}
+                                ${isCombo ? '<span class="px-1.5 py-0.2 bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] uppercase rounded-full">Combo Pack</span>' : ''}
+                            </div>
                         </div>
-                        <span class="text-gray-500">${qty} pcs × ₹${price.toFixed(2)}</span>
+                        <div class="text-right font-extrabold ${isGift ? 'text-emerald-600' : 'text-gray-900'} flex-shrink-0 text-xs sm:text-sm">
+                            ${isGift ? 'FREE' : '₹' + lineTotal.toFixed(2)}
+                        </div>
                     </div>
-                    <div class="text-right font-bold text-gray-900 flex-shrink-0 flex items-center gap-2">
-                        <span>₹${lineTotal.toFixed(2)}</span>
-                        ${isCombo ? `<button type="button" onclick="removeComboFromExpressCart(${index})" class="text-red-500 hover:text-red-700 text-sm font-bold ml-1 cursor-pointer" title="Remove combo">&times;</button>` : ''}
+                    <div class="flex items-center justify-between mt-1.5 pt-1">
+                        <span class="text-gray-500 text-[11px] sm:text-xs">
+                            ${isGift ? 'Diwali Spin Prize 🎁' : `${qty} pcs × ₹${price.toFixed(2)}`}
+                        </span>
+                        ${isGift ? `
+                            <span class="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Claimed</span>
+                        ` : `
+                            <div class="flex items-center space-x-1 sm:space-x-1.5">
+                                <button type="button" 
+                                        onclick="updateCartItemQuantity(${index}, -1)" 
+                                        class="w-6 h-6 sm:w-7 sm:h-7 text-white rounded-full flex items-center justify-center font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer select-none" 
+                                        style="background-color:rgb(182, 113, 33);"
+                                        title="Decrease quantity">
+                                    -
+                                </button>
+                                <input type="number" 
+                                       min="0" 
+                                       value="${qty}" 
+                                       onchange="setCartItemQuantity(${index}, this.value)" 
+                                       onkeydown="if(event.key==='Enter'){this.blur();}" 
+                                       class="w-10 sm:w-11 h-6 sm:h-7 text-center bg-gray-50 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-500 text-xs font-bold text-gray-900 p-0 shadow-inner" 
+                                       style="-moz-appearance: textfield; appearance: textfield; font-size: 13px;">
+                                <button type="button" 
+                                        onclick="updateCartItemQuantity(${index}, 1)" 
+                                        class="w-6 h-6 sm:w-7 sm:h-7 text-white rounded-full flex items-center justify-center font-bold text-xs sm:text-sm hover:opacity-90 active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer select-none" 
+                                        style="background-color:rgb(182, 113, 33);"
+                                        title="Increase quantity">
+                                    +
+                                </button>
+                                <button type="button" 
+                                        onclick="removeCartItemByIndex(${index})" 
+                                        class="ml-1 text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer" 
+                                        title="Remove item">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
