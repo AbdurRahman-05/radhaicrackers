@@ -434,6 +434,11 @@
                         <span id="btn-loading" class="hidden">Processing...</span>
                     </button>
                     
+                    <button type="button" onclick="smartCheckout.generateEstimatePdf()" id="estimate-download-btn" class="w-full text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 bg-[#B67121] hover:bg-orange-600 shadow cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Download Estimate PDF</span>
+                    </button>
+
                     <a href="{{ route('shop') }}" class="block w-full text-center bg-white border border-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg hover:bg-gray-50 transition duration-200">
                         Continue Shopping
                     </a>
@@ -1842,6 +1847,107 @@ class SmartCheckout {
         submitBtn.disabled = !isValid || this.cartItems.length === 0 || this.isProcessing;
     }
     
+    generateEstimatePdf() {
+        if (!this.cartItems || this.cartItems.length === 0) {
+            alert('Your cart is empty. Please add items to download an estimate.');
+            return;
+        }
+
+        const itemsForPdf = this.cartItems.map(item => {
+            const pId = parseInt(item.product_id || item.id || 0);
+            const name = item.product_name || item.name || '';
+            const isGift = !!(item.is_lucky_spin_gift || item.is_free_gift);
+            const isCombo = !!(item.is_combo || (pId >= 999000 && pId <= 999999) || (typeof name === 'string' && name.toUpperCase().includes('COMBO')));
+            const unitPrice = Number(item.price || item.rate || 0);
+            const origPrice = Number(item.original_price || (isCombo ? unitPrice : (unitPrice > 0 ? Math.round(unitPrice / 0.255) : unitPrice)));
+            const qty = parseInt(item.quantity || item.qty || 1);
+
+            return {
+                product_id: pId,
+                product_name: name,
+                description: item.description || (isCombo ? 'Diwali Value Combo Pack' : ''),
+                content: item.content || '',
+                rate: unitPrice,
+                original_price: origPrice,
+                discount_percentage: item.discount_percentage || (isCombo ? 0 : 70),
+                special_discount_percentage: item.special_discount_percentage || (isCombo ? 0 : 15),
+                quantity: qty,
+                total: isCombo ? (unitPrice * qty) : (origPrice * qty),
+                is_combo: isCombo,
+                is_lucky_spin_gift: isGift,
+                is_free_gift: isGift
+            };
+        });
+
+        const customerForm = document.getElementById('customer-form');
+        const customerData = {
+            name: customerForm ? (customerForm.querySelector('[name="customer_name"]')?.value || '') : '',
+            mobile: customerForm ? (customerForm.querySelector('[name="customer_mobile"]')?.value || '') : '',
+            email: customerForm ? (customerForm.querySelector('[name="customer_email"]')?.value || '') : '',
+            city: customerForm ? (customerForm.querySelector('[name="customer_city"]')?.value || '') : '',
+            state: customerForm ? (customerForm.querySelector('[name="customer_state"]')?.value || '') : '',
+            pin_code: customerForm ? (customerForm.querySelector('[name="pin_code"]')?.value || '') : ''
+        };
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ route('express-shop.estimate-pdf') }}";
+        form.target = '_blank';
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = "{{ csrf_token() }}";
+        form.appendChild(csrfInput);
+
+        const itemsInput = document.createElement('input');
+        itemsInput.type = 'hidden';
+        itemsInput.name = 'items';
+        itemsInput.value = JSON.stringify(itemsForPdf);
+        form.appendChild(itemsInput);
+
+        const customerInput = document.createElement('input');
+        customerInput.type = 'hidden';
+        customerInput.name = 'customer';
+        customerInput.value = JSON.stringify(customerData);
+        form.appendChild(customerInput);
+
+        if (this.couponData && this.couponData.code) {
+            const couponCodeInput = document.createElement('input');
+            couponCodeInput.type = 'hidden';
+            couponCodeInput.name = 'coupon_code';
+            couponCodeInput.value = this.couponData.code;
+            form.appendChild(couponCodeInput);
+
+            const couponDiscInput = document.createElement('input');
+            couponDiscInput.type = 'hidden';
+            couponDiscInput.name = 'coupon_discount';
+            couponDiscInput.value = this.couponData.discount_amount || 0;
+            form.appendChild(couponDiscInput);
+        }
+
+        if (this.luckySpinPrize) {
+            const prizeInput = document.createElement('input');
+            prizeInput.type = 'hidden';
+            prizeInput.name = 'lucky_spin_prize';
+            prizeInput.value = this.luckySpinPrize;
+            form.appendChild(prizeInput);
+
+            const spinDiscInput = document.createElement('input');
+            spinDiscInput.type = 'hidden';
+            spinDiscInput.name = 'lucky_spin_discount';
+            spinDiscInput.value = this.luckySpinDiscount || 0;
+            form.appendChild(spinDiscInput);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+
+        setTimeout(() => {
+            document.body.removeChild(form);
+        }, 1000);
+    }
+
     async submitOrder() {
         if (this.isProcessing) return;
         
