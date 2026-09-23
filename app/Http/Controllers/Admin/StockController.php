@@ -440,8 +440,15 @@ class StockController extends Controller
         try {
             $imagePath = null;
             if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('stocks', 'public');
-                Stock::syncUploadedFile($imagePath);
+                $storedPath = $request->file('image')->store('stocks', 'public');
+                if ($storedPath) {
+                    // Normalize to canonical format: stocks/filename.ext
+                    $imagePath = Stock::normalizeImagePath($storedPath);
+                    // Also sync to ensure file is accessible from all expected paths
+                    Stock::syncUploadedFile($imagePath);
+                } else {
+                    \Log::warning('Image upload failed silently for new stock: ' . $request->item_name);
+                }
             }
 
             // Get category name from ID or name safely
@@ -527,8 +534,15 @@ class StockController extends Controller
                     Stock::deleteImageFiles($stock->image);
                 }
                 
-                $data['image'] = $request->file('image')->store('stocks', 'public');
-                Stock::syncUploadedFile($data['image']);
+                $storedPath = $request->file('image')->store('stocks', 'public');
+                if ($storedPath) {
+                    // Normalize to canonical format: stocks/filename.ext
+                    $data['image'] = Stock::normalizeImagePath($storedPath);
+                    // Also sync to ensure file is accessible from all expected paths
+                    Stock::syncUploadedFile($data['image']);
+                } else {
+                    \Log::warning('Image upload failed silently for stock update ID: ' . $id);
+                }
             } elseif ($request->has('remove_image') && $request->remove_image) {
                 // Handle image removal if no new file is uploaded
                 if ($stock->image) {

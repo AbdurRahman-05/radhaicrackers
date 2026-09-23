@@ -225,7 +225,7 @@
                                 <td class="px-2 py-2">
                                     <div class="flex items-center space-x-2">
                                         @if($stock->image_url)
-                                            <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
+                                            <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0" onerror="this.onerror=null; this.src='/images/firework-default.png'">
                                         @else
                                             <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">No Img</div>
                                         @endif
@@ -347,7 +347,7 @@
                                 <td class="px-2 py-2">
                                     <div class="flex items-center space-x-2">
                                         @if($stock->image_url)
-                                            <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
+                                            <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0" onerror="this.onerror=null; this.src='/images/firework-default.png'">
                                         @else
                                             <div class="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs flex-shrink-0">No Img</div>
                                         @endif

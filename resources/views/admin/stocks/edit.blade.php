@@ -232,7 +232,8 @@
                             </label>
                             <div id="current-image-container" class="flex items-center space-x-4">
                                 <img id="current-image-preview" src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" 
-                                     class="w-24 h-24 object-cover rounded-lg border">
+                                     class="w-24 h-24 object-cover rounded-lg border"
+                                     onerror="this.onerror=null; this.src='/images/firework-default.png'">
                                 <div>
                                     <button type="button" id="remove-image-btn" onclick="removeCurrentImage()" 
                                             class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors inline-flex items-center">

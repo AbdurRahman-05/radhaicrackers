@@ -52,7 +52,7 @@
                     <tr class="hover:bg-amber-50/30 transition">
                         <td class="px-5 py-3.5 whitespace-nowrap">
                             <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-50 border border-gray-200 flex items-center justify-center p-1">
-                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-full object-contain">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='/images/firework-default.png'">
                             </div>
                         </td>
                         <td class="px-5 py-3.5">

@@ -78,7 +78,8 @@
                             @if($product->image)
                                 <img src="{{ $product->image_url }}" 
                                      alt="{{ $product->item_name }}" 
-                                     class="w-24 h-24 object-cover rounded-lg mx-auto mb-2">
+                                     class="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
+                                     onerror="this.onerror=null; this.src='/images/firework-default.png'">
                             @else
                                 <div class="text-4xl mb-2">
                                     @switch($product->category)
