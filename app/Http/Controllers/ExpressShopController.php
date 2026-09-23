@@ -160,6 +160,8 @@ class ExpressShopController extends Controller
                 'items_json' => $processedItems,
                 'coupon_code' => $request->input('coupon_code'),
                 'coupon_discount' => $request->input('coupon_discount', 0),
+                'lucky_spin_prize' => $request->input('lucky_spin_prize'),
+                'lucky_spin_discount' => $request->input('lucky_spin_discount', 0),
             ];
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.express-shop-products-test', compact('order'))

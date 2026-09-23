@@ -976,6 +976,29 @@ function generateEstimate() {
     });
     form.appendChild(customerInput);
 
+    // Lucky Spin result if any
+    try {
+        const rawSpin = sessionStorage.getItem('lucky_spin_result') || localStorage.getItem('lucky_spin_result');
+        if (rawSpin) {
+            const spin = JSON.parse(rawSpin);
+            if (spin && spin.prize) {
+                const prizeInput = document.createElement('input');
+                prizeInput.type = 'hidden';
+                prizeInput.name = 'lucky_spin_prize';
+                prizeInput.value = spin.prize;
+                form.appendChild(prizeInput);
+
+                if (spin.type === 'discount' || spin.prize === '5% Discount') {
+                    const discInput = document.createElement('input');
+                    discInput.type = 'hidden';
+                    discInput.name = 'lucky_spin_discount';
+                    discInput.value = spin.discount || 0;
+                    form.appendChild(discInput);
+                }
+            }
+        }
+    } catch(e) {}
+
     document.body.appendChild(form);
     form.submit();
     
