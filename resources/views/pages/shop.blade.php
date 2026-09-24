@@ -229,8 +229,7 @@
                                              alt="{{ $product->item_name }}" 
                                              class="w-24 h-24 object-cover rounded-lg mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform shadow-sm"
                                              onclick="openProductModal({{ $product->id }})"
-                                             title="Click to view details"
-                                             onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                             title="Click to view details">
                                     @else
                                         <div class="text-4xl mb-2 cursor-pointer hover:scale-110 transition-transform inline-block" 
                                              onclick="openProductModal({{ $product->id }})"
@@ -1364,7 +1363,6 @@ function setupModalGallery(product) {
 
     if (images.length > 0) {
         imgEl.src = images[0];
-        imgEl.onerror = function() { this.onerror=null; this.src='/images/firework-default.png'; };
         imgEl.classList.remove('hidden');
         fallbackEl.classList.add('hidden');
 
@@ -1390,7 +1388,6 @@ function setupModalGallery(product) {
                 const thumb = document.createElement('img');
                 thumb.src = src;
                 thumb.className = 'w-10 h-10 object-cover rounded-lg border-2 cursor-pointer transition-all ' + (idx === 0 ? 'border-orange-500 shadow-md scale-105' : 'border-gray-200 opacity-70 hover:opacity-100');
-                thumb.onerror = function() { this.onerror=null; this.src='/images/firework-default.png'; };
                 thumb.onclick = () => showModalImage(images, idx);
                 thumbsEl.appendChild(thumb);
             });
@@ -1406,7 +1403,6 @@ function setupModalGallery(product) {
 function showModalImage(images, idx) {
     currentModalImageIndex = idx;
     const imgEl = document.getElementById('modalProductImage');
-    imgEl.onerror = function() { this.onerror=null; this.src='/images/firework-default.png'; };
     imgEl.src = images[idx];
 
     const thumbsEl = document.getElementById('modalGalleryThumbnails');

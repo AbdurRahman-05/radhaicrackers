@@ -225,7 +225,7 @@
                                 @endif
                             </div>
                             <div class="w-full h-36 flex items-center justify-center mb-4 bg-gray-50 rounded-xl p-2">
-                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300">
                             </div>
                             <h3 class="text-base font-bold mb-1.5 text-gray-900 leading-snug">{{ $product->item_name }}</h3>
                             @if($product->description)
@@ -286,7 +286,7 @@
                                 @endif
                             </div>
                             <div class="w-full h-36 flex items-center justify-center mb-4 bg-gray-50 rounded-xl p-2">
-                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->item_name }}" class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-300">
                             </div>
                             <h3 class="text-base font-bold mb-1.5 text-gray-900 leading-snug">{{ $product->item_name }}</h3>
                             @if($product->description)

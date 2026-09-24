@@ -232,12 +232,9 @@ class Stocks extends Component
 
         // Handle image upload
         if ($this->image) {
-            $storedPath = $this->image->store('stocks', 'public');
-            if ($storedPath) {
-                $imagePath = Stock::normalizeImagePath($storedPath);
-                Stock::syncUploadedFile($imagePath);
-                $data['image'] = $imagePath;
-            }
+            $imagePath = $this->image->store('stocks', 'public');
+            Stock::syncUploadedFile($imagePath);
+            $data['image'] = $imagePath;
         }
 
         Stock::create($data);
@@ -275,12 +272,9 @@ class Stocks extends Component
                 \Storage::disk('public')->delete($this->editingStock->image);
             }
             
-            $storedPath = $this->image->store('stocks', 'public');
-            if ($storedPath) {
-                $imagePath = Stock::normalizeImagePath($storedPath);
-                Stock::syncUploadedFile($imagePath);
-                $data['image'] = $imagePath;
-            }
+            $imagePath = $this->image->store('stocks', 'public');
+            Stock::syncUploadedFile($imagePath);
+            $data['image'] = $imagePath;
         }
 
         $this->editingStock->update($data);

@@ -148,24 +148,6 @@ public function images()
         }
     }
 
-    /**
-     * Batch sync all stock images between storage paths.
-     * Useful to run once via tinker or artisan command.
-     */
-    public static function syncAllImages()
-    {
-        $stocks = self::whereNotNull('image')->get();
-        $synced = 0;
-        foreach ($stocks as $stock) {
-            $cleanPath = self::normalizeImagePath($stock->image);
-            if ($cleanPath) {
-                self::syncUploadedFile($cleanPath);
-                $synced++;
-            }
-        }
-        return $synced;
-    }
-
     public static function deleteImageFiles($filePath)
     {
         if (empty($filePath) || filter_var($filePath, FILTER_VALIDATE_URL)) {
@@ -204,19 +186,19 @@ public function images()
         \Illuminate\Support\Facades\Storage::disk('public')->delete('stocks/' . $filename);
     }
 
-    /**
-     * Normalize a raw image path from the database to a clean relative path
-     * suitable for building URLs (e.g. "stocks/filename.jpg").
-     */
-    public static function normalizeImagePath($rawPath)
+    public function getImageUrlAttribute()
     {
-        if (empty($rawPath)) {
-            return null;
+        if (empty($this->image)) {
+            return url('images/firework-default.png');
         }
 
-        $cleanPath = ltrim($rawPath, '/');
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
 
-        // Strip duplicate storage or public prefixes that may have been stored
+        $cleanPath = ltrim($this->image, '/');
+
+        // Strip duplicate storage or public prefixes
         if (str_starts_with($cleanPath, 'public/storage/')) {
             $cleanPath = substr($cleanPath, 15);
         } elseif (str_starts_with($cleanPath, 'storage/')) {
@@ -225,33 +207,24 @@ public function images()
             $cleanPath = substr($cleanPath, 7);
         }
 
+        $filename = basename($cleanPath);
+
         // If path is a bare filename without folder, prepend stocks/
         if (!str_contains($cleanPath, '/')) {
             $cleanPath = 'stocks/' . $cleanPath;
         }
 
-        return $cleanPath;
-    }
+        self::syncUploadedFile($cleanPath);
 
-    public function getImageUrlAttribute()
-    {
-        if (empty($this->image)) {
-            return url('images/firework-default.png');
+        // Check if physical file exists in stocks folder or direct path
+        if (file_exists(public_path('storage/' . $cleanPath)) || file_exists(storage_path('app/public/' . $cleanPath))) {
+            return url('storage/' . $cleanPath);
         }
 
-        // If already a full URL, return as-is
-        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
-            return $this->image;
+        if (file_exists(public_path('storage/stocks/' . $filename)) || file_exists(storage_path('app/public/stocks/' . $filename))) {
+            return url('storage/stocks/' . $filename);
         }
 
-        $cleanPath = self::normalizeImagePath($this->image);
-
-        if (empty($cleanPath)) {
-            return url('images/firework-default.png');
-        }
-
-        // Return the canonical URL via the public disk
-        // The onerror handler on <img> tags will gracefully fallback if the file is missing
         return url('storage/' . $cleanPath);
     }
 

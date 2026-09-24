@@ -109,7 +109,7 @@
                     <td class="px-2 py-2">
                         <div class="flex items-center space-x-2">
                             @if($stock->image_url)
-                                <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0" onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                <img src="{{ $stock->image_url }}" alt="{{ $stock->item_name }}" class="w-8 h-8 object-cover rounded flex-shrink-0">
                             @else
                                 <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 text-sm">
                                     🎆

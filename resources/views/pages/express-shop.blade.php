@@ -142,8 +142,7 @@
                                                             @if($stock->image)
                                                                 <img src="{{ $stock->image_url }}" 
                                                                      alt="{{ $stock->item_name }}" 
-                                                                     class="w-16 h-16 object-cover rounded-lg"
-                                                                     onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                                                     class="w-16 h-16 object-cover rounded-lg">
                                                             @else
                                                                 <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                                                                     <span class="text-2xl">
@@ -259,8 +258,7 @@
                                                     @if($stock->image)
                                                         <img src="{{ $stock->image_url }}" 
                                                              alt="{{ $stock->item_name }}" 
-                                                             class="w-16 h-16 object-cover rounded-lg"
-                                                             onerror="this.onerror=null; this.src='/images/firework-default.png'">
+                                                             class="w-16 h-16 object-cover rounded-lg">
                                                     @else
                                                         <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                                                             <span class="text-2xl">
