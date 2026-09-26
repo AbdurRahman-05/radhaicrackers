@@ -740,14 +740,18 @@ document.getElementById('importModal').addEventListener('click', function(e) {
 
 // Video Modal Functions
 function openVideoModal(youtubeUrl, productName) {
-    // Convert YouTube URL to embed URL
+    if (!youtubeUrl) return;
     const videoId = extractYouTubeVideoId(youtubeUrl);
     if (!videoId) {
+        if (/^https?:\/\//i.test(youtubeUrl.trim())) {
+            window.open(youtubeUrl.trim(), '_blank');
+            return;
+        }
         alert('Invalid YouTube URL');
         return;
     }
     
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
     
     // Set modal content
     document.getElementById('videoModalTitle').textContent = `${productName} - Video`;
@@ -772,19 +776,56 @@ function closeVideoModal() {
 }
 
 function extractYouTubeVideoId(url) {
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-        /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-        /youtu\.be\/([^&\n?#]+)/
-    ];
+    if (!url || typeof url !== 'string') return null;
+    url = url.trim();
     
-    for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match) {
-            return match[1];
-        }
+    // Direct 11-char ID
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+        return url;
     }
-    
+
+    // YouTube Shorts: youtube.com/shorts/VIDEO_ID or youtu.be/shorts/VIDEO_ID
+    const shortsMatch = url.match(/(?:youtube\.com|youtu\.be)\/shorts\/([a-zA-Z0-9_-]{11})/i);
+    if (shortsMatch && shortsMatch[1]) {
+        return shortsMatch[1];
+    }
+
+    // Shortened share links: youtu.be/VIDEO_ID
+    const youtuBeMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+    if (youtuBeMatch && youtuBeMatch[1]) {
+        return youtuBeMatch[1];
+    }
+
+    // Live streams: youtube.com/live/VIDEO_ID
+    const liveMatch = url.match(/youtube\.com\/live\/([a-zA-Z0-9_-]{11})/i);
+    if (liveMatch && liveMatch[1]) {
+        return liveMatch[1];
+    }
+
+    // Standard watch URL: youtube.com/watch?v=VIDEO_ID
+    const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+    if (watchMatch && watchMatch[1]) {
+        return watchMatch[1];
+    }
+
+    // Embed URLs: youtube.com/embed/VIDEO_ID or youtube-nocookie.com/embed/VIDEO_ID
+    const embedMatch = url.match(/youtube(?:-nocookie)?\.com\/embed\/([a-zA-Z0-9_-]{11})/i);
+    if (embedMatch && embedMatch[1]) {
+        return embedMatch[1];
+    }
+
+    // General fallback regex
+    const generalMatch = url.match(/(?:v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([a-zA-Z0-9_-]{11})/i);
+    if (generalMatch && generalMatch[1]) {
+        return generalMatch[1];
+    }
+
+    // Match path ending with 11-char ID
+    const pathMatch = url.match(/\/([a-zA-Z0-9_-]{11})(?:[?&#]|$)/);
+    if (pathMatch && pathMatch[1]) {
+        return pathMatch[1];
+    }
+
     return null;
 }
 
