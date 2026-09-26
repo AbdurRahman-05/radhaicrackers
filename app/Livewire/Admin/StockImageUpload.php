@@ -34,6 +34,7 @@ class StockImageUpload extends Component
         $this->validate();
         foreach ($this->uploadedImages as $image) {
             $path = $image->store('stocks', 'public');
+            \App\Models\Stock::syncUploadedFile($path);
             StockImage::create([
                 'stock_id' => $this->stockId,
                 'image_path' => 'storage/' . $path,
@@ -46,6 +47,7 @@ class StockImageUpload extends Component
     public function deleteImage($id)
     {
         $img = StockImage::findOrFail($id);
+        \App\Models\Stock::deleteImageFiles($img->image_path);
         Storage::delete(str_replace('storage/', 'public/', $img->image_path));
         $img->delete();
     }

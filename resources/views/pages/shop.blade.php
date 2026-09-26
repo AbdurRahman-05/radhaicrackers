@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                     </button>
 
-                    <img id="modalProductImage" src="" alt="Product Image" class="object-contain max-h-full max-w-full p-2 transition-all duration-300" />
+                    <img id="modalProductImage" src="" alt="Product Image" class="object-contain max-h-full max-w-full p-2 transition-all duration-300" onerror="handleModalImageError(this)" />
                     <div id="modalFallbackIcon" class="text-6xl hidden">🎆</div>
 
                     <button id="modalCarouselNext" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-orange-500 hover:text-white text-gray-800 shadow-md rounded-full w-9 h-9 flex items-center justify-center z-10 transition-all border border-gray-200" style="display:none">
@@ -1222,17 +1222,41 @@ const productsCatalog = {
         show_on_shop: {{ $product->show_on_shop ? 'true' : 'false' }},
         image_url: {!! json_encode($product->image_url ?? '') !!},
         images: [
-            @php $imgArr = []; @endphp
-            @if($product->images->count())
-                @foreach($product->images as $img)
-                    @php
-                        $imgPath = ltrim($img->image_path, '/');
-                        $imgArr[] = asset($imgPath);
-                    @endphp
-                @endforeach
-            @elseif($product->image)
-                @php $imgArr[] = $product->image_url; @endphp
-            @endif
+            @php
+                $imgArr = [];
+                // 1. Primary product image is ALWAYS first if available
+                if (!empty($product->image_url)) {
+                    $imgArr[] = $product->image_url;
+                }
+                // 2. Additional gallery images from stock_images
+                if ($product->images && $product->images->count()) {
+                    foreach ($product->images as $img) {
+                        $url = $img->image_url ?? null;
+                        if (!$url && !empty($img->image_path)) {
+                            $cleanImgPath = ltrim($img->image_path, '/');
+                            if (str_starts_with($cleanImgPath, 'public/storage/')) {
+                                $cleanImgPath = substr($cleanImgPath, 15);
+                            } elseif (str_starts_with($cleanImgPath, 'storage/')) {
+                                $cleanImgPath = substr($cleanImgPath, 8);
+                            } elseif (str_starts_with($cleanImgPath, 'public/')) {
+                                $cleanImgPath = substr($cleanImgPath, 7);
+                            }
+                            if (!str_contains($cleanImgPath, '/')) {
+                                $cleanImgPath = 'stocks/' . $cleanImgPath;
+                            }
+                            \App\Models\Stock::syncUploadedFile($cleanImgPath);
+                            $url = url('storage/' . $cleanImgPath);
+                        }
+                        if ($url && !in_array($url, $imgArr)) {
+                            $imgArr[] = $url;
+                        }
+                    }
+                }
+                // 3. Fallback to image_url if array is still empty
+                if (empty($imgArr) && !empty($product->image_url)) {
+                    $imgArr[] = $product->image_url;
+                }
+            @endphp
             {!! collect($imgArr)->map(function($url){ return '"'.$url.'"'; })->implode(',') !!}
         ]
     },
@@ -1241,6 +1265,19 @@ const productsCatalog = {
 
 let currentModalProductId = null;
 let currentModalImageIndex = 0;
+
+function handleModalImageError(img) {
+    if (currentModalProductId && productsCatalog[currentModalProductId]) {
+        const prod = productsCatalog[currentModalProductId];
+        if (prod.image_url && img.src !== prod.image_url) {
+            img.src = prod.image_url;
+            return;
+        }
+    }
+    img.classList.add('hidden');
+    const fallbackEl = document.getElementById('modalFallbackIcon');
+    if (fallbackEl) fallbackEl.classList.remove('hidden');
+}
 
 function openProductModal(productId) {
     const product = productsCatalog[productId];
@@ -1350,7 +1387,10 @@ function openProductModal(productId) {
 }
 
 function setupModalGallery(product) {
-    const images = product.images && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : []);
+    let images = (product.images && product.images.length > 0) ? product.images.filter(Boolean) : [];
+    if (images.length === 0 && product.image_url) {
+        images = [product.image_url];
+    }
     const imgEl = document.getElementById('modalProductImage');
     const fallbackEl = document.getElementById('modalFallbackIcon');
     const prevBtn = document.getElementById('modalCarouselPrev');
@@ -1362,6 +1402,7 @@ function setupModalGallery(product) {
     thumbsEl.innerHTML = '';
 
     if (images.length > 0) {
+        imgEl.onerror = function() { handleModalImageError(this); };
         imgEl.src = images[0];
         imgEl.classList.remove('hidden');
         fallbackEl.classList.add('hidden');
@@ -1387,6 +1428,7 @@ function setupModalGallery(product) {
             images.forEach((src, idx) => {
                 const thumb = document.createElement('img');
                 thumb.src = src;
+                thumb.onerror = function() { this.style.display = 'none'; };
                 thumb.className = 'w-10 h-10 object-cover rounded-lg border-2 cursor-pointer transition-all ' + (idx === 0 ? 'border-orange-500 shadow-md scale-105' : 'border-gray-200 opacity-70 hover:opacity-100');
                 thumb.onclick = () => showModalImage(images, idx);
                 thumbsEl.appendChild(thumb);
@@ -1403,6 +1445,9 @@ function setupModalGallery(product) {
 function showModalImage(images, idx) {
     currentModalImageIndex = idx;
     const imgEl = document.getElementById('modalProductImage');
+    imgEl.classList.remove('hidden');
+    document.getElementById('modalFallbackIcon').classList.add('hidden');
+    imgEl.onerror = function() { handleModalImageError(this); };
     imgEl.src = images[idx];
 
     const thumbsEl = document.getElementById('modalGalleryThumbnails');

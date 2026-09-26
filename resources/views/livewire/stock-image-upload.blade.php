@@ -41,7 +41,7 @@
       @forelse ($images as $img)
         <div class="break-inside-avoid relative group bg-white/95 rounded-3xl shadow-xl p-5 flex flex-col items-center w-full mb-6 border border-gray-200 hover:shadow-2xl transition-all duration-200">
           <div class="w-full h-56 flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl overflow-hidden mb-4 border border-blue-100">
-            <img src="/{{ $img->image_path }}" alt="Stock Image" class="object-contain w-full h-full transition-transform duration-200 group-hover:scale-105" />
+            <img src="{{ $img->image_url ?? '/' . ltrim($img->image_path, '/') }}" alt="Stock Image" class="object-contain w-full h-full transition-transform duration-200 group-hover:scale-105" />
           </div>
           @if ($showDelete)
             <button wire:click="deleteImage({{ $img->id }})" class="absolute top-4 right-4 bg-red-500 text-white rounded-full px-4 py-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400">Delete</button>

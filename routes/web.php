@@ -402,6 +402,11 @@ Route::get('/stocks/{path}', function ($path) {
     return redirect('/storage/stocks/' . $path);
 })->where('path', '.*');
 
+// Route fallback for relative image URLs requested from /estimate/
+Route::get('/estimate/{filename}', function ($filename) {
+    return redirect('/' . basename($filename));
+})->where('filename', '.*?\.(jpg|jpeg|png|gif|webp|svg)$');
+
 // Direct root image route fallback handler for images without /storage/ prefix
 Route::get('/{filename}', function ($filename) {
     $cleanFilename = basename($filename);
@@ -417,6 +422,7 @@ Route::get('/{filename}', function ($filename) {
     ];
     foreach ($candidates as $filePath) {
         if (file_exists($filePath) && !is_dir($filePath)) {
+            \App\Models\Stock::syncUploadedFile($cleanFilename);
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $mimeTypes = [
                 'jpg' => 'image/jpeg',
