@@ -264,14 +264,12 @@
                             </div>
                         </div>
 
-                        <!-- Prize 0: Better Luck Next Time -->
-                        <div id="prize-card-0" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5 opacity-85">
-                            <div class="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-lg text-purple-300 flex-shrink-0">
-                                🍀
-                            </div>
+                        <!-- Prize 0: 2 Inch Single Pipe -->
+                        <div id="prize-card-0" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-all flex items-center gap-2.5">
+                            <img src="/images/single-flash.webp" alt="2 Inch Single Pipe" class="w-10 h-10 object-cover rounded-lg border border-sky-400/40 bg-black/40 flex-shrink-0" onerror="this.src='/images/firework-default.png'">
                             <div class="flex-1 min-w-0">
-                                <div class="text-xs font-bold text-white truncate">Better Luck Next Time</div>
-                                <div class="text-[11px] text-gray-300">Diwali Warm Wishes</div>
+                                <div class="text-xs font-bold text-white truncate">2 Inch Single Pipe</div>
+                                <div class="text-[11px] font-extrabold text-sky-300">Worth ₹180 (FREE Gift)</div>
                             </div>
                         </div>
                     </div>
@@ -535,7 +533,7 @@ class SmartCheckout {
         } catch(e) {}
 
         // 5 Wheel Prizes:
-        // 1. Better Luck Next Time
+        // 1. 2 Inch Single Pipe worth 180
         // 2. 25 Raider worth 220
         // 3. 5% Discount
         // 4. 30 Shot Regular worth 390
@@ -543,14 +541,17 @@ class SmartCheckout {
         this.wheelPrizes = [
             {
                 id: 0,
-                name: "Better Luck Next Time",
-                worthText: "Diwali Wishes",
-                type: "none",
-                color: "#4A154B",
+                name: "2 Inch Single Pipe",
+                fullName: "2 Inch Single Pipe",
+                worthText: "₹180 FREE",
+                type: "product",
+                productId: 1906,
+                originalPrice: 180,
+                color: "#0284C7",
                 textColor: "#FFFFFF",
-                accent: "#702459",
-                icon: "🍀",
-                image: null
+                accent: "#0EA5E9",
+                icon: "🚀",
+                image: "/images/single-flash.webp"
             },
             {
                 id: 1,

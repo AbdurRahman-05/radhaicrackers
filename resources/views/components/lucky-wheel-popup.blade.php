@@ -112,11 +112,15 @@
                                 <div class="text-[10px] text-gray-300">Instant Cart Discount</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Prize 5 note -->
-                    <div class="p-1.5 rounded-lg bg-white/5 text-[10px] text-gray-400 text-center border border-white/5">
-                        Slice 5: 🌟 <em>Better Luck Next Time</em> (Festive greeting)
+                        <!-- Prize 5: 2 Inch Single Pipe -->
+                        <div class="bg-white/5 hover:bg-white/10 p-2 rounded-xl border border-sky-400/30 flex items-center gap-2.5 transition-colors sm:col-span-2">
+                            <img src="/images/single-flash.webp" alt="2 Inch Single Pipe" class="w-10 h-10 object-cover rounded-lg border border-sky-400/50 flex-shrink-0 bg-white/10" onerror="this.src='/images/firework-default.png'">
+                            <div class="min-w-0">
+                                <div class="font-extrabold text-sky-300 truncate">2 Inch Single Pipe</div>
+                                <div class="text-[10px] text-gray-300">Worth <span class="text-amber-300 font-bold">₹180</span> (Free Gift)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -285,7 +289,7 @@
 (function() {
     // 5 Prize definitions matching checkout & stock
     const POPUP_PRIZES = [
-        { name: 'Better Luck Next Time', color: '#4A154B', textColor: '#FDE047', icon: '🌟' },
+        { name: '2" Single Pipe', color: '#0284C7', textColor: '#FFFFFF', icon: '🚀' },
         { name: '25 Raider', color: '#E11D48', textColor: '#FFFFFF', icon: '💥' },
         { name: '5% Discount', color: '#D97706', textColor: '#FFFFFF', icon: '🏷️' },
         { name: '30 Shot Regular', color: '#7C3AED', textColor: '#FFFFFF', icon: '🎆' },

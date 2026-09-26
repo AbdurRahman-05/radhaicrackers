@@ -250,6 +250,28 @@ class SmartCheckoutController extends Controller
                 if ($luckySpinPrize === '5% Discount' || str_contains(strtolower($luckySpinPrize), '5%') || str_contains(strtolower($luckySpinPrize), 'discount')) {
                     $luckySpinDiscount = round($normalPurchaseTotal * 0.05, 2);
                     $normalPurchaseTotal = max(0, round($normalPurchaseTotal - $luckySpinDiscount, 2));
+                } elseif (str_contains(strtolower($luckySpinPrize), 'single pipe') || str_contains(strtolower($luckySpinPrize), '2 inch') || str_contains(strtolower($luckySpinPrize), 'pipe')) {
+                    $hasGift = false;
+                    foreach ($items as $it) {
+                        if (!empty($it['is_lucky_spin_gift'])) {
+                            $hasGift = true;
+                            break;
+                        }
+                    }
+                    if (!$hasGift) {
+                        $items[] = [
+                            'product_id' => 1906,
+                            'product_name' => '🎁 2 Inch Single Pipe (Free Gift)',
+                            'content' => '1 Pcs',
+                            'rate' => 0,
+                            'original_price' => 180,
+                            'price' => 0,
+                            'quantity' => 1,
+                            'total' => 0,
+                            'is_lucky_spin_gift' => true,
+                            'is_free_gift' => true
+                        ];
+                    }
                 } elseif (str_contains(strtolower($luckySpinPrize), '25 raider')) {
                     // Check if already injected
                     $hasGift = false;
