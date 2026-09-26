@@ -94,13 +94,6 @@ public function images()
 
         $filename = basename($cleanPath);
 
-        // Optimization: If target file already exists in public storage, avoid scanning and copying
-        $publicTarget = public_path('storage/' . $cleanPath);
-        $publicStockTarget = public_path('storage/stocks/' . $filename);
-        if ((file_exists($publicTarget) && !is_dir($publicTarget)) || (file_exists($publicStockTarget) && !is_dir($publicStockTarget))) {
-            return;
-        }
-
         $sources = [
             public_path('storage/' . $cleanPath),
             storage_path('app/public/' . $cleanPath),
@@ -110,7 +103,19 @@ public function images()
             storage_path('app/public/homepage_products/' . $filename),
             public_path('uploads/' . $filename),
             public_path($cleanPath),
+            public_path($filename),
+            public_path('stocks/' . $filename),
+            public_path('storage/' . $filename),
             storage_path('app/' . $cleanPath),
+            base_path('public/storage/stocks/' . $filename),
+            base_path('public/storage/' . $cleanPath),
+            base_path('public/' . $filename),
+            base_path('storage/app/public/stocks/' . $filename),
+            base_path('storage/stocks/' . $filename),
+            base_path('storage/' . $cleanPath),
+            base_path('stocks/' . $filename),
+            base_path($cleanPath),
+            base_path($filename),
         ];
 
         $foundSource = null;
@@ -130,8 +135,14 @@ public function images()
             storage_path('app/public/stocks/' . $filename),
             public_path('storage/' . $cleanPath),
             public_path('storage/stocks/' . $filename),
+            public_path('stocks/' . $filename),
             public_path('uploads/' . $filename),
             public_path($filename),
+            base_path('public/storage/stocks/' . $filename),
+            base_path('public/storage/' . $cleanPath),
+            base_path('public/' . $filename),
+            base_path('storage/stocks/' . $filename),
+            base_path('stocks/' . $filename),
         ];
 
         foreach ($targets as $target) {
@@ -144,6 +155,7 @@ public function images()
             }
             if (!file_exists($target) || filesize($target) !== filesize($foundSource)) {
                 @copy($foundSource, $target);
+                @chmod($target, 0644);
             }
         }
     }
@@ -170,9 +182,15 @@ public function images()
             storage_path('app/public/stocks/' . $filename),
             public_path('storage/' . $cleanPath),
             public_path('storage/stocks/' . $filename),
+            public_path('stocks/' . $filename),
             public_path('uploads/' . $filename),
             public_path($cleanPath),
             public_path($filename),
+            base_path('public/storage/stocks/' . $filename),
+            base_path('public/storage/' . $cleanPath),
+            base_path('public/' . $filename),
+            base_path('storage/stocks/' . $filename),
+            base_path('stocks/' . $filename),
         ];
 
         foreach ($targets as $target) {
@@ -223,6 +241,26 @@ public function images()
 
         if (file_exists(public_path('storage/stocks/' . $filename)) || file_exists(storage_path('app/public/stocks/' . $filename))) {
             return url('storage/stocks/' . $filename);
+        }
+
+        if (file_exists(public_path('stocks/' . $filename))) {
+            return url('stocks/' . $filename);
+        }
+
+        if (file_exists(public_path('storage/' . $filename))) {
+            return url('storage/' . $filename);
+        }
+
+        if (file_exists(public_path($filename))) {
+            return url($filename);
+        }
+
+        if (file_exists(base_path('public/storage/stocks/' . $filename))) {
+            return url('storage/stocks/' . $filename);
+        }
+
+        if (file_exists(base_path('public/' . $filename))) {
+            return url($filename);
         }
 
         return url('storage/' . $cleanPath);

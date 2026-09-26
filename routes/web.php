@@ -21,46 +21,7 @@ use Illuminate\Support\Facades\File;
 
 
 
-// Dynamic storage file server route (serves PDFs & images on Hostinger & local seamlessly)
-Route::get('/storage/{path}', function ($path) {
-    // 1. Check in public_path('storage/' . $path)
-    $file1 = public_path('storage/' . $path);
-    if (File::exists($file1) && !File::isDirectory($file1)) {
-        $mime = File::mimeType($file1);
-        return response()->file($file1, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=31536000',
-        ]);
-    }
 
-    // 2. Check in storage_path('app/public/' . $path)
-    $file2 = storage_path('app/public/' . $path);
-    if (File::exists($file2) && !File::isDirectory($file2)) {
-        $mime = File::mimeType($file2);
-        return response()->file($file2, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=31536000',
-        ]);
-    }
-
-    // 3. Check in public_path('images/' . $path)
-    $file3 = public_path('images/' . $path);
-    if (File::exists($file3) && !File::isDirectory($file3)) {
-        $mime = File::mimeType($file3);
-        return response()->file($file3, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=31536000',
-        ]);
-    }
-
-    // 4. Default fallback image if requested file missing
-    $defaultImage = public_path('images/firework-default.png');
-    if (File::exists($defaultImage)) {
-        return response()->file($defaultImage, ['Content-Type' => 'image/png']);
-    }
-
-    abort(404);
-})->where('path', '.*');
 
 // Public Unauthenticated PDF Direct Binary Stream Route for WhatsApp & Customers
 Route::get('/public-pdf/{id}', function ($id) {
@@ -373,8 +334,23 @@ Route::get('/storage/{path}', function ($path) {
         public_path('storage/homepage_products/' . $filename),
         public_path('storage/' . $path),
         public_path('storage/' . $cleanFilename),
+        public_path('storage/' . $filename),
+        public_path('stocks/' . $cleanFilename),
+        public_path('stocks/' . $filename),
         public_path('uploads/' . $cleanFilename),
+        public_path('uploads/' . $filename),
         public_path($path),
+        public_path($cleanFilename),
+        public_path($filename),
+        base_path('public/storage/stocks/' . $filename),
+        base_path('public/storage/' . $cleanFilename),
+        base_path('public/' . $filename),
+        base_path('storage/app/public/stocks/' . $filename),
+        base_path('storage/stocks/' . $filename),
+        base_path('storage/' . $cleanFilename),
+        base_path('stocks/' . $filename),
+        base_path($cleanFilename),
+        base_path($filename),
     ];
 
     foreach ($candidates as $filePath) {
@@ -388,9 +364,28 @@ Route::get('/storage/{path}', function ($path) {
                 'gif' => 'image/gif',
                 'webp' => 'image/webp',
                 'svg' => 'image/svg+xml',
+                'pdf' => 'application/pdf',
             ];
             $mime = $mimeTypes[$ext] ?? (function_exists('mime_content_type') ? (mime_content_type($filePath) ?: 'image/jpeg') : 'image/jpeg');
-            return response()->file($filePath, ['Content-Type' => $mime]);
+            return response()->file($filePath, [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'public, max-age=31536000',
+            ]);
+        }
+    }
+
+    // Default fallback firework image if requested file is missing from disk
+    $defaultCandidates = [
+        public_path('images/firework-default.png'),
+        base_path('images/firework-default.png'),
+        base_path('public/images/firework-default.png'),
+    ];
+    foreach ($defaultCandidates as $defImg) {
+        if (file_exists($defImg)) {
+            return response()->file($defImg, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'no-cache, private',
+            ]);
         }
     }
 
@@ -404,7 +399,7 @@ Route::get('/stocks/{path}', function ($path) {
 
 // Route fallback for relative image URLs requested from /estimate/
 Route::get('/estimate/{filename}', function ($filename) {
-    return redirect('/' . basename($filename));
+    return redirect('/storage/stocks/' . basename($filename));
 })->where('filename', '.*?\.(jpg|jpeg|png|gif|webp|svg)$');
 
 // Direct root image route fallback handler for images without /storage/ prefix
@@ -418,7 +413,14 @@ Route::get('/{filename}', function ($filename) {
         public_path('uploads/' . $cleanFilename),
         public_path('storage/' . $cleanFilename),
         storage_path('app/public/' . $cleanFilename),
+        public_path('stocks/' . $cleanFilename),
         public_path($cleanFilename),
+        base_path('public/storage/stocks/' . $cleanFilename),
+        base_path('public/' . $cleanFilename),
+        base_path('storage/app/public/stocks/' . $cleanFilename),
+        base_path('storage/stocks/' . $cleanFilename),
+        base_path('stocks/' . $cleanFilename),
+        base_path($cleanFilename),
     ];
     foreach ($candidates as $filePath) {
         if (file_exists($filePath) && !is_dir($filePath)) {
@@ -433,9 +435,28 @@ Route::get('/{filename}', function ($filename) {
                 'svg' => 'image/svg+xml',
             ];
             $mime = $mimeTypes[$ext] ?? 'image/jpeg';
-            return response()->file($filePath, ['Content-Type' => $mime]);
+            return response()->file($filePath, [
+                'Content-Type' => $mime,
+                'Cache-Control' => 'public, max-age=31536000',
+            ]);
         }
     }
+
+    // Default fallback firework image if requested file is missing from disk
+    $defaultCandidates = [
+        public_path('images/firework-default.png'),
+        base_path('images/firework-default.png'),
+        base_path('public/images/firework-default.png'),
+    ];
+    foreach ($defaultCandidates as $defImg) {
+        if (file_exists($defImg)) {
+            return response()->file($defImg, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+    }
+
     abort(404);
 })->where('filename', '.*?\.(jpg|jpeg|png|gif|webp|svg)$');
 

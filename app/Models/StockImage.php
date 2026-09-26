@@ -52,6 +52,26 @@ class StockImage extends Model
             return url('storage/stocks/' . $filename);
         }
 
+        if (file_exists(public_path('stocks/' . $filename))) {
+            return url('stocks/' . $filename);
+        }
+
+        if (file_exists(public_path('storage/' . $filename))) {
+            return url('storage/' . $filename);
+        }
+
+        if (file_exists(public_path($filename))) {
+            return url($filename);
+        }
+
+        if (file_exists(base_path('public/storage/stocks/' . $filename))) {
+            return url('storage/stocks/' . $filename);
+        }
+
+        if (file_exists(base_path('public/' . $filename))) {
+            return url($filename);
+        }
+
         return url('storage/' . $cleanPath);
     }
 }

@@ -229,7 +229,42 @@
                                              alt="{{ $product->item_name }}" 
                                              class="w-24 h-24 object-cover rounded-lg mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform shadow-sm"
                                              onclick="openProductModal({{ $product->id }})"
+                                             title="Click to view details"
+                                             onerror="handleCardImageError(this, '{{ addslashes($product->category) }}', '{{ basename($product->image) }}')"
+                                             data-category="{{ $product->category }}"
+                                             data-filename="{{ basename($product->image) }}">
+                                        <div class="card-fallback-icon text-4xl mb-2 cursor-pointer hover:scale-110 transition-transform hidden inline-block" 
+                                             onclick="openProductModal({{ $product->id }})"
                                              title="Click to view details">
+                                            @switch($product->category)
+                                                @case('BOMBS')
+                                                    💣
+                                                    @break
+                                                @case('SINGLE FLASH')
+                                                    ⚡
+                                                    @break
+                                                @case('ROCKETS')
+                                                    🚀
+                                                    @break
+                                                @case('SPARKLERS')
+                                                    ✨
+                                                    @break
+                                                @case('CHIT PUT')
+                                                    🎆
+                                                    @break
+                                                @case('TWINKLING STAR')
+                                                    ⭐
+                                                    @break
+                                                @case('GIFT BOX')
+                                                    🎁
+                                                    @break
+                                                @case('BIJILI CRACKERS')
+                                                    ⚡
+                                                    @break
+                                                @default
+                                                    🎆
+                                            @endswitch
+                                        </div>
                                     @else
                                         <div class="text-4xl mb-2 cursor-pointer hover:scale-110 transition-transform inline-block" 
                                              onclick="openProductModal({{ $product->id }})"
@@ -1317,6 +1352,38 @@ const productsCatalog = {
 
 let currentModalProductId = null;
 let currentModalImageIndex = 0;
+
+function handleCardImageError(img, category, filename) {
+    if (!img) return;
+    const retryCount = parseInt(img.dataset.retryCount || '0', 10);
+    
+    if (retryCount === 0) {
+        img.dataset.retryCount = '1';
+        // Retry 1: If URL has /storage/stocks/, try root /filename, or vice versa
+        if (filename) {
+            const currentSrc = img.src || '';
+            if (currentSrc.includes('/storage/stocks/')) {
+                img.src = '/' + filename;
+                return;
+            } else if (!currentSrc.includes('/storage/stocks/')) {
+                img.src = '/storage/stocks/' + filename;
+                return;
+            }
+        }
+    } else if (retryCount === 1) {
+        img.dataset.retryCount = '2';
+        // Retry 2: Try default firework image
+        img.src = '/images/firework-default.png';
+        return;
+    }
+    
+    // Final fallback: Hide broken image and reveal category emoji
+    img.style.display = 'none';
+    const fallbackIcon = img.parentElement ? img.parentElement.querySelector('.card-fallback-icon') : null;
+    if (fallbackIcon) {
+        fallbackIcon.classList.remove('hidden');
+    }
+}
 
 function handleModalImageError(img) {
     if (currentModalProductId && productsCatalog[currentModalProductId]) {

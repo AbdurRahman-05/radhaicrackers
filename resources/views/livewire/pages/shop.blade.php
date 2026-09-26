@@ -131,7 +131,40 @@
                                                 @if($product->image)
                                                     <img src="{{ $product->image_url }}" 
                                                          alt="{{ $product->item_name }}" 
-                                                         class="w-24 h-24 object-cover rounded-lg mx-auto mb-2">
+                                                         class="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
+                                                         onerror="handleCardImageError(this, '{{ addslashes($product->category) }}', '{{ basename($product->image) }}')"
+                                                         data-category="{{ $product->category }}"
+                                                         data-filename="{{ basename($product->image) }}">
+                                                    <div class="card-fallback-icon text-4xl mb-2 hidden">
+                                                        @switch($product->category)
+                                                            @case('BOMBS')
+                                                                💣
+                                                                @break
+                                                            @case('SINGLE FLASH')
+                                                                ⚡
+                                                                @break
+                                                            @case('ROCKETS')
+                                                                🚀
+                                                                @break
+                                                            @case('SPARKLERS')
+                                                                ✨
+                                                                @break
+                                                            @case('CHIT PUT')
+                                                                🎆
+                                                                @break
+                                                            @case('TWINKLING STAR')
+                                                                ⭐
+                                                                @break
+                                                            @case('GIFT BOX')
+                                                                🎁
+                                                                @break
+                                                            @case('BIJILI CRACKERS')
+                                                                ⚡
+                                                                @break
+                                                            @default
+                                                                🎆
+                                                        @endswitch
+                                                    </div>
                                                 @else
                                                     <div class="text-4xl mb-2">
                                                         @switch($product->category)
@@ -492,6 +525,35 @@
         }
 
         return null;
+    }
+
+    function handleCardImageError(img, category, filename) {
+        if (!img) return;
+        const retryCount = parseInt(img.dataset.retryCount || '0', 10);
+        
+        if (retryCount === 0) {
+            img.dataset.retryCount = '1';
+            if (filename) {
+                const currentSrc = img.src || '';
+                if (currentSrc.includes('/storage/stocks/')) {
+                    img.src = '/' + filename;
+                    return;
+                } else if (!currentSrc.includes('/storage/stocks/')) {
+                    img.src = '/storage/stocks/' + filename;
+                    return;
+                }
+            }
+        } else if (retryCount === 1) {
+            img.dataset.retryCount = '2';
+            img.src = '/images/firework-default.png';
+            return;
+        }
+        
+        img.style.display = 'none';
+        const fallbackIcon = img.parentElement ? img.parentElement.querySelector('.card-fallback-icon') : null;
+        if (fallbackIcon) {
+            fallbackIcon.classList.remove('hidden');
+        }
     }
 
     // Close modal when clicking outside
