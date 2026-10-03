@@ -42,7 +42,7 @@
         <h2 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-4">Contact Info</h2>
         <div class="mb-8 text-base md:text-lg text-gray-700">
             <div class="mb-2"><span class="font-bold">Address:</span> 4/273-11/7, Virudhunagar Main Road, Amathur ,Virudhunagar District, Tamilnadu-626005</div>
-            <div class="mb-2"><span class="font-bold">Phone:</span> +91 8807060809 / +91 9751048974</div>
+            <div class="mb-2"><span class="font-bold">Phone:</span> +91 88078 60809 / +91 8807060809 / +91 9751048974</div>
             <div><span class="font-bold">Email:</span> radhecrackers@gmail.com</div>
         </div>
     </div>

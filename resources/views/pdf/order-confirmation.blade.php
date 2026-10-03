@@ -277,7 +277,7 @@
 
     <div style="background-color: #fef3c7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <h3 style="margin: 0 0 10px 0; color: #92400e;">Contact & Support</h3>
-        <p><strong>Phone:</strong> +91 88070 60809, +91 97510 48974</p>
+        <p><strong>Phone:</strong> +91 88078 60809, +91 88070 60809, +91 97510 48974</p>
         <p><strong>WhatsApp:</strong> Available 24/7 for support</p>
         <p><strong>Email:</strong> radhecrackers@gmail.com</p>
         <p><strong>Delivery:</strong> 1-2 business days after payment confirmation</p>

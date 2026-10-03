@@ -88,6 +88,22 @@ class Orders extends Component
     public function updatedPaymentFilter($val) { $this->payment_filter = $val; $this->resetPage(); }
     public function updatedPayment_filter($val) { $this->paymentFilter = $val ?: 'all'; $this->resetPage(); }
 
+    public function updatedEditPaymentStatus($val)
+    {
+        if (strtolower($val) === 'paid') {
+            if (empty($this->editPaidAt)) {
+                $this->editPaidAt = !empty($this->editingOrder?->paid_at)
+                    ? $this->editingOrder->paid_at->format('Y-m-d\TH:i')
+                    : \Carbon\Carbon::now('Asia/Kolkata')->format('Y-m-d\TH:i');
+            }
+        }
+    }
+
+    public function setPaymentTimeToNow()
+    {
+        $this->editPaidAt = \Carbon\Carbon::now('Asia/Kolkata')->format('Y-m-d\TH:i');
+    }
+
     public function updatedDeliveryTypeFilter($val) { $this->delivery_type_filter = $val; $this->resetPage(); }
     public function updatedDelivery_type_filter($val) { $this->deliveryTypeFilter = $val ?: 'all'; $this->resetPage(); }
 
@@ -472,7 +488,9 @@ class Orders extends Component
         $this->initialStatus = strtolower($order->status);
         $this->editStatus = strtolower($order->status);
         $this->editPaymentStatus = strtolower($order->payment_status);
-        $this->editPaidAt = $order->paid_at ? $order->paid_at->format('Y-m-d\TH:i') : '';
+        $this->editPaidAt = $order->paid_at 
+            ? $order->paid_at->format('Y-m-d\TH:i') 
+            : ($this->editPaymentStatus === 'paid' ? \Carbon\Carbon::now('Asia/Kolkata')->format('Y-m-d\TH:i') : '');
         $this->editNotes = $order->notes ?? '';
         $this->editReceiveAmount = $order->receive_amount ?? '';
         $this->editCustomerName = $order->customer_name ?: ($order->user->name ?? '');
@@ -905,7 +923,7 @@ class Orders extends Component
                 if (!empty($this->editPaidAt)) {
                     $paidAtValue = \Carbon\Carbon::parse($this->editPaidAt);
                 } else {
-                    $paidAtValue = $order->paid_at ? $order->paid_at : \Carbon\Carbon::now();
+                    $paidAtValue = $order->paid_at ? $order->paid_at : \Carbon\Carbon::now('Asia/Kolkata');
                 }
             }
 

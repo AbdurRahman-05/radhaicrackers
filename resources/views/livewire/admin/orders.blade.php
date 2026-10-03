@@ -823,7 +823,13 @@
                         
                         <div>
                             <label for="editPaymentStatus" class="block text-xs font-semibold text-gray-600 mb-1">Payment Status</label>
-                            <select id="editPaymentStatus" wire:model.live="editPaymentStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                            <select id="editPaymentStatus" wire:model.live="editPaymentStatus" 
+                                x-on:change="if ($event.target.value === 'paid' && !$wire.editPaidAt) {
+                                    const d = new Date();
+                                    const pad = n => String(n).padStart(2, '0');
+                                    $wire.set('editPaidAt', d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()));
+                                }"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
                                 <option value="pending">Pending</option>
                                 <option value="paid">Paid</option>
                                 <option value="failed">Failed</option>
@@ -832,9 +838,28 @@
                         </div>
 
                         @if($editPaymentStatus === 'paid')
-                        <div>
-                            <label for="editPaidAt" class="block text-xs font-semibold text-gray-600 mb-1">Payment Date & Time</label>
-                            <input type="datetime-local" id="editPaidAt" wire:model="editPaidAt" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white" />
+                        <div class="bg-purple-50/70 border border-purple-200 rounded-lg p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="editPaidAt" class="block text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                                    <span>🕒 Payment Date & Time</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        ⚡ Auto-fetched
+                                    </span>
+                                </label>
+                                <button type="button" wire:click="setPaymentTimeToNow" title="Refresh to current time" class="text-[11px] font-semibold text-purple-700 hover:text-purple-900 flex items-center gap-1 hover:underline">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    Set to Now
+                                </button>
+                            </div>
+                            <input type="datetime-local" id="editPaidAt" wire:model.live="editPaidAt" class="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white shadow-sm font-medium text-gray-800" />
+                            @if(!empty($editPaidAt))
+                            <div class="text-[11px] text-purple-800 font-semibold flex items-center gap-1.5 pt-0.5">
+                                <span class="text-gray-500 font-medium">Recorded Time:</span>
+                                <span class="bg-white px-2 py-0.5 rounded border border-purple-200 text-purple-900 shadow-xs font-bold">
+                                    📅 {{ \Carbon\Carbon::parse($editPaidAt)->format('d M Y, h:i A') }}
+                                </span>
+                            </div>
+                            @endif
                             @error('editPaidAt') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         @endif

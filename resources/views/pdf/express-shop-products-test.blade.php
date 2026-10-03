@@ -244,7 +244,7 @@
 
        <div class="company-info-box">
             <div class="info-block">
-                <span><strong>Contact Numbers:</strong> +91 88070 60809, +91 97510 48974</span>
+                <span><strong>Contact Numbers:</strong> +91 88078 60809, +91 88070 60809, +91 97510 48974</span>
             </div>
             
         <div class="info-block">
