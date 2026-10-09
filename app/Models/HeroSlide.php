@@ -128,9 +128,6 @@ class HeroSlide extends Model
         } elseif (str_starts_with($cleanPath, 'public/')) {
             $cleanPath = substr($cleanPath, 7);
         }
-
-        \App\Models\Stock::syncUploadedFile($cleanPath);
-
         return asset('storage/' . $cleanPath);
     }
 }

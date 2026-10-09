@@ -131,18 +131,10 @@ public function images()
         }
 
         $targets = [
-            storage_path('app/public/' . $cleanPath),
-            storage_path('app/public/stocks/' . $filename),
             public_path('storage/' . $cleanPath),
             public_path('storage/stocks/' . $filename),
-            public_path('stocks/' . $filename),
-            public_path('uploads/' . $filename),
-            public_path($filename),
-            base_path('public/storage/stocks/' . $filename),
-            base_path('public/storage/' . $cleanPath),
-            base_path('public/' . $filename),
-            base_path('storage/stocks/' . $filename),
-            base_path('stocks/' . $filename),
+            storage_path('app/public/' . $cleanPath),
+            storage_path('app/public/stocks/' . $filename),
         ];
 
         foreach ($targets as $target) {
@@ -232,38 +224,7 @@ public function images()
             $cleanPath = 'stocks/' . $cleanPath;
         }
 
-        self::syncUploadedFile($cleanPath);
-
-        // Check if physical file exists in stocks folder or direct path
-        if (file_exists(public_path('storage/' . $cleanPath)) || file_exists(storage_path('app/public/' . $cleanPath))) {
-            return url('storage/' . $cleanPath);
-        }
-
-        if (file_exists(public_path('storage/stocks/' . $filename)) || file_exists(storage_path('app/public/stocks/' . $filename))) {
-            return url('storage/stocks/' . $filename);
-        }
-
-        if (file_exists(public_path('stocks/' . $filename))) {
-            return url('stocks/' . $filename);
-        }
-
-        if (file_exists(public_path('storage/' . $filename))) {
-            return url('storage/' . $filename);
-        }
-
-        if (file_exists(public_path($filename))) {
-            return url($filename);
-        }
-
-        if (file_exists(base_path('public/storage/stocks/' . $filename))) {
-            return url('storage/stocks/' . $filename);
-        }
-
-        if (file_exists(base_path('public/' . $filename))) {
-            return url($filename);
-        }
-
-        return url('storage/' . $cleanPath);
+        return asset('storage/' . $cleanPath);
     }
 
     public function scopeActive($query)
