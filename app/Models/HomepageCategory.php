@@ -137,12 +137,12 @@ class HomepageCategory extends Model
     public static function getActiveCategories()
     {
         try {
+            self::createTableIfNotExists();
             $categories = self::where('is_active', true)->orderBy('sort_order', 'asc')->get();
             if ($categories->isNotEmpty()) {
                 return $categories;
             }
         } catch (\Exception $e) {
-            self::createTableIfNotExists();
             \Illuminate\Support\Facades\Log::warning('HomepageCategory::getActiveCategories fallback: ' . $e->getMessage());
         }
 

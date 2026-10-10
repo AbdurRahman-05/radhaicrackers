@@ -53,6 +53,8 @@ class HomepageProduct extends Model
             $cleanPath = substr($cleanPath, 7);
         }
 
+        \App\Models\Stock::syncUploadedFile($cleanPath);
+
         return asset('storage/' . $cleanPath);
     }
 } 

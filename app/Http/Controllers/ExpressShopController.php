@@ -30,24 +30,21 @@ class ExpressShopController extends Controller
         $activeCategories = [];
         $totalAmount = 0;
 
-        // Pre-fetch all active shop stocks in 1 single query instead of querying per-category
-        $allStocks = Stock::query()
-            ->where('is_active', 1)
-            ->where('show_on_shop', 1)
-            ->orderBy('order_within_category', 'asc')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
         foreach ($categories as $category) {
             $categoryName = $category->name;
-            $catId = $category->id;
             
-            // Filter in-memory
-            $stocks = $allStocks->filter(function($stock) use ($categoryName, $catId) {
-                return $stock->category === $categoryName 
-                    || $stock->category === (string)$catId 
-                    || $stock->category_id === $catId;
-            })->values();
+            // Get stocks for this category (handle both name and ID matching)
+            $stocks = Stock::query()
+                ->where('is_active', 1)
+                ->where('show_on_shop', 1)
+                ->where(function($q) use ($categoryName, $category) {
+                    $q->where('category', $categoryName)
+                      ->orWhere('category', (string)$category->id)
+                      ->orWhere('category_id', $category->id);
+                })
+                ->orderBy('order_within_category', 'asc')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             // Only show categories that have products available for the current active inventory
             if ($stocks->isNotEmpty()) {

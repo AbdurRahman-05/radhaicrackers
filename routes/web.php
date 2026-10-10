@@ -314,28 +314,48 @@ Route::prefix('admin')->name('admin.')->group(function () {
         }
     });
 
-// High-performance image storage delivery route with long-term browser caching
+// Comprehensive fallback storage route for serving product images on Hostinger / shared hosting
 Route::get('/storage/{path}', function ($path) {
-    $cleanPath = ltrim($path, '/');
-    $filename = basename($cleanPath);
-    $cleanFilename = preg_replace('#^(public/|storage/|stocks/|homepage_products/)+#', '', $cleanPath);
+    // 1. Clean path of duplicate prefixes
+    $cleanFilename = preg_replace('#^(public/|storage/|stocks/|homepage_products/)+#', '', $path);
+    $filename = basename($path);
 
-    // Prioritized list of paths
+    // List of candidate paths to locate the uploaded file
     $candidates = [
-        public_path('storage/' . $cleanPath),
-        public_path('storage/stocks/' . $filename),
-        storage_path('app/public/stocks/' . $filename),
-        storage_path('app/public/' . $cleanPath),
-        public_path('storage/homepage_products/' . $filename),
-        storage_path('app/public/homepage_products/' . $filename),
-        public_path('storage/stocks/' . $cleanFilename),
         storage_path('app/public/stocks/' . $cleanFilename),
+        storage_path('app/public/stocks/' . $filename),
+        storage_path('app/public/homepage_products/' . $cleanFilename),
+        storage_path('app/public/homepage_products/' . $filename),
+        storage_path('app/public/' . $path),
+        storage_path('app/public/' . $cleanFilename),
+        public_path('storage/stocks/' . $cleanFilename),
+        public_path('storage/stocks/' . $filename),
+        public_path('storage/homepage_products/' . $cleanFilename),
+        public_path('storage/homepage_products/' . $filename),
+        public_path('storage/' . $path),
+        public_path('storage/' . $cleanFilename),
         public_path('storage/' . $filename),
-        public_path($cleanPath),
+        public_path('stocks/' . $cleanFilename),
+        public_path('stocks/' . $filename),
+        public_path('uploads/' . $cleanFilename),
+        public_path('uploads/' . $filename),
+        public_path($path),
+        public_path($cleanFilename),
+        public_path($filename),
+        base_path('public/storage/stocks/' . $filename),
+        base_path('public/storage/' . $cleanFilename),
+        base_path('public/' . $filename),
+        base_path('storage/app/public/stocks/' . $filename),
+        base_path('storage/stocks/' . $filename),
+        base_path('storage/' . $cleanFilename),
+        base_path('stocks/' . $filename),
+        base_path($cleanFilename),
+        base_path($filename),
     ];
 
     foreach ($candidates as $filePath) {
         if (file_exists($filePath) && !is_dir($filePath)) {
+            \App\Models\Stock::syncUploadedFile($path);
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $mimeTypes = [
                 'jpg' => 'image/jpeg',
@@ -346,21 +366,27 @@ Route::get('/storage/{path}', function ($path) {
                 'svg' => 'image/svg+xml',
                 'pdf' => 'application/pdf',
             ];
-            $mime = $mimeTypes[$ext] ?? 'image/jpeg';
+            $mime = $mimeTypes[$ext] ?? (function_exists('mime_content_type') ? (mime_content_type($filePath) ?: 'image/jpeg') : 'image/jpeg');
             return response()->file($filePath, [
                 'Content-Type' => $mime,
-                'Cache-Control' => 'public, max-age=31536000, immutable',
+                'Cache-Control' => 'public, max-age=31536000',
             ]);
         }
     }
 
     // Default fallback firework image if requested file is missing from disk
-    $defImg = public_path('images/firework-default.png');
-    if (file_exists($defImg)) {
-        return response()->file($defImg, [
-            'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=86400',
-        ]);
+    $defaultCandidates = [
+        public_path('images/firework-default.png'),
+        base_path('images/firework-default.png'),
+        base_path('public/images/firework-default.png'),
+    ];
+    foreach ($defaultCandidates as $defImg) {
+        if (file_exists($defImg)) {
+            return response()->file($defImg, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
     }
 
     abort(404);
@@ -384,11 +410,21 @@ Route::get('/{filename}', function ($filename) {
         storage_path('app/public/stocks/' . $cleanFilename),
         public_path('storage/homepage_products/' . $cleanFilename),
         storage_path('app/public/homepage_products/' . $cleanFilename),
+        public_path('uploads/' . $cleanFilename),
         public_path('storage/' . $cleanFilename),
         storage_path('app/public/' . $cleanFilename),
+        public_path('stocks/' . $cleanFilename),
+        public_path($cleanFilename),
+        base_path('public/storage/stocks/' . $cleanFilename),
+        base_path('public/' . $cleanFilename),
+        base_path('storage/app/public/stocks/' . $cleanFilename),
+        base_path('storage/stocks/' . $cleanFilename),
+        base_path('stocks/' . $cleanFilename),
+        base_path($cleanFilename),
     ];
     foreach ($candidates as $filePath) {
         if (file_exists($filePath) && !is_dir($filePath)) {
+            \App\Models\Stock::syncUploadedFile($cleanFilename);
             $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $mimeTypes = [
                 'jpg' => 'image/jpeg',
@@ -401,17 +437,24 @@ Route::get('/{filename}', function ($filename) {
             $mime = $mimeTypes[$ext] ?? 'image/jpeg';
             return response()->file($filePath, [
                 'Content-Type' => $mime,
-                'Cache-Control' => 'public, max-age=31536000, immutable',
+                'Cache-Control' => 'public, max-age=31536000',
             ]);
         }
     }
 
-    $defImg = public_path('images/firework-default.png');
-    if (file_exists($defImg)) {
-        return response()->file($defImg, [
-            'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=86400',
-        ]);
+    // Default fallback firework image if requested file is missing from disk
+    $defaultCandidates = [
+        public_path('images/firework-default.png'),
+        base_path('images/firework-default.png'),
+        base_path('public/images/firework-default.png'),
+    ];
+    foreach ($defaultCandidates as $defImg) {
+        if (file_exists($defImg)) {
+            return response()->file($defImg, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
     }
 
     abort(404);

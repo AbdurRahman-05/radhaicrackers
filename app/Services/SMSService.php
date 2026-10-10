@@ -88,6 +88,12 @@ class SMSService
                         $order_value = '₹' . number_format($actualVal, 2);
                     }
 
+                    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.user-order-invoice', compact('order'))->setPaper('a4', 'portrait');
+                    $pdfContent = $pdf->output();
+                    
+                    $pdfFilename = "invoices/bill_{$order_id}_" . time() . ".pdf";
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($pdfFilename, $pdfContent);
+                    
                     $pdfUrl = route('public.pdf_invoice', $order_id);
                     $appUrl = rtrim(config('app.url'), '/');
                     if (str_contains($pdfUrl, 'localhost') || str_contains($pdfUrl, '127.0.0.1')) {
@@ -100,8 +106,7 @@ class SMSService
                     curl_setopt_array($docCurl, array(
                         CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
                         CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_CONNECTTIMEOUT => 3,
-                        CURLOPT_TIMEOUT => 6,
+                        CURLOPT_TIMEOUT => 30,
                         CURLOPT_CUSTOMREQUEST => 'POST',
                         CURLOPT_POSTFIELDS => json_encode([
                             'messaging_product' => 'whatsapp',
@@ -376,8 +381,7 @@ class SMSService
                     curl_setopt_array($curl, [
                         CURLOPT_URL => 'https://waapi.automationclub.in/api/integration/whatsapp-message/747598631767762/messages',
                         CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_CONNECTTIMEOUT => 3,
-                        CURLOPT_TIMEOUT => 4,
+                        CURLOPT_TIMEOUT => 20,
                         CURLOPT_CUSTOMREQUEST => 'POST',
                         CURLOPT_POSTFIELDS => json_encode([
                             'messaging_product' => 'whatsapp',
@@ -437,8 +441,7 @@ class SMSService
                             CURLOPT_RETURNTRANSFER => true,
                             CURLOPT_ENCODING => '',
                             CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_CONNECTTIMEOUT => 2,
-                            CURLOPT_TIMEOUT => 3,
+                            CURLOPT_TIMEOUT => 10,
                             CURLOPT_FOLLOWLOCATION => true,
                             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                             CURLOPT_CUSTOMREQUEST => 'POST',

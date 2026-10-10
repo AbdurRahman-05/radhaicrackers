@@ -41,28 +41,25 @@ class ShopController extends Controller
 
         $products = $query->orderByRaw($orderByCase)
                          ->orderBy('created_at', 'desc')
-                         ->paginate(12);
-
-        // Calculate product counts per category in 1 aggregated query instead of N queries
-        $stockCountsByCategory = Stock::where('is_active', 1)
-            ->select('category', 'category_id', DB::raw('count(*) as total'))
-            ->groupBy('category', 'category_id')
-            ->get();
-
-        $categoriesWithCounts = $categories->mapWithKeys(function($category) use ($stockCountsByCategory) {
-            $count = $stockCountsByCategory->filter(function($row) use ($category) {
-                return $row->category === $category->name 
-                    || $row->category_id == $category->id 
-                    || $row->category == (string)$category->id;
-            })->sum('total');
-
-            return [$category->id => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'icon' => $category->icon ?? '🎆',
-                'count' => (int)$count
-            ]];
-        });
+                         ->paginate(12);        // Get categories with their counts and maintain database sort order
+        $categoriesWithCounts = Category::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(function($category) {
+                $count = Stock::where('is_active', 1)
+                    ->where(function($q) use ($category) {
+                        $q->where('category', $category->name)
+                          ->orWhere('category_id', $category->id);
+                    })
+                    ->count();
+                
+                return [$category->id => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'icon' => $category->icon ?? '🎆',
+                    'count' => $count
+                ]];
+            });
         
         return view('pages.shop', [
             'products' => $products,

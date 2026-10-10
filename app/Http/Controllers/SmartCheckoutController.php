@@ -15,7 +15,37 @@ class SmartCheckoutController extends Controller
 {
     public function show()
     {
-        return view('pages.smart-checkout');
+        $stocks = \App\Models\Stock::all();
+        $stockMap = [];
+        foreach ($stocks as $stock) {
+            $stockMap[$stock->id] = [
+                'id' => $stock->id,
+                'name' => $stock->item_name,
+                'price' => (float)$stock->price,
+                'original_price' => (float)($stock->original_price > 0 ? $stock->original_price : $stock->price),
+            ];
+        }
+
+        // Include predefined Diwali combos in stockMap so they can be looked up reliably
+        if (class_exists(\App\Http\Controllers\ComboOfferController::class)) {
+            $combos = \App\Http\Controllers\ComboOfferController::getCombos();
+            foreach ($combos as $comboKey => $combo) {
+                $comboInfo = [
+                    'id' => $combo['numeric_id'],
+                    'name' => $combo['name'],
+                    'price' => (float)$combo['offer_price'],
+                    'original_price' => (float)$combo['offer_price'],
+                    'is_combo' => true,
+                ];
+                $stockMap[$combo['numeric_id']] = $comboInfo;
+                $stockMap[$comboKey] = $comboInfo;
+                if (!empty($combo['id'])) {
+                    $stockMap[$combo['id']] = $comboInfo;
+                }
+            }
+        }
+
+        return view('pages.smart-checkout', compact('stockMap'));
     }
 
     public function validateCoupon(Request $request)
@@ -126,17 +156,6 @@ class SmartCheckoutController extends Controller
             $comboSubtotal = 0;
             $calculatedTotal = 0;
 
-            // Preload any stocks missing original price in 1 single batch query
-            $missingPids = [];
-            foreach ($items as $it) {
-                $pid = (int)($it['product_id'] ?? 0);
-                $orig = (float)($it['original_price'] ?? $it['rate'] ?? $it['price'] ?? 0);
-                if ($orig <= 0 && $pid > 0 && empty($it['is_lucky_spin_gift']) && empty($it['is_free_gift'])) {
-                    $missingPids[] = $pid;
-                }
-            }
-            $stocksDb = !empty($missingPids) ? \App\Models\Stock::whereIn('id', array_unique($missingPids))->get()->keyBy('id') : collect();
-
             foreach ($items as &$item) {
                 if (!empty($item['is_lucky_spin_gift']) || !empty($item['is_free_gift'])) {
                     continue;
@@ -166,7 +185,7 @@ class SmartCheckoutController extends Controller
                 } else {
                     $itemOrig = (float)($item['original_price'] ?? $item['rate'] ?? $item['price'] ?? 0);
                     if ($itemOrig <= 0 && $pId > 0) {
-                        $stockDb = $stocksDb->get($pId);
+                        $stockDb = \App\Models\Stock::find($pId);
                         if ($stockDb) {
                             $itemOrig = (float)($stockDb->original_price > 0 ? $stockDb->original_price : $stockDb->price);
                             $item['original_price'] = $itemOrig;
